@@ -18,12 +18,21 @@
       "status": "acquired: all six parquet files in raw/cord-v2/ verified byte-exact against these SHA-256 hashes (Hugging Face LFS content identifiers), 2.3 GB total"
     },
     "sroie": {
-      "role": "grand-total-only contract: company/date/address/item_total fields are the annotated scope; no itemized scoring anywhere",
-      "source": "ICDAR 2019 SROIE Track A — canonical distribution at https://cvl.tiensit.com/data/sroie/ (site unreachable at pinning time; dataset release requires signing the consent form)",
-      "license": "consent-form-gated research use (ICDAR/SNU)",
-      "labelCoverageNote": "item_total only for monetary scoring; absent fields are excluded, never null-scored",
-      "files": [],
-      "status": "BLOCKED — awaiting owner acquisition via consent form. A non-canonical community mirror exists (huggingface.co/datasets/darentang/sroie) but is NOT adopted: per G4 the canonical snapshot is required, and adopting a mirror is an owner decision. Record source URL, version and sha256 here when obtained (risk R10)."
+      "role": "grand-total-only contract: company/date/address/total entities are the annotated scope; score total → grandTotal only, no item-level scoring",
+      "source": "https://huggingface.co/datasets/jsdnrs/ICDAR2019-SROIE (community mirror of ICDAR 2019 SROIE, approved by owner 2026-11-02 — see DECISIONS/0002-sroie-snapshot.md)",
+      "license": "CC-BY-4.0 as declared in the mirror's dataset card, LICENSE text, and NOTICE; the primary ICDAR host (rrc.cvc.uab.es/?ch=13, registration/consent) was NOT used and primary-source verification was NOT performed",
+      "acquisition": "files downloaded to raw/sroie/; LFS oids verified byte-exact for both parquets and the sample image; plain files hash-pinned as fetched",
+      "labelCoverageNote": "entities: company, date, address, total (string, extracted); words+bboxes layout present; the loader scores grandTotal only (total → grandTotal mapping)",
+      "splitStats": { "train": { "examples": 626, "bytes": 318620215 }, "test": { "examples": 361, "bytes": 191045976 } },
+      "files": [
+        { "name": "data/train-00000-of-00001.parquet", "bytes": 318620215, "sha256": "b18c16b4d8481e5e4537a1700e4616907fe4acd92d6362a7e430b0e866213887" },
+        { "name": "data/test-00000-of-00001.parquet", "bytes": 191045976, "sha256": "04f8f31b45944cc6e6459a7a95c851a721fc93ffec0a5c29ece9ded734a684c2" },
+        { "name": "assets/ex.jpg", "bytes": 70139, "sha256": "55da03744184a910dfefe4bc02c0a45af2741788600d9ec57168a693e9efadc2" },
+        { "name": "LICENSE", "bytes": 18657, "sha256": "9ba9550ad48438d0836ddab3da480b3b69ffa0aac7b7878b5a0039e7ab429411" },
+        { "name": "NOTICE", "bytes": 2462, "sha256": "c2684a420dacbd6db6f310004f2024523c3d570af2c636d77a800d47fdcb2283" },
+        { "name": "README.md", "bytes": 14273, "sha256": "5378251883667a341bd6cdf5e8a4dab7139a0fd9f653de8286001a5294fa3066" }
+      ],
+      "status": "acquired: all files in raw/sroie/ verified against the hashes above; community-mirror provenance caveat in DECISIONS/0002"
     }
   }
 }
