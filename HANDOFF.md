@@ -1,8 +1,9 @@
 # HANDOFF — session log and next steps (2026-11-02)
 
 ## Where everything lives
-- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `4cc9f14`, clean tree.
-- **GitHub remote (private, origin):** `https://github.com/geko-rgb/Recipt-lens` (name has a typo — rename pending owner decision). Branch protection on `main`: PR required, status check `unit` required, force-push/deletion denied, admins included.
+- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `3319054`, clean tree.
+- **GitHub remote (private, origin):** `https://github.com/geko-rgb/receipt-lens`. Branch protection on `main`: PR required, status check `unit` required, force-push/deletion denied, admins included.
+- **Correction (2026-11-02, ticket 03a kickoff):** the line above previously read `Recipt-lens` and claimed the remote was private. **That claim was wrong.** The repo was created `2026-11-02T14:04:35Z` and was **public** from creation until it was set to private at `~2026-11-02T16:00Z` during the 03a kickoff — roughly two hours, covering PRs #1–#4 and all of ticket 01/02 content (dataset pins, model hashes; no receipt text was ever committed). Renamed `Recipt-lens` → `receipt-lens` by owner instruction after collision checks came back clear (`@receipt-lens/core`, `receipt-lens` on npm, and `geko-rgb/receipt-lens` all unclaimed; old URL still redirects). No Pages, no forks, so the rename/visibility change had no downstream effect. Recorded here rather than in past commits — history is not rewritten. The leaked fine-grained PAT has since been rotated by the owner.
 - **The FAT32 drive folder (`/run/media/albus/C9B4-64FD/splitt2`):* original vault only — `PROJECT(1).md` (spec, source of truth), `ROADMAP.md`, model ONNX originals, agent docs. Never implement here (FAT32: pnpm needs symlinks).
 - **Fetched datasets (home repo only, git-ignored):** `benchmarks/datasets/raw/` — CORD v2 (2.3 GB, 6 parquets) + SROIE mirror (487 MB). Re-materializable: hashes pinned in `benchmarks/datasets/dataset-manifest.json`.
 
