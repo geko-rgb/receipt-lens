@@ -1,0 +1,29 @@
+# HANDOFF — session log and next steps (2026-11-02)
+
+## Where everything lives
+- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `4cc9f14`, clean tree.
+- **GitHub remote (private, origin):** `https://github.com/geko-rgb/Recipt-lens` (name has a typo — rename pending owner decision). Branch protection on `main`: PR required, status check `unit` required, force-push/deletion denied, admins included.
+- **The FAT32 drive folder (`/run/media/albus/C9B4-64FD/splitt2`):* original vault only — `PROJECT(1).md` (spec, source of truth), `ROADMAP.md`, model ONNX originals, agent docs. Never implement here (FAT32: pnpm needs symlinks).
+- **Fetched datasets (home repo only, git-ignored):** `benchmarks/datasets/raw/` — CORD v2 (2.3 GB, 6 parquets) + SROIE mirror (487 MB). Re-materializable: hashes pinned in `benchmarks/datasets/dataset-manifest.json`.
+
+## What happened (chronological)
+1. Ticket set reviewed vs ROADMAP; 9 fixes applied (03→03a/03b split, 09→09a/09b, new 10a PWA-shell/G1, new 19 M2-decision, Effort/Roadmap/Milestone/Verify fields on all tickets, OCR-contract ownership in 01, dataset pinning in 01, charge-taxonomy ownership in 02, real-receipt criterion in 04, settlement box splits in 02).
+2. **Ticket 01 done:** pnpm workspace (core/pwa/benchmarks), strict-TS public API stubs (§4 transcribed; `BillCharge`/`ChargeType` kept OUT of core — PWA-owned), vitest+Playwright runners, CI, git repo, model assets → `assets/models/` with §9-shaped content-hashed manifest (`node scripts/model-manifest.mjs`), esbuild postinstall denied via pnpm-12 `allowBuilds` (script-free frozen installs), CORD pinned + verified.
+3. Owner directives (`next.md`): business.md → `docs/business.md` closed G7 (reviewed vs spec: faithful; `pa={creator_upi}` gap acknowledged → TODO at ticket 15's UPI builder); SROIE approved via mirror `jsdnrs/ICDAR2019-SROIE`, 6 files hash-pinned + verified, license CC-BY-4.0 *as declared by the mirror* — primary ICDAR host never used, caveat recorded in `DECISIONS/0002`; storage policy in `docs/storage.md`; standing safety/reporting rules in force.
+4. **Ticket 02 done:** `packages/pwa/src/lib/{entities,exact-money,splitting,settlement}.ts` + 27 tests — BigInt reduced rationals; golden ₹664.00 table exact (24635/3, 72710/3, 24635/3, 870, 24870 → 66400); largest-remainder settlement (8212/24237/8211/870/24870); sum-invariance property tests (mulberry32 seed 20261102, no deps); unacknowledged-unit and negative/empty settlement guards (both carry `TODO(ticket 13)`). Two-axis code review run; findings fixed (Final* sources per §10; duplicate charge shape removed from core; tests now typechecked in CI).
+5. GitHub setup: PAT permission saga resolved (fine-grained PAT needed Contents+Workflows read/write); PRs #1 (01-closeout), #2 (02 incl. CI-order fix: **build before typecheck** — fresh checkouts need core `dist/index.d.ts` for pwa's `import type`), #3 (tracker status) — all merged; every merge waited for green `unit` CI, protection verified by it actually blocking a queued-check merge.
+
+## Next: ticket 03a — benchmark foundation (start fresh session, in the home repo)
+Read first: `AGENTS.md`, `.scratch/receipt-lens-v1/spec.md` (Testing Decisions), `issues/03a-benchmark-foundation.md`, `benchmarks/datasets/dataset-manifest.json`, `DECISIONS/0002`, `GLOSSARY.md`, `docs/adr/0003`, `docs/storage.md`.
+Owner-prioritized first tasks: SROIE loader against the pinned snapshot scoring **grandTotal only** (`total → grandTotal`, no item-level fields exist) and CORD loader (layout-stress bucket, Indonesian labels, excluded fields never null-scored). Both read the manifest — **no runtime fetching**. Null-parser bootstrap (exactly 0, no NaN, CI-enforced), fixture cache keyed snapshot+provider+model-hash, byte-identical reports, machine-readable committed results. Call `/tdd` at the pre-agreed benchmark seams; branch `ticket/03a-…` + PR, never direct-push `main`.
+Order after: 03b → 04 → 05 → 06 → 07 → 08 → 09a → 09b → 10a → 10 → 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18 → 19. Blocked-by lines are authoritative; `Week:`/`Milestone:` labels are planning hints (several wrong, e.g. 02 was M1/week-2 despite W17/M3).
+
+## Open items / owner decisions pending
+- Rename repo `Recipt-lens` → `receipt-lens` (`gh repo rename`) or keep.
+- Rotate the fine-grained PAT (its first ~26 chars leaked into a session transcript; value still live).
+- Ticket 13: map `otherSign:"unknown"` charges + `hasNegativeShare` + unacknowledged-unit throw to real `LockBlockerCode`s (no §13 code exists for unknown-sign today — do not invent silently).
+- Ticket 15: `// TODO(spec): payer≠creator payee gap` at the UPI builder (DECISIONS/0001); G5 NPCI limits verification.
+- ROADMAP 3D.3 typo: "P5 24870/10" — spec §11 says 24870 paise; spec wins, roadmap untouched.
+
+## Standing rules (from owner next.md — still in force)
+Branches+PRs only; no force-push/history rewrite without approval; no `--no-verify`/`.skip`/`test.only`; CI wrong → fix CI in its own explained commit; no PROJECT(1).md edits; no new runtime network calls (deps checked for telemetry/CDN/auto-update); runtime assets fully self-hosted; fixtures PII-clean; postinstalls reviewed before allowing; nothing >1 MB committed (models = approved exception); ≥5 GB free or stop; no destructive shell outside the repo; six-section ≤1-page report per ticket incl. disk delta; if ambiguous, stop and ask — silence is not approval.
