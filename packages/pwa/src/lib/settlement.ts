@@ -27,6 +27,7 @@ export function allocateSettlement(
   const sumFloors = entries.reduce((acc, e) => acc + e.floor, 0n);
   const spare = target - sumFloors;
   if (spare < 0n || spare > BigInt(entries.length - 1)) {
+    // TODO(ticket 13): map to lock blocker at the throw site
     throw new Error("settlement target inconsistent with exact shares");
   }
 
