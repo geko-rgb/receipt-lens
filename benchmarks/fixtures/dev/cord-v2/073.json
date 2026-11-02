@@ -1,0 +1,190 @@
+{
+  "receiptId": "cord-v2/dev/73",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 864,
+      "height": 1296
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "ICED TT",
+        "box": {
+          "x": 105,
+          "y": 788,
+          "width": 193,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ICED",
+            "box": {
+              "x": 105,
+              "y": 788,
+              "width": 111,
+              "height": 46
+            },
+            "confidence": null
+          },
+          {
+            "text": "TT",
+            "box": {
+              "x": 248,
+              "y": 788,
+              "width": 50,
+              "height": 40
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "20,000",
+        "box": {
+          "x": 602,
+          "y": 784,
+          "width": 166,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "20,000",
+            "box": {
+              "x": 602,
+              "y": 784,
+              "width": 166,
+              "height": 44
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "TOTAL 20,000",
+        "box": {
+          "x": 102,
+          "y": 834,
+          "width": 656,
+          "height": 50
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 102,
+              "y": 834,
+              "width": 141,
+              "height": 50
+            },
+            "confidence": null
+          },
+          {
+            "text": "20,000",
+            "box": {
+              "x": 470,
+              "y": 834,
+              "width": 288,
+              "height": 42
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "CASH 50,000",
+        "box": {
+          "x": 102,
+          "y": 882,
+          "width": 666,
+          "height": 51
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 102,
+              "y": 884,
+              "width": 115,
+              "height": 49
+            },
+            "confidence": null
+          },
+          {
+            "text": "50,000",
+            "box": {
+              "x": 606,
+              "y": 882,
+              "width": 162,
+              "height": 42
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "CHANGE 30,000",
+        "box": {
+          "x": 102,
+          "y": 929,
+          "width": 666,
+          "height": 53
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE",
+            "box": {
+              "x": 102,
+              "y": 929,
+              "width": 169,
+              "height": 53
+            },
+            "confidence": null
+          },
+          {
+            "text": "30,000",
+            "box": {
+              "x": 606,
+              "y": 930,
+              "width": 162,
+              "height": 42
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2000000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "ICED TT",
+        "qty": null,
+        "unitPrice": null,
+        "lineTotal": 2000000
+      }
+    ]
+  }
+}

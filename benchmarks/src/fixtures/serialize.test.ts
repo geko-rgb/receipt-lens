@@ -69,6 +69,7 @@ const file: FixtureFile = {
   receipts: [receipt],
   redactionCounts: { NAME: 0, EMAIL: 2 },
   unmatchedEntities: [{ class: "ADDRESS", text: "NO 2 & 4" }],
+  survivors: [{ line: 0, word: 3, token: "9000000000000", class: "ACCOUNT", reason: "scored-field" }],
 };
 
 describe("serializeReceiptFile", () => {
@@ -123,6 +124,26 @@ describe("serializeFixtureFile", () => {
     expect(parsed.unmatchedEntities[0].textLength).toBe(8);
     expect(parsed.unmatchedEntities[0].words).toBe(4);
     expect(parsed.unmatchedEntities[0].digest).toMatch(/^[0-9a-f]{12}$/);
+  });
+
+  it("counts spared tokens by reason without repeating their text", () => {
+    const text = serializeFixtureFile(file);
+    const parsed = JSON.parse(text);
+
+    expect(text).not.toContain("9000000000000");
+    expect(parsed.survivorCounts).toEqual([{ class: "ACCOUNT", reason: "scored-field", count: 1 }]);
+  });
+
+  it("records a spared position in the receipt file, mask-only", () => {
+    const parsed = JSON.parse(
+      serializeReceiptFile(receipt, [redaction], [
+        { line: 0, word: 3, token: "9000000000000", class: "ACCOUNT", reason: "scored-field" },
+      ])
+    );
+
+    expect(parsed.survivors).toEqual([
+      { class: "ACCOUNT", reason: "scored-field", line: 0, word: 3, tokenLength: 13 },
+    ]);
   });
 
   it("drops zero-count classes instead of listing every class on every receipt", () => {

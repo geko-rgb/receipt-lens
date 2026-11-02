@@ -52,7 +52,7 @@ benchmarks/fixtures/
 ```
 
 One file per receipt keeps every committed object under the 1 MB ceiling
-(`docs/storage.md`); the set totals ~12.4 MB against a 50 MB ceiling. Each provenance
+(`docs/storage.md`); the set totals ~12.6 MB against a 50 MB ceiling. Each provenance
 header records snapshot hash, license, row count, labelled/excluded fields, the redaction
 tally and digests of any entity the header anchor could not locate. Each receipt file
 carries its own redaction log — **shape only** (`beforeLength`, `after`), never the

@@ -1,0 +1,274 @@
+{
+  "receiptId": "cord-v2/eval/10",
+  "dataset": "cord-v2",
+  "split": "eval",
+  "unreadableAnnotations": [
+    {
+      "category": "menu.cnt",
+      "text": "1 x"
+    }
+  ],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 576,
+      "height": 864
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "CINNAMON SUGAR",
+        "box": {
+          "x": 45,
+          "y": 424,
+          "width": 205,
+          "height": 28
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CINNAMON SUGAR",
+            "box": {
+              "x": 45,
+              "y": 424,
+              "width": 205,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "1 x",
+        "box": {
+          "x": 48,
+          "y": 460,
+          "width": 64,
+          "height": 22
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 48,
+              "y": 460,
+              "width": 12,
+              "height": 22
+            },
+            "confidence": null
+          },
+          {
+            "text": "x",
+            "box": {
+              "x": 96,
+              "y": 464,
+              "width": 16,
+              "height": 18
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "17,000",
+        "box": {
+          "x": 126,
+          "y": 460,
+          "width": 72,
+          "height": 24
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "17,000",
+            "box": {
+              "x": 126,
+              "y": 460,
+              "width": 72,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "17,000",
+        "box": {
+          "x": 450,
+          "y": 464,
+          "width": 76,
+          "height": 26
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "17,000",
+            "box": {
+              "x": 450,
+              "y": 464,
+              "width": 76,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "SUB TOTAL 17,000",
+        "box": {
+          "x": 20,
+          "y": 506,
+          "width": 508,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SUB TOTAL",
+            "box": {
+              "x": 20,
+              "y": 506,
+              "width": 124,
+              "height": 24
+            },
+            "confidence": null
+          },
+          {
+            "text": "17,000",
+            "box": {
+              "x": 450,
+              "y": 514,
+              "width": 78,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "GRAND TOTAL 17,000",
+        "box": {
+          "x": 19,
+          "y": 571,
+          "width": 509,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GRAND TOTAL",
+            "box": {
+              "x": 19,
+              "y": 571,
+              "width": 157,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "17,000",
+            "box": {
+              "x": 450,
+              "y": 584,
+              "width": 78,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "CASH IDR 20,000",
+        "box": {
+          "x": 17,
+          "y": 620,
+          "width": 509,
+          "height": 41
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH IDR",
+            "box": {
+              "x": 17,
+              "y": 620,
+              "width": 107,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "20,000",
+            "box": {
+              "x": 447,
+              "y": 632,
+              "width": 79,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "CHANGE DUE 3,000",
+        "box": {
+          "x": 19,
+          "y": 669,
+          "width": 503,
+          "height": 35
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE DUE",
+            "box": {
+              "x": 19,
+              "y": 669,
+              "width": 149,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "3,000",
+            "box": {
+              "x": 460,
+              "y": 680,
+              "width": 62,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 1700000,
+    "subtotal": 1700000,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "CINNAMON SUGAR",
+        "qty": null,
+        "unitPrice": 1700000,
+        "lineTotal": 1700000
+      }
+    ]
+  }
+}

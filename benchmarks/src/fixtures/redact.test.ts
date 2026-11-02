@@ -170,6 +170,79 @@ describe("redactWords — label-value spans", () => {
   });
 });
 
+describe("redactWords — extended classes (owner ruling, 2026-11-02)", () => {
+  it("redacts a local-format phone with no country code and no label", () => {
+    const result = redactWords([["03-7874 8605"]]);
+
+    expect([...result.lines[0]!]).toEqual(["[PHONE]"]);
+    expect(result.redactions[0]!.class).toBe("PHONE");
+  });
+
+  it("redacts one phone inside a token that prints two", () => {
+    const result = redactWords([["T: 03-2093 7358 | F: 03-2093 7359"]]);
+
+    expect([...result.lines[0]!]).toEqual(["T: [PHONE] | F: [PHONE]"]);
+  });
+
+  it("does not mistake a date for a local phone", () => {
+    const result = redactWords([["20-11-17"], ["15/01/2019 11:05:16 AM"]]);
+
+    expect(result.redactions).toEqual([]);
+    expect(result.lines.map((line) => [...line])).toEqual([["20-11-17"], ["15/01/2019 11:05:16 AM"]]);
+  });
+
+  it("redacts a tax registration number beside its label", () => {
+    const result = redactWords([["GST ID: 000849813504"]]);
+
+    expect([...result.lines[0]!]).toEqual(["GST ID: [TAX_REG]"]);
+    expect(result.redactions[0]!.class).toBe("TAX_REG");
+  });
+
+  it("redacts an ROC-style letter-suffixed registration number", () => {
+    const result = redactWords([["(CO.REG : 933109-X)"]]);
+
+    expect(result.redactions[0]!.class).toBe("TAX_REG");
+  });
+
+  it("leaves a GST amount line alone, because the label is not the whole rule", () => {
+    const result = redactWords([["TOTAL GST (RM) : 6.37"], ["GST SUMMARY"]]);
+
+    expect(result.redactions).toEqual([]);
+  });
+
+  it("redacts a bare run of 13 or more digits with no label beside it", () => {
+    const result = redactWords([["9555916500133"]]);
+
+    expect([...result.lines[0]!]).toEqual(["[ACCOUNT]"]);
+  });
+
+  it("does not stretch the 13-digit rule across date punctuation", () => {
+    const result = redactWords([["25/12/2018 8:13:39 PM"], ["12-01-19 21:13 SH01 ZK09"]]);
+
+    expect(result.redactions).toEqual([]);
+    expect([...result.lines[0]!]).toEqual(["25/12/2018 8:13:39 PM"]);
+  });
+
+  it("spares a protected token and says why, instead of silently keeping it", () => {
+    const result = redactWords([["8899001122334"]], {}, { protectedTokens: new Set(["8899001122334"]) });
+
+    expect([...result.lines[0]!]).toEqual(["8899001122334"]);
+    expect(result.survivors).toEqual([
+      { line: 0, word: 0, token: "8899001122334", class: "ACCOUNT", reason: "scored-field" },
+    ]);
+  });
+
+  it("anchors header redaction on individual entity words when the printed form differs", () => {
+    // The real CORD/SROIE quirk: the annotation says SDN BHD, the print says SDN BND.
+    const result = redactWords(
+      [["BOOK TA .K(TAMAN DAYA) SDN BND", "TEL:07-555 0100"]],
+      { company: "BOOK TA .K (TAMAN DAYA) SDN BHD" }
+    );
+
+    expect([...result.lines[0]!]).toEqual(["[BUSINESS]", "TEL:[PHONE]"]);
+  });
+});
+
 describe("redactWords — business and address, anchored to the dataset's own entities", () => {
   it("redacts the company entity where it appears in the header", () => {
     const result = redactWords(
@@ -177,7 +250,9 @@ describe("redactWords — business and address, anchored to the dataset's own en
       { company: "ACME MARKETING SDN BHD" }
     );
 
-    expect([...result.lines[0]!]).toEqual(["HEAD CLERK", "*** COPY ***", "[BUSINESS]", "ROC NO: 000000-X"]);
+    // The ROC number is redacted by the TAX_REG rule (class 2), the company by the
+    // entity anchor — both in one pass over the same header line.
+    expect([...result.lines[0]!]).toEqual(["HEAD CLERK", "*** COPY ***", "[BUSINESS]", "ROC NO: [TAX_REG]"]);
   });
 
   it("redacts an address spread across several header tokens", () => {

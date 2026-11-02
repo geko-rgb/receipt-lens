@@ -13,9 +13,31 @@ export type PiiClass =
   | "UPI"
   | "INVOICE_NNN"
   | "CARD_XXXX"
+  | "TAX_REG"
   | "NAME"
   | "ACCOUNT"
   | "CUSTOMER";
+
+/**
+ * A rule wanted to redact this token but something outranked it. Survivors are always
+ * reported — an unredacted token nobody explained is a leak, not a judgement call.
+ */
+export interface Survivor {
+  readonly line: number;
+  readonly word: number;
+  readonly token: string;
+  readonly class: PiiClass;
+  readonly reason: string;
+}
+
+export interface RedactionOptions {
+  /**
+   * Tokens that carry a scored value or a kept item name. DECISIONS/0005 protects item
+   * names and monetary fields verbatim, so when such a token also looks like an
+   * account number the keep rule wins — and the survivor entry says so.
+   */
+  readonly protectedTokens?: ReadonlySet<string>;
+}
 
 export interface Redaction {
   readonly class: PiiClass;
@@ -58,6 +80,13 @@ const inlineRules: InlineRule[] = [
   // a masked PAN: printed as X…X or **** followed by the last four digits.
   { class: "CARD_XXXX", pattern: /[xX*]{6,}\d{4}/g, placeholder: "[CARD_XXXX]" },
   {
+    class: "TAX_REG",
+    // GST/SST/ROC/BRN registration values: 9-12 digits, or the ROC digits-letter form.
+    pattern: /(?<![\d.])\d{9,12}(?![\d.])|(?<![\d.])\d{6,8}-[A-Z]{1,2}(?![\d.])/g,
+    placeholder: "[TAX_REG]",
+    requiresLineLabel: /\b(?:GST|SST|ROC|BRN|CO\.?\.?\s?REG|REG(?:ISTRATION)?|TAX\s?ID|LICENSE\s?NO)\b/i,
+  },
+  {
     class: "ACCOUNT",
     pattern: /\d[\d\s-]{8,}\d/g,
     placeholder: "[ACCOUNT]",
@@ -71,6 +100,21 @@ const inlineRules: InlineRule[] = [
     placeholder: "[PHONE]",
     requiresLineLabel: /\b(?:TEL|FAX|TELP|PHONE|HP|MOB|HOTLINE|HUBUNGI|KONTAK)\b/i,
   },
+  {
+    class: "PHONE",
+    // `03-7874 8605`, `07-355 2616`: local exchange format, printed with neither a
+    // country code nor a TEL label beside it.
+    pattern: /(?<![\d.,:-])\d{1,2}[ -]\d{3,4}[ -]?\d{4}(?![\d.,:-])/g,
+    placeholder: "[PHONE]",
+  },
+  {
+    class: "ACCOUNT",
+    // Any bare run of 13+ digits no narrower rule claimed. Only spaces and dashes may
+    // separate digits, so date and money punctuation breaks the run: `25/12/2018
+    // 8:13:39 PM` and `12-01-19 21:13` are not 14-digit accounts.
+    pattern: /(?<![\d.,:/-])\d(?:[ -]?\d){12,}(?![\d.,:/-])/g,
+    placeholder: "[ACCOUNT]",
+  },
 ];
 
 const placeholders: Record<PiiClass, string> = {
@@ -81,6 +125,7 @@ const placeholders: Record<PiiClass, string> = {
   UPI: "[UPI]",
   INVOICE_NNN: "[INVOICE_NNN]",
   CARD_XXXX: "[CARD_XXXX]",
+  TAX_REG: "[TAX_REG]",
   NAME: "[NAME]",
   ACCOUNT: "[ACCOUNT]",
   CUSTOMER: "[CUSTOMER]",
@@ -175,6 +220,7 @@ export interface RedactionResult {
   readonly lines: readonly (readonly string[])[];
   readonly redactions: readonly Redaction[];
   readonly unmatchedEntities: readonly UnmatchedEntity[];
+  readonly survivors: readonly Survivor[];
 }
 
 /**
@@ -191,22 +237,44 @@ function normalizeEntity(text: string): string {
   return text.toUpperCase().replace(/[^A-Z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
+const anchorNoiseWords = new Set(["COPY", "INVOICE", "TAX", "TOTAL", "SDN", "BHD", "Sdn", "DAN", "DAN/"]);
+
+function distinctiveWords(text: string): Set<string> {
+  // Four characters or more, so `SDN`, `BHD` and `NO` cannot anchor a match on their
+  // own — they appear on receipts that have nothing to do with the annotated business.
+  return new Set(
+    normalizeEntity(text)
+      .split(" ")
+      .filter((word) => word.length >= 4 && !anchorNoiseWords.has(word))
+  );
+}
+
 function redactHeaderEntities(
   words: readonly string[],
   lineIndex: number,
   entities: HeaderEntities
 ): { words: string[]; marks: SpanMark[] } {
   if (lineIndex >= headerEntityLineLimit) return { words: [...words], marks: [] };
-  const anchors: { class: PiiClass; normalized: string }[] = [];
-  if (entities.company) anchors.push({ class: "BUSINESS", normalized: normalizeEntity(entities.company) });
-  if (entities.address) anchors.push({ class: "ADDRESS", normalized: normalizeEntity(entities.address) });
+  const anchors: { class: PiiClass; normalized: string; distinctive: Set<string> }[] = [];
+  if (entities.company) {
+    anchors.push({ class: "BUSINESS", normalized: normalizeEntity(entities.company), distinctive: distinctiveWords(entities.company) });
+  }
+  if (entities.address) {
+    anchors.push({ class: "ADDRESS", normalized: normalizeEntity(entities.address), distinctive: distinctiveWords(entities.address) });
+  }
 
   const marks: SpanMark[] = [];
   const out = words.map((word, wordIndex) => {
     const normalized = normalizeEntity(word);
     if (normalized.length < 3) return word;
     const hit = anchors.find(
-      ({ normalized: entity }) => entity.includes(normalized) || normalized.includes(entity)
+      ({ normalized: entity, distinctive }) =>
+        // whole-token containment, or any distinctive entity word appearing in the
+        // token: CORD and SROIE annotations routinely differ from the print by a
+        // character or a missing punctuation mark, and token equality would miss them.
+        entity.includes(normalized) ||
+        normalized.includes(entity) ||
+        normalized.split(" ").some((token) => distinctive.has(token))
     );
     if (!hit) return word;
     marks.push({ word: wordIndex, class: hit.class });
@@ -283,9 +351,11 @@ function redactWord(word: string, lineText: string): { text: string; classes: Pi
 
 export function redactWords(
   lines: readonly (readonly string[])[],
-  entities: HeaderEntities = {}
+  entities: HeaderEntities = {},
+  options: RedactionOptions = {}
 ): RedactionResult {
   const redactions: Redaction[] = [];
+  const survivors: Survivor[] = [];
   const out: string[][] = [];
   const claimedClasses = new Set<PiiClass>();
 
@@ -300,14 +370,24 @@ export function redactWords(
     for (const [wordIndex, word] of spanned.words.entries()) {
       const { text, classes } = redactWord(word, lineText);
       const before = original[wordIndex]!;
-      if (text !== before) {
-        const mark =
-          headed.marks.find((candidate) => candidate.word === wordIndex) ??
-          spanned.marks.find((candidate) => candidate.word === wordIndex);
-        const claimed = mark ? mark.class : classes[0]!;
-        claimedClasses.add(claimed);
-        redactions.push({ class: claimed, line: lineIndex, word: wordIndex, before, after: text });
+      const mark =
+        headed.marks.find((candidate) => candidate.word === wordIndex) ??
+        spanned.marks.find((candidate) => candidate.word === wordIndex);
+      const claimed = mark ? mark.class : classes[0];
+      if (text === before) {
+        line.push(text);
+        continue;
       }
+      if (options.protectedTokens?.has(before)) {
+        // DECISIONS/0005 keeps item names and monetary values verbatim. When a kept
+        // token also looks like an account number the keep rule wins — but the decision
+        // is recorded, never taken quietly.
+        survivors.push({ line: lineIndex, word: wordIndex, token: before, class: claimed ?? "ACCOUNT", reason: "scored-field" });
+        line.push(before);
+        continue;
+      }
+      claimedClasses.add(claimed!);
+      redactions.push({ class: claimed!, line: lineIndex, word: wordIndex, before, after: text });
       line.push(text);
     }
     out.push(line);
@@ -321,5 +401,5 @@ export function redactWords(
     unmatchedEntities.push({ class: "ADDRESS", text: entities.address });
   }
 
-  return { lines: out, redactions, unmatchedEntities };
+  return { lines: out, redactions, unmatchedEntities, survivors };
 }

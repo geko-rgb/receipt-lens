@@ -10,7 +10,7 @@ import {
 } from "./datasets/read.js";
 import { SROIE_EXCLUDED_FIELDS, SROIE_LABELED_FIELDS, mapSroieReceipt } from "./datasets/sroie.js";
 import type { BenchmarkField, DatasetName, LabeledReceipt } from "./datasets/types.js";
-import { redactWords, type HeaderEntities, type Redaction, type UnmatchedEntity } from "./fixtures/redact.js";
+import { redactWords, type HeaderEntities, type Redaction, type Survivor, type UnmatchedEntity } from "./fixtures/redact.js";
 import { assertSplitsDisjoint, serializeFixtureFile, serializeReceiptFile, tallyRedactions } from "./fixtures/serialize.js";
 
 // Runs from benchmarks/dist/ after tsc, so the repo root is two levels up.
@@ -83,14 +83,19 @@ interface Generated {
   readonly receipts: readonly LabeledReceipt[];
   /** one log per receipt, index-aligned with `receipts` */
   readonly redactionLogs: readonly (readonly Redaction[])[];
+  readonly survivorLogs: readonly (readonly Survivor[])[];
   readonly unmatchedEntities: readonly UnmatchedEntity[];
   /** dataset/sourceSplit/row — the identity used to prove dev and eval cannot overlap */
   readonly sourceIds: readonly string[];
 }
 
-function redactReceipt(receipt: LabeledReceipt, entities: HeaderEntities): { receipt: LabeledReceipt; redactions: readonly Redaction[]; unmatched: readonly UnmatchedEntity[] } {
+function redactReceipt(
+  receipt: LabeledReceipt,
+  entities: HeaderEntities,
+  protectedTokens: ReadonlySet<string>
+): { receipt: LabeledReceipt; redactions: readonly Redaction[]; survivors: readonly Survivor[]; unmatched: readonly UnmatchedEntity[] } {
   const wordLines = receipt.ocr.lines.map((line) => line.words.map((word) => word.text));
-  const result = redactWords(wordLines, entities);
+  const result = redactWords(wordLines, entities, { protectedTokens });
   const lines = receipt.ocr.lines.map((line, lineIndex) => {
     const words = line.words.map((word, wordIndex) => ({ ...word, text: result.lines[lineIndex]![wordIndex]! }));
     return { ...line, text: words.map((word) => word.text).join(" "), words };
@@ -98,8 +103,31 @@ function redactReceipt(receipt: LabeledReceipt, entities: HeaderEntities): { rec
   return {
     receipt: { ...receipt, ocr: { ...receipt.ocr, lines } },
     redactions: result.redactions,
+    survivors: result.survivors,
     unmatched: result.unmatchedEntities,
   };
+}
+
+/**
+ * Tokens DECISIONS/0005 keeps verbatim: CORD item names and quantities, and the printed
+ * form of a scored monetary value. A 13+ digit run that is also an item code or a total
+ * must survive redaction, and say so — otherwise the fixture becomes impossible to score.
+ */
+function protectedTokensFor(receipt: LabeledReceipt): Set<string> {
+  const protectedTokens = new Set<string>();
+  for (const item of receipt.gold.items) {
+    for (const token of item.name.split(/\s+/)) if (token !== "") protectedTokens.add(token);
+    if (item.qty !== null) protectedTokens.add(String(item.qty));
+  }
+  if (receipt.gold.grandTotal !== null) {
+    const goldDigits = String(receipt.gold.grandTotal);
+    for (const line of receipt.ocr.lines) {
+      for (const word of line.words) {
+        if (word.text.replace(/\D/g, "") === goldDigits) protectedTokens.add(word.text);
+      }
+    }
+  }
+  return protectedTokens;
 }
 
 async function generate(target: Target, snapshotHash: string): Promise<Generated> {
@@ -107,34 +135,40 @@ async function generate(target: Target, snapshotHash: string): Promise<Generated
   const dataset = manifest.datasets[target.dataset];
   const receipts: LabeledReceipt[] = [];
   const redactionLogs: (readonly Redaction[])[] = [];
+  const survivorLogs: (readonly Survivor[])[] = [];
   const unmatched: UnmatchedEntity[] = [];
+
+  const emit = (mapped: LabeledReceipt, entities: HeaderEntities): void => {
+    const result = redactReceipt(mapped, entities, protectedTokensFor(mapped));
+    receipts.push(result.receipt);
+    redactionLogs.push(result.redactions);
+    survivorLogs.push(result.survivors);
+    unmatched.push(...result.unmatched);
+  };
 
   if (target.dataset === "cord-v2") {
     const rows = await readCordRows(datasetRoot, dataset, target.sourceSplit as "validation" | "test");
-    for (const [index, row] of rows.slice(0, target.limit).entries()) {
-      const mapped = mapCordReceipt(row, { receiptId: `${target.dataset}/${target.split}/${index}`, snapshotHash });
-      // CORD's snapshot carries no business or address annotation, so header anchoring has
-      // nothing to work from here; label-anchored rules still apply (DECISIONS/0005).
-      const result = redactReceipt(mapped, {});
-      receipts.push(result.receipt);
-      redactionLogs.push(result.redactions);
-    }
+    rows.slice(0, target.limit).forEach((row, index) => {
+      // CORD's snapshot carries no business or address annotation, so header anchoring
+      // has nothing to work from here; every other rule still applies (DECISIONS/0005).
+      emit(mapCordReceipt(row, { receiptId: `${target.dataset}/${target.split}/${index}`, snapshotHash }), {});
+    });
   } else {
     const rows = await readSroieRows(datasetRoot, dataset, target.sourceSplit as "train" | "test");
-    for (const [index, row] of rows.slice(0, target.limit).entries()) {
-      const mapped = mapSroieReceipt(row, { receiptId: `${target.dataset}/${target.split}/${index}`, snapshotHash });
+    rows.slice(0, target.limit).forEach((row, index) => {
       // company and address anchor the header redaction, then disappear: only `total`
       // survives as an annotation (DECISIONS/0005).
-      const result = redactReceipt(mapped, { company: row.entities.company, address: row.entities.address });
-      receipts.push(result.receipt);
-      redactionLogs.push(result.redactions);
-      unmatched.push(...result.unmatched);
-    }
+      emit(mapSroieReceipt(row, { receiptId: `${target.dataset}/${target.split}/${index}`, snapshotHash }), {
+        company: row.entities.company,
+        address: row.entities.address,
+      });
+    });
   }
 
   return {
     receipts,
     redactionLogs,
+    survivorLogs,
     unmatchedEntities: unmatched,
     sourceIds: receipts.map((receipt) => `${receipt.dataset}/${target.sourceSplit}/${receipt.receiptId.split("/").at(-1)}`),
   };
@@ -173,17 +207,18 @@ async function collectExpected(): Promise<Map<string, string>> {
       receipts: generated.receipts,
       redactionCounts: tallyRedactions(generated.redactionLogs.flat()),
       unmatchedEntities: generated.unmatchedEntities,
+      survivors: generated.survivorLogs.flat(),
     });
     files.set(path.join(fixturesRoot, target.split, `${target.dataset}.provenance.json`), header);
 
     generated.receipts.forEach((receipt, index) => {
       files.set(
         path.join(fixturesRoot, target.split, target.dataset, `${String(index).padStart(3, "0")}.json`),
-        serializeReceiptFile(receipt, generated.redactionLogs[index]!)
+        serializeReceiptFile(receipt, generated.redactionLogs[index]!, generated.survivorLogs[index]!)
       );
     });
     console.log(
-      `${target.split}/${target.dataset} (${target.sourceSplit}): ${generated.receipts.length} receipts, ${generated.redactionLogs.flat().length} redactions, ${generated.unmatchedEntities.length} unmatched entities`
+      `${target.split}/${target.dataset} (${target.sourceSplit}): ${generated.receipts.length} receipts, ${generated.redactionLogs.flat().length} redactions, ${generated.survivorLogs.flat().length} spared, ${generated.unmatchedEntities.length} unmatched entities`
     );
   }
 

@@ -1,0 +1,233 @@
+{
+  "receiptId": "cord-v2/eval/11",
+  "dataset": "cord-v2",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 576,
+      "height": 864
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1",
+        "box": {
+          "x": 116,
+          "y": 390,
+          "width": 10,
+          "height": 16
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 116,
+              "y": 390,
+              "width": 10,
+              "height": 16
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "BANABERRY FRESH CREAM CAK",
+        "box": {
+          "x": 127,
+          "y": 376,
+          "width": 205,
+          "height": 30
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "BANABERRY",
+            "box": {
+              "x": 127,
+              "y": 381,
+              "width": 79,
+              "height": 25
+            },
+            "confidence": null
+          },
+          {
+            "text": "FRESH",
+            "box": {
+              "x": 208,
+              "y": 380,
+              "width": 46,
+              "height": 20
+            },
+            "confidence": null
+          },
+          {
+            "text": "CREAM",
+            "box": {
+              "x": 254,
+              "y": 378,
+              "width": 46,
+              "height": 20
+            },
+            "confidence": null
+          },
+          {
+            "text": "CAK",
+            "box": {
+              "x": 302,
+              "y": 376,
+              "width": 30,
+              "height": 20
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "230,000",
+        "box": {
+          "x": 339,
+          "y": 371,
+          "width": 63,
+          "height": 25
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "230,000",
+            "box": {
+              "x": 339,
+              "y": 371,
+              "width": 63,
+              "height": 25
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "TOTAL 230,000",
+        "box": {
+          "x": 128,
+          "y": 410,
+          "width": 279,
+          "height": 48
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 128,
+              "y": 420,
+              "width": 89,
+              "height": 38
+            },
+            "confidence": null
+          },
+          {
+            "text": "230,000",
+            "box": {
+              "x": 286,
+              "y": 410,
+              "width": 121,
+              "height": 40
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "CASH 230,000",
+        "box": {
+          "x": 128,
+          "y": 437,
+          "width": 281,
+          "height": 35
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 128,
+              "y": 454,
+              "width": 40,
+              "height": 18
+            },
+            "confidence": null
+          },
+          {
+            "text": "230,000",
+            "box": {
+              "x": 343,
+              "y": 437,
+              "width": 66,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "CHANGE 0",
+        "box": {
+          "x": 126,
+          "y": 458,
+          "width": 286,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE",
+            "box": {
+              "x": 126,
+              "y": 464,
+              "width": 109,
+              "height": 40
+            },
+            "confidence": null
+          },
+          {
+            "text": "0",
+            "box": {
+              "x": 390,
+              "y": 458,
+              "width": 22,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 23000000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "BANABERRY FRESH CREAM CAK",
+        "qty": 1,
+        "unitPrice": null,
+        "lineTotal": 23000000
+      }
+    ]
+  }
+}

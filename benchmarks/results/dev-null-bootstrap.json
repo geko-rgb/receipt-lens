@@ -1,0 +1,171 @@
+{
+  "headlineMode": "cached-reference-ocr-node",
+  "parser": "null",
+  "accuracyIsACeiling": true,
+  "ceilingReasons": [
+    "fixtures are the dataset's own reference OCR, so no OCR error reaches these numbers (DECISIONS/0003)",
+    "development happens against dev/, so bugs a dev-driven fix would have caught on eval/ are already gone (DECISIONS/0004)"
+  ],
+  "strictTier": "scalar fields only; item agreement joins this tier when the 03b matcher lands",
+  "nullSemantics": "gold-null and predicted-null count as agreement on absence, never as a true positive; a gold value with no prediction is a false negative, and a prediction with no gold behind it is a false positive; fields a dataset does not label are excluded, not scored",
+  "datasets": [
+    {
+      "dataset": "cord-v2",
+      "snapshotHash": "6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+      "receipts": 100,
+      "strict": {
+        "receipts": 100,
+        "scoreable": 100,
+        "goldless": 0,
+        "matched": 0,
+        "rate": 0
+      },
+      "fieldsLabeled": [
+        "grandTotal",
+        "subtotal",
+        "serviceCharge",
+        "discount",
+        "taxTotal",
+        "item.name",
+        "item.qty",
+        "item.unitPrice",
+        "item.lineTotal"
+      ],
+      "fieldsExcluded": [
+        "roundOff",
+        "tip"
+      ],
+      "fields": [
+        {
+          "field": "grandTotal",
+          "tp": 0,
+          "fp": 0,
+          "fn": 96,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 4
+        },
+        {
+          "field": "subtotal",
+          "tp": 0,
+          "fp": 0,
+          "fn": 65,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 35
+        },
+        {
+          "field": "serviceCharge",
+          "tp": 0,
+          "fp": 0,
+          "fn": 12,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 88
+        },
+        {
+          "field": "discount",
+          "tp": 0,
+          "fp": 0,
+          "fn": 5,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 95
+        },
+        {
+          "field": "taxTotal",
+          "tp": 0,
+          "fp": 0,
+          "fn": 45,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 55
+        },
+        {
+          "field": "item.name",
+          "tp": 0,
+          "fp": 0,
+          "fn": 254,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 0
+        },
+        {
+          "field": "item.qty",
+          "tp": 0,
+          "fp": 0,
+          "fn": 198,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 0
+        },
+        {
+          "field": "item.unitPrice",
+          "tp": 0,
+          "fp": 0,
+          "fn": 49,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 0
+        },
+        {
+          "field": "item.lineTotal",
+          "tp": 0,
+          "fp": 0,
+          "fn": 222,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 0
+        }
+      ]
+    },
+    {
+      "dataset": "sroie",
+      "snapshotHash": "483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+      "receipts": 150,
+      "strict": {
+        "receipts": 150,
+        "scoreable": 149,
+        "goldless": 1,
+        "matched": 0,
+        "rate": 0
+      },
+      "fieldsLabeled": [
+        "grandTotal"
+      ],
+      "fieldsExcluded": [
+        "discount",
+        "item.lineTotal",
+        "item.name",
+        "item.qty",
+        "item.unitPrice",
+        "roundOff",
+        "serviceCharge",
+        "subtotal",
+        "taxTotal",
+        "tip"
+      ],
+      "fields": [
+        {
+          "field": "grandTotal",
+          "tp": 0,
+          "fp": 0,
+          "fn": 149,
+          "precision": 0,
+          "recall": 0,
+          "f1": 0,
+          "absentAgreements": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,279 @@
+{
+  "receiptId": "cord-v2/dev/23",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 576,
+      "height": 864
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1",
+        "box": {
+          "x": 74,
+          "y": 322,
+          "width": 12,
+          "height": 24
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 74,
+              "y": 322,
+              "width": 12,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "BUBBLE GUM",
+        "box": {
+          "x": 88,
+          "y": 321,
+          "width": 104,
+          "height": 31
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "BUBBLE",
+            "box": {
+              "x": 88,
+              "y": 321,
+              "width": 65,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "GUM",
+            "box": {
+              "x": 156,
+              "y": 328,
+              "width": 36,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "18,182",
+        "box": {
+          "x": 374,
+          "y": 342,
+          "width": 64,
+          "height": 28
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "18,182",
+            "box": {
+              "x": 374,
+              "y": 342,
+              "width": 64,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "Subtotal 18,182",
+        "box": {
+          "x": 84,
+          "y": 371,
+          "width": 353,
+          "height": 52
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Subtotal",
+            "box": {
+              "x": 84,
+              "y": 371,
+              "width": 85,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "18,182",
+            "box": {
+              "x": 368,
+              "y": 391,
+              "width": 69,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "PAJAK 10% 1,818",
+        "box": {
+          "x": 82,
+          "y": 395,
+          "width": 353,
+          "height": 54
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "PAJAK",
+            "box": {
+              "x": 82,
+              "y": 395,
+              "width": 57,
+              "height": 30
+            },
+            "confidence": null
+          },
+          {
+            "text": "10%",
+            "box": {
+              "x": 142,
+              "y": 402,
+              "width": 34,
+              "height": 24
+            },
+            "confidence": null
+          },
+          {
+            "text": "1,818",
+            "box": {
+              "x": 376,
+              "y": 418,
+              "width": 59,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "Total 20.000",
+        "box": {
+          "x": 82,
+          "y": 421,
+          "width": 351,
+          "height": 53
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Total",
+            "box": {
+              "x": 82,
+              "y": 421,
+              "width": 55,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "20.000",
+            "box": {
+              "x": 364,
+              "y": 443,
+              "width": 69,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "1",
+        "box": {
+          "x": 68,
+          "y": 424,
+          "width": 12,
+          "height": 22
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 68,
+              "y": 424,
+              "width": 12,
+              "height": 22
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "CASH 20.000",
+        "box": {
+          "x": 82,
+          "y": 472,
+          "width": 344,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 82,
+              "y": 472,
+              "width": 44,
+              "height": 24
+            },
+            "confidence": null
+          },
+          {
+            "text": "20.000",
+            "box": {
+              "x": 362,
+              "y": 492,
+              "width": 64,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2000000,
+    "subtotal": 1818200,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": 181800,
+    "items": [
+      {
+        "name": "BUBBLE GUM",
+        "qty": 1,
+        "unitPrice": null,
+        "lineTotal": 1818200
+      }
+    ]
+  }
+}

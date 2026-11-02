@@ -1,0 +1,72 @@
+{
+  "provenance": {
+    "dataset": "sroie",
+    "split": "dev",
+    "sourceSplit": "train",
+    "snapshotHash": "483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+    "source": "https://huggingface.co/datasets/jsdnrs/ICDAR2019-SROIE (community mirror of ICDAR 2019 SROIE, approved by owner 2026-11-02 — see DECISIONS/0002-sroie-snapshot.md)",
+    "license": "CC-BY-4.0 as declared in the mirror's dataset card, LICENSE text, and NOTICE; the primary ICDAR host (rrc.cvc.uab.es/?ch=13, registration/consent) was NOT used and primary-source verification was NOT performed",
+    "referenceOcrSource": "SROIE words + rectangles, lines reconstructed by fixed-tolerance y-clustering (harness-derived, DECISIONS/0003)",
+    "receipts": 150,
+    "fieldsLabeled": [
+      "grandTotal"
+    ],
+    "fieldsExcluded": [
+      "subtotal",
+      "serviceCharge",
+      "tip",
+      "discount",
+      "roundOff",
+      "taxTotal",
+      "item.name",
+      "item.qty",
+      "item.unitPrice",
+      "item.lineTotal"
+    ],
+    "exclusionReason": "SROIE annotates company/date/address/total only, so it is a grand-total-only contract; item-level and charge fields do not exist in this dataset (DECISIONS/0002)"
+  },
+  "redactionCounts": {
+    "ACCOUNT": 98,
+    "ADDRESS": 393,
+    "BUSINESS": 179,
+    "CUSTOMER": 4,
+    "EMAIL": 7,
+    "INVOICE_NNN": 35,
+    "NAME": 118,
+    "PHONE": 110,
+    "TAX_REG": 152
+  },
+  "unmatchedEntities": [
+    {
+      "class": "ADDRESS",
+      "textLength": 59,
+      "words": 10,
+      "digest": "12163818d11b"
+    },
+    {
+      "class": "ADDRESS",
+      "textLength": 50,
+      "words": 9,
+      "digest": "68e7a4f4832a"
+    },
+    {
+      "class": "ADDRESS",
+      "textLength": 73,
+      "words": 8,
+      "digest": "978bd0633da5"
+    },
+    {
+      "class": "ADDRESS",
+      "textLength": 44,
+      "words": 8,
+      "digest": "a5daaa4f9434"
+    },
+    {
+      "class": "ADDRESS",
+      "textLength": 73,
+      "words": 8,
+      "digest": "bd2fc47a288e"
+    }
+  ],
+  "survivorCounts": []
+}

@@ -1,0 +1,233 @@
+{
+  "receiptId": "cord-v2/dev/56",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 576,
+      "height": 864
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "Thai Iced T. .x1",
+        "box": {
+          "x": 141,
+          "y": 481,
+          "width": 155,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Thai",
+            "box": {
+              "x": 141,
+              "y": 485,
+              "width": 50,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "Iced",
+            "box": {
+              "x": 194,
+              "y": 481,
+              "width": 49,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "T. .x1",
+            "box": {
+              "x": 244,
+              "y": 482,
+              "width": 52,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "20.000",
+        "box": {
+          "x": 404,
+          "y": 486,
+          "width": 72,
+          "height": 30
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "20.000",
+            "box": {
+              "x": 404,
+              "y": 486,
+              "width": 72,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "Subtotal 20.000",
+        "box": {
+          "x": 142,
+          "y": 538,
+          "width": 337,
+          "height": 41
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Subtotal",
+            "box": {
+              "x": 142,
+              "y": 538,
+              "width": 91,
+              "height": 35
+            },
+            "confidence": null
+          },
+          {
+            "text": "20.000",
+            "box": {
+              "x": 403,
+              "y": 545,
+              "width": 76,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "Total 20.000",
+        "box": {
+          "x": 144,
+          "y": 598,
+          "width": 337,
+          "height": 45
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Total",
+            "box": {
+              "x": 144,
+              "y": 598,
+              "width": 62,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "20.000",
+            "box": {
+              "x": 404,
+              "y": 607,
+              "width": 77,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "Cash 20.000",
+        "box": {
+          "x": 145,
+          "y": 658,
+          "width": 339,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Cash",
+            "box": {
+              "x": 145,
+              "y": 658,
+              "width": 53,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "20.000",
+            "box": {
+              "x": 405,
+              "y": 666,
+              "width": 79,
+              "height": 38
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "Change 0",
+        "box": {
+          "x": 148,
+          "y": 690,
+          "width": 332,
+          "height": 40
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Change",
+            "box": {
+              "x": 148,
+              "y": 690,
+              "width": 71,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "0",
+            "box": {
+              "x": 464,
+              "y": 706,
+              "width": 16,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2000000,
+    "subtotal": 2000000,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Thai Iced T. .x1",
+        "qty": null,
+        "unitPrice": null,
+        "lineTotal": 2000000
+      }
+    ]
+  }
+}

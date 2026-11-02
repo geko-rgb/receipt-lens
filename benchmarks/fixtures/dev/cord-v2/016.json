@@ -1,0 +1,226 @@
+{
+  "receiptId": "cord-v2/dev/16",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 2376,
+      "height": 4224
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1",
+        "box": {
+          "x": 880,
+          "y": 2446,
+          "width": 36,
+          "height": 65
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 880,
+              "y": 2446,
+              "width": 36,
+              "height": 65
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "20,000",
+        "box": {
+          "x": 1248,
+          "y": 2428,
+          "width": 254,
+          "height": 80
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "20,000",
+            "box": {
+              "x": 1248,
+              "y": 2428,
+              "width": 254,
+              "height": 80
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "20,000",
+        "box": {
+          "x": 1368,
+          "y": 2499,
+          "width": 251,
+          "height": 80
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "20,000",
+            "box": {
+              "x": 1368,
+              "y": 2499,
+              "width": 251,
+              "height": 80
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "TT",
+        "box": {
+          "x": 616,
+          "y": 2525,
+          "width": 92,
+          "height": 71
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TT",
+            "box": {
+              "x": 616,
+              "y": 2525,
+              "width": 92,
+              "height": 71
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "TOTAL 20,000",
+        "box": {
+          "x": 614,
+          "y": 2571,
+          "width": 988,
+          "height": 102
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 614,
+              "y": 2594,
+              "width": 227,
+              "height": 79
+            },
+            "confidence": null
+          },
+          {
+            "text": "20,000",
+            "box": {
+              "x": 1163,
+              "y": 2571,
+              "width": 439,
+              "height": 90
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "CASH 100,000",
+        "box": {
+          "x": 614,
+          "y": 2639,
+          "width": 1007,
+          "height": 106
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 614,
+              "y": 2669,
+              "width": 184,
+              "height": 76
+            },
+            "confidence": null
+          },
+          {
+            "text": "100,000",
+            "box": {
+              "x": 1335,
+              "y": 2639,
+              "width": 286,
+              "height": 80
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "CHANGE 80,000",
+        "box": {
+          "x": 614,
+          "y": 2714,
+          "width": 1000,
+          "height": 99
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE",
+            "box": {
+              "x": 614,
+              "y": 2737,
+              "width": 267,
+              "height": 76
+            },
+            "confidence": null
+          },
+          {
+            "text": "80,000",
+            "box": {
+              "x": 1369,
+              "y": 2714,
+              "width": 245,
+              "height": 75
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2000000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "TT",
+        "qty": 1,
+        "unitPrice": 2000000,
+        "lineTotal": 2000000
+      }
+    ]
+  }
+}

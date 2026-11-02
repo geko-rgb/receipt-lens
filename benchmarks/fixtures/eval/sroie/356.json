@@ -1,0 +1,892 @@
+{
+  "receiptId": "sroie/eval/356",
+  "dataset": "sroie",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [
+    {
+      "class": "BUSINESS",
+      "line": 0,
+      "word": 0,
+      "beforeLength": 12,
+      "after": "[BUSINESS]"
+    },
+    {
+      "class": "BUSINESS",
+      "line": 1,
+      "word": 0,
+      "beforeLength": 15,
+      "after": "[BUSINESS]"
+    },
+    {
+      "class": "TAX_REG",
+      "line": 3,
+      "word": 0,
+      "beforeLength": 26,
+      "after": "(GST REG NO. [TAX_REG])"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 4,
+      "word": 0,
+      "beforeLength": 4,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 5,
+      "word": 0,
+      "beforeLength": 18,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "PHONE",
+      "line": 7,
+      "word": 0,
+      "beforeLength": 17,
+      "after": "TEL : [PHONE]"
+    },
+    {
+      "class": "INVOICE_NNN",
+      "line": 8,
+      "word": 1,
+      "beforeLength": 20,
+      "after": "SLIP NO.: [INVOICE_NNN]"
+    },
+    {
+      "class": "ACCOUNT",
+      "line": 10,
+      "word": 0,
+      "beforeLength": 30,
+      "after": "MEMBER CARD NO : [ACCOUNT]"
+    }
+  ],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 746,
+      "height": 1824
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "sroie@483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "[BUSINESS]",
+        "box": {
+          "x": 143,
+          "y": 93,
+          "width": 430,
+          "height": 53
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[BUSINESS]",
+            "box": {
+              "x": 143,
+              "y": 93,
+              "width": 430,
+              "height": 53
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "[BUSINESS]",
+        "box": {
+          "x": 109,
+          "y": 155,
+          "width": 532,
+          "height": 59
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[BUSINESS]",
+            "box": {
+              "x": 109,
+              "y": 155,
+              "width": 532,
+              "height": 59
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "(CO. NO. 113825-W)",
+        "box": {
+          "x": 199,
+          "y": 219,
+          "width": 315,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "(CO. NO. 113825-W)",
+            "box": {
+              "x": 199,
+              "y": 219,
+              "width": 315,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "(GST REG NO. [TAX_REG])",
+        "box": {
+          "x": 123,
+          "y": 257,
+          "width": 463,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "(GST REG NO. [TAX_REG])",
+            "box": {
+              "x": 123,
+              "y": 257,
+              "width": 463,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 51,
+          "y": 299,
+          "width": 610,
+          "height": 29
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 51,
+              "y": 299,
+              "width": 610,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 104,
+          "y": 338,
+          "width": 503,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 104,
+              "y": 338,
+              "width": 503,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "EMPIRE SHOPPING GALLERY",
+        "box": {
+          "x": 142,
+          "y": 378,
+          "width": 413,
+          "height": 29
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "EMPIRE SHOPPING GALLERY",
+            "box": {
+              "x": 142,
+              "y": 378,
+              "width": 413,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "TEL : [PHONE]",
+        "box": {
+          "x": 212,
+          "y": 458,
+          "width": 306,
+          "height": 29
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TEL : [PHONE]",
+            "box": {
+              "x": 212,
+              "y": 458,
+              "width": 306,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L8",
+        "text": "05/03/18 15:02 SLIP NO.: [INVOICE_NNN]",
+        "box": {
+          "x": 36,
+          "y": 534,
+          "width": 663,
+          "height": 35
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "05/03/18 15:02",
+            "box": {
+              "x": 36,
+              "y": 534,
+              "width": 250,
+              "height": 35
+            },
+            "confidence": null
+          },
+          {
+            "text": "SLIP NO.: [INVOICE_NNN]",
+            "box": {
+              "x": 335,
+              "y": 535,
+              "width": 364,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L9",
+        "text": "LI FONG TRANS: 104610",
+        "box": {
+          "x": 36,
+          "y": 577,
+          "width": 589,
+          "height": 35
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "LI FONG",
+            "box": {
+              "x": 36,
+              "y": 578,
+              "width": 131,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "TRANS: 104610",
+            "box": {
+              "x": 391,
+              "y": 577,
+              "width": 234,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L10",
+        "text": "MEMBER CARD NO : [ACCOUNT]",
+        "box": {
+          "x": 73,
+          "y": 657,
+          "width": 516,
+          "height": 29
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "MEMBER CARD NO : [ACCOUNT]",
+            "box": {
+              "x": 73,
+              "y": 657,
+              "width": 516,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L11",
+        "text": "CARD EXPIRY : 31/05/18",
+        "box": {
+          "x": 129,
+          "y": 697,
+          "width": 369,
+          "height": 30
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CARD EXPIRY : 31/05/18",
+            "box": {
+              "x": 129,
+              "y": 697,
+              "width": 369,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L12",
+        "text": "DESCRIPTION AMOUNT",
+        "box": {
+          "x": 40,
+          "y": 775,
+          "width": 599,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "DESCRIPTION",
+            "box": {
+              "x": 40,
+              "y": 775,
+              "width": 195,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "AMOUNT",
+            "box": {
+              "x": 533,
+              "y": 777,
+              "width": 106,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L13",
+        "text": "SC ACR FRAME S103M",
+        "box": {
+          "x": 36,
+          "y": 854,
+          "width": 324,
+          "height": 31
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SC ACR FRAME S103M",
+            "box": {
+              "x": 36,
+              "y": 854,
+              "width": 324,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L14",
+        "text": "2PC @ 5.50 11.00 T",
+        "box": {
+          "x": 87,
+          "y": 895,
+          "width": 611,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "2PC @ 5.50",
+            "box": {
+              "x": 87,
+              "y": 895,
+              "width": 181,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "11.00 T",
+            "box": {
+              "x": 572,
+              "y": 895,
+              "width": 126,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L15",
+        "text": "MEMBER DISCOUNT -1.10",
+        "box": {
+          "x": 56,
+          "y": 934,
+          "width": 604,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "MEMBER DISCOUNT",
+            "box": {
+              "x": 56,
+              "y": 935,
+              "width": 270,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "-1.10",
+            "box": {
+              "x": 571,
+              "y": 934,
+              "width": 89,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L16",
+        "text": "TOTAL RM INCL. OF GST 9.90",
+        "box": {
+          "x": 39,
+          "y": 1014,
+          "width": 622,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL RM INCL. OF GST",
+            "box": {
+              "x": 39,
+              "y": 1014,
+              "width": 375,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "9.90",
+            "box": {
+              "x": 588,
+              "y": 1014,
+              "width": 73,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L17",
+        "text": "CASH -20.00",
+        "box": {
+          "x": 40,
+          "y": 1052,
+          "width": 621,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 40,
+              "y": 1052,
+              "width": 73,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "-20.00",
+            "box": {
+              "x": 550,
+              "y": 1053,
+              "width": 111,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L18",
+        "text": "CHANGE 10.10",
+        "box": {
+          "x": 40,
+          "y": 1094,
+          "width": 620,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE",
+            "box": {
+              "x": 40,
+              "y": 1094,
+              "width": 110,
+              "height": 30
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.10",
+            "box": {
+              "x": 572,
+              "y": 1094,
+              "width": 88,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L19",
+        "text": "ITEM COUNT 2",
+        "box": {
+          "x": 41,
+          "y": 1173,
+          "width": 620,
+          "height": 30
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ITEM COUNT",
+            "box": {
+              "x": 41,
+              "y": 1173,
+              "width": 174,
+              "height": 30
+            },
+            "confidence": null
+          },
+          {
+            "text": "2",
+            "box": {
+              "x": 638,
+              "y": 1174,
+              "width": 23,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L20",
+        "text": "GST SUMMARY AMOUNT (RM) TAX (RM)",
+        "box": {
+          "x": 36,
+          "y": 1211,
+          "width": 622,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST SUMMARY",
+            "box": {
+              "x": 36,
+              "y": 1211,
+              "width": 195,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "AMOUNT (RM)",
+            "box": {
+              "x": 267,
+              "y": 1213,
+              "width": 195,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "TAX (RM)",
+            "box": {
+              "x": 513,
+              "y": 1215,
+              "width": 145,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L21",
+        "text": "T @ 6% 9.34 0.56",
+        "box": {
+          "x": 35,
+          "y": 1249,
+          "width": 628,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "T @ 6%",
+            "box": {
+              "x": 35,
+              "y": 1249,
+              "width": 110,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "9.34",
+            "box": {
+              "x": 392,
+              "y": 1254,
+              "width": 72,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.56",
+            "box": {
+              "x": 588,
+              "y": 1256,
+              "width": 75,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L22",
+        "text": "TOTAL SAVINGS -1.10",
+        "box": {
+          "x": 36,
+          "y": 1330,
+          "width": 625,
+          "height": 35
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL SAVINGS",
+            "box": {
+              "x": 36,
+              "y": 1330,
+              "width": 232,
+              "height": 35
+            },
+            "confidence": null
+          },
+          {
+            "text": "-1.10",
+            "box": {
+              "x": 569,
+              "y": 1334,
+              "width": 92,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L23",
+        "text": "BE A POPULAR CARD MEMBER",
+        "box": {
+          "x": 141,
+          "y": 1412,
+          "width": 433,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "BE A POPULAR CARD MEMBER",
+            "box": {
+              "x": 141,
+              "y": 1412,
+              "width": 433,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L24",
+        "text": "AND ENJOY SPECIAL DISCOUNTS",
+        "box": {
+          "x": 125,
+          "y": 1452,
+          "width": 483,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "AND ENJOY SPECIAL DISCOUNTS",
+            "box": {
+              "x": 125,
+              "y": 1452,
+              "width": 483,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L25",
+        "text": "THANK YOU",
+        "box": {
+          "x": 106,
+          "y": 1491,
+          "width": 511,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "THANK YOU",
+            "box": {
+              "x": 106,
+              "y": 1491,
+              "width": 511,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L26",
+        "text": "WWW.POPULAR.COM.MY",
+        "box": {
+          "x": 195,
+          "y": 1534,
+          "width": 323,
+          "height": 30
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "WWW.POPULAR.COM.MY",
+            "box": {
+              "x": 195,
+              "y": 1534,
+              "width": 323,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L27",
+        "text": "BUY CHINESE BOOKS ONLINE",
+        "box": {
+          "x": 142,
+          "y": 1573,
+          "width": 432,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "BUY CHINESE BOOKS ONLINE",
+            "box": {
+              "x": 142,
+              "y": 1573,
+              "width": 432,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L28",
+        "text": "WWW. POPULARONLINE.COM.MY",
+        "box": {
+          "x": 142,
+          "y": 1614,
+          "width": 433,
+          "height": 31
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "WWW. POPULARONLINE.COM.MY",
+            "box": {
+              "x": 142,
+              "y": 1614,
+              "width": 433,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 990,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": []
+  }
+}

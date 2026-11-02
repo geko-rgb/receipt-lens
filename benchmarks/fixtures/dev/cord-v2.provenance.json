@@ -1,0 +1,33 @@
+{
+  "provenance": {
+    "dataset": "cord-v2",
+    "split": "dev",
+    "sourceSplit": "validation",
+    "snapshotHash": "6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "source": "https://huggingface.co/datasets/naver-clova-ix/cord-v2",
+    "license": "CC-BY-4.0",
+    "referenceOcrSource": "CORD ground_truth.valid_line words and quads (the dataset's own line grouping)",
+    "receipts": 100,
+    "fieldsLabeled": [
+      "grandTotal",
+      "subtotal",
+      "serviceCharge",
+      "discount",
+      "taxTotal",
+      "item.name",
+      "item.qty",
+      "item.unitPrice",
+      "item.lineTotal"
+    ],
+    "fieldsExcluded": [
+      "tip",
+      "roundOff"
+    ],
+    "exclusionReason": "CORD annotates no tip line and no round-off line; those fields are excluded from scoring, never null-scored (DECISIONS/0004, ADR-003)"
+  },
+  "redactionCounts": {
+    "CUSTOMER": 3
+  },
+  "unmatchedEntities": [],
+  "survivorCounts": []
+}

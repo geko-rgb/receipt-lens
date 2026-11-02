@@ -1,0 +1,264 @@
+{
+  "receiptId": "cord-v2/dev/29",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [
+    {
+      "category": "sub_total.discount_price",
+      "text": "Discount(0%)"
+    }
+  ],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 576,
+      "height": 864
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "Sabun Beras",
+        "box": {
+          "x": 16,
+          "y": 296,
+          "width": 147,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Sabun Beras",
+            "box": {
+              "x": 16,
+              "y": 296,
+              "width": 147,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "1",
+        "box": {
+          "x": 168,
+          "y": 308,
+          "width": 12,
+          "height": 22
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 168,
+              "y": 308,
+              "width": 12,
+              "height": 22
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "30000",
+        "box": {
+          "x": 14,
+          "y": 322,
+          "width": 77,
+          "height": 31
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "30000",
+            "box": {
+              "x": 14,
+              "y": 322,
+              "width": 77,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "30000",
+        "box": {
+          "x": 278,
+          "y": 324,
+          "width": 66,
+          "height": 24
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "30000",
+            "box": {
+              "x": 278,
+              "y": 324,
+              "width": 66,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "Sub Total 30000",
+        "box": {
+          "x": 12,
+          "y": 396,
+          "width": 334,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Sub",
+            "box": {
+              "x": 12,
+              "y": 396,
+              "width": 50,
+              "height": 26
+            },
+            "confidence": null
+          },
+          {
+            "text": "Total",
+            "box": {
+              "x": 66,
+              "y": 398,
+              "width": 56,
+              "height": 24
+            },
+            "confidence": null
+          },
+          {
+            "text": "30000",
+            "box": {
+              "x": 276,
+              "y": 416,
+              "width": 70,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "Discount(0%)",
+        "box": {
+          "x": 9,
+          "y": 439,
+          "width": 167,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Discount(0%)",
+            "box": {
+              "x": 9,
+              "y": 439,
+              "width": 167,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "Tunai 50000",
+        "box": {
+          "x": 8,
+          "y": 482,
+          "width": 338,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Tunai",
+            "box": {
+              "x": 8,
+              "y": 482,
+              "width": 68,
+              "height": 26
+            },
+            "confidence": null
+          },
+          {
+            "text": "50000",
+            "box": {
+              "x": 276,
+              "y": 500,
+              "width": 70,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "Kembalian 20000",
+        "box": {
+          "x": 4,
+          "y": 570,
+          "width": 342,
+          "height": 42
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Kembalian",
+            "box": {
+              "x": 4,
+              "y": 570,
+              "width": 124,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "20000",
+            "box": {
+              "x": 274,
+              "y": 586,
+              "width": 72,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": null,
+    "subtotal": 3000000,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Sabun Beras",
+        "qty": 1,
+        "unitPrice": 3000000,
+        "lineTotal": 3000000
+      }
+    ]
+  }
+}

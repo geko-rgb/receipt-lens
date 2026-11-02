@@ -1,0 +1,264 @@
+{
+  "receiptId": "cord-v2/eval/3",
+  "dataset": "cord-v2",
+  "split": "eval",
+  "unreadableAnnotations": [
+    {
+      "category": "menu.cnt",
+      "text": "1X"
+    }
+  ],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 864,
+      "height": 1296
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1X",
+        "box": {
+          "x": 148,
+          "y": 666,
+          "width": 34,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1X",
+            "box": {
+              "x": 148,
+              "y": 666,
+              "width": 34,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "@11000",
+        "box": {
+          "x": 388,
+          "y": 646,
+          "width": 105,
+          "height": 43
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "@11000",
+            "box": {
+              "x": 388,
+              "y": 646,
+              "width": 105,
+              "height": 43
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "DONAT GULA",
+        "box": {
+          "x": 148,
+          "y": 698,
+          "width": 166,
+          "height": 40
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "DONAT",
+            "box": {
+              "x": 148,
+              "y": 702,
+              "width": 84,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "GULA",
+            "box": {
+              "x": 244,
+              "y": 698,
+              "width": 70,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "11,000",
+        "box": {
+          "x": 574,
+          "y": 676,
+          "width": 106,
+          "height": 42
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "11,000",
+            "box": {
+              "x": 574,
+              "y": 676,
+              "width": 106,
+              "height": 42
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "1.00xITEMs",
+        "box": {
+          "x": 330,
+          "y": 726,
+          "width": 167,
+          "height": 47
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1.00xITEMs",
+            "box": {
+              "x": 330,
+              "y": 726,
+              "width": 167,
+              "height": 47
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "SUBTOTAL 11,000",
+        "box": {
+          "x": 153,
+          "y": 755,
+          "width": 534,
+          "height": 64
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SUBTOTAL",
+            "box": {
+              "x": 153,
+              "y": 777,
+              "width": 134,
+              "height": 42
+            },
+            "confidence": null
+          },
+          {
+            "text": "11,000",
+            "box": {
+              "x": 579,
+              "y": 755,
+              "width": 108,
+              "height": 48
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "TOTAL 11,000",
+        "box": {
+          "x": 159,
+          "y": 798,
+          "width": 532,
+          "height": 60
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 159,
+              "y": 817,
+              "width": 157,
+              "height": 41
+            },
+            "confidence": null
+          },
+          {
+            "text": "11,000",
+            "box": {
+              "x": 584,
+              "y": 798,
+              "width": 107,
+              "height": 44
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "CASH 11,000",
+        "box": {
+          "x": 158,
+          "y": 838,
+          "width": 535,
+          "height": 60
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 158,
+              "y": 856,
+              "width": 131,
+              "height": 42
+            },
+            "confidence": null
+          },
+          {
+            "text": "11,000",
+            "box": {
+              "x": 586,
+              "y": 838,
+              "width": 107,
+              "height": 47
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 1100000,
+    "subtotal": 1100000,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "DONAT GULA",
+        "qty": null,
+        "unitPrice": 1100000,
+        "lineTotal": 1100000
+      }
+    ]
+  }
+}
