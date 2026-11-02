@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.pnpm-store/
+*.log
+.DS_Store
+
+# downloaded dataset snapshots (pinned metadata is committed, raw data is not)
+benchmarks/datasets/raw/
+!benchmarks/datasets/dataset-manifest.json
+
+# opt-in locally retained receipt images — never commit user photos
+receipts-retained/
