@@ -1,0 +1,223 @@
+{
+  "receiptId": "cord-v2/eval/37",
+  "dataset": "cord-v2",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 576,
+      "height": 864
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "Popcorn Salt (S)",
+        "box": {
+          "x": 113,
+          "y": 470,
+          "width": 189,
+          "height": 31
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Popcorn",
+            "box": {
+              "x": 113,
+              "y": 470,
+              "width": 91,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "Salt",
+            "box": {
+              "x": 208,
+              "y": 474,
+              "width": 52,
+              "height": 26
+            },
+            "confidence": null
+          },
+          {
+            "text": "(S)",
+            "box": {
+              "x": 270,
+              "y": 476,
+              "width": 32,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "1",
+        "box": {
+          "x": 70,
+          "y": 471,
+          "width": 13,
+          "height": 25
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 70,
+              "y": 471,
+              "width": 13,
+              "height": 25
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "20.000",
+        "box": {
+          "x": 461,
+          "y": 480,
+          "width": 77,
+          "height": 31
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "20.000",
+            "box": {
+              "x": 461,
+              "y": 480,
+              "width": 77,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "TOTAL 20.000",
+        "box": {
+          "x": 295,
+          "y": 542,
+          "width": 247,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 295,
+              "y": 553,
+              "width": 67,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "20.000",
+            "box": {
+              "x": 462,
+              "y": 542,
+              "width": 80,
+              "height": 44
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "CASH 50.000",
+        "box": {
+          "x": 53,
+          "y": 599,
+          "width": 491,
+          "height": 45
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 53,
+              "y": 599,
+              "width": 56,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "50.000",
+            "box": {
+              "x": 466,
+              "y": 616,
+              "width": 78,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "CHANGED 30.000",
+        "box": {
+          "x": 47,
+          "y": 627,
+          "width": 497,
+          "height": 47
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGED",
+            "box": {
+              "x": 47,
+              "y": 627,
+              "width": 93,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "30.000",
+            "box": {
+              "x": 466,
+              "y": 646,
+              "width": 78,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": null,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Popcorn Salt (S)",
+        "qty": 1,
+        "unitPrice": null,
+        "lineTotal": 2000000
+      }
+    ]
+  }
+}

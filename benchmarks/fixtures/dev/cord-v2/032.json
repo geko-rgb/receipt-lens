@@ -1,0 +1,233 @@
+{
+  "receiptId": "cord-v2/dev/32",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 960,
+      "height": 1280
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1",
+        "box": {
+          "x": 140,
+          "y": 758,
+          "width": 16,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 140,
+              "y": 758,
+              "width": 16,
+              "height": 39
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "Nasi (MLY)",
+        "box": {
+          "x": 176,
+          "y": 754,
+          "width": 190,
+          "height": 47
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Nasi",
+            "box": {
+              "x": 176,
+              "y": 754,
+              "width": 76,
+              "height": 44
+            },
+            "confidence": null
+          },
+          {
+            "text": "(MLY)",
+            "box": {
+              "x": 273,
+              "y": 754,
+              "width": 93,
+              "height": 47
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "6.000",
+        "box": {
+          "x": 646,
+          "y": 753,
+          "width": 99,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "6.000",
+            "box": {
+              "x": 646,
+              "y": 753,
+              "width": 99,
+              "height": 44
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "Subtotal 6.000",
+        "box": {
+          "x": 140,
+          "y": 846,
+          "width": 606,
+          "height": 43
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Subtotal",
+            "box": {
+              "x": 140,
+              "y": 846,
+              "width": 152,
+              "height": 43
+            },
+            "confidence": null
+          },
+          {
+            "text": "6.000",
+            "box": {
+              "x": 646,
+              "y": 847,
+              "width": 100,
+              "height": 41
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "TOTAL 6.000",
+        "box": {
+          "x": 137,
+          "y": 892,
+          "width": 607,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 137,
+              "y": 893,
+              "width": 102,
+              "height": 43
+            },
+            "confidence": null
+          },
+          {
+            "text": "6.000",
+            "box": {
+              "x": 644,
+              "y": 892,
+              "width": 100,
+              "height": 40
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "Go-Pay static QR 6.000",
+        "box": {
+          "x": 135,
+          "y": 986,
+          "width": 609,
+          "height": 51
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Go-Pay",
+            "box": {
+              "x": 135,
+              "y": 989,
+              "width": 122,
+              "height": 48
+            },
+            "confidence": null
+          },
+          {
+            "text": "static",
+            "box": {
+              "x": 267,
+              "y": 990,
+              "width": 122,
+              "height": 45
+            },
+            "confidence": null
+          },
+          {
+            "text": "QR",
+            "box": {
+              "x": 401,
+              "y": 986,
+              "width": 45,
+              "height": 47
+            },
+            "confidence": null
+          },
+          {
+            "text": "6.000",
+            "box": {
+              "x": 647,
+              "y": 990,
+              "width": 97,
+              "height": 41
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 600000,
+    "subtotal": 600000,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Nasi (MLY)",
+        "qty": 1,
+        "unitPrice": null,
+        "lineTotal": 600000
+      }
+    ]
+  }
+}

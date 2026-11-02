@@ -1,0 +1,434 @@
+{
+  "receiptId": "cord-v2/dev/77",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [
+    {
+      "category": "menu.cnt",
+      "text": "*2"
+    },
+    {
+      "category": "menu.price",
+      "text": "Rp 58000.00"
+    },
+    {
+      "category": "sub_total.subtotal_price",
+      "text": "Rp 58000.00"
+    },
+    {
+      "category": "sub_total.tax_price",
+      "text": "Rp 5272.73"
+    },
+    {
+      "category": "total.total_price",
+      "text": "Rp 58000.00"
+    }
+  ],
+  "redactions": [
+    {
+      "class": "CUSTOMER",
+      "line": 8,
+      "word": 1,
+      "beforeLength": 4,
+      "after": "[CUSTOMER]"
+    },
+    {
+      "class": "CUSTOMER",
+      "line": 9,
+      "word": 1,
+      "beforeLength": 7,
+      "after": "[CUSTOMER]"
+    },
+    {
+      "class": "CUSTOMER",
+      "line": 9,
+      "word": 2,
+      "beforeLength": 11,
+      "after": "[CUSTOMER]"
+    }
+  ],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 864,
+      "height": 1296
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "*2",
+        "box": {
+          "x": 88,
+          "y": 712,
+          "width": 36,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "*2",
+            "box": {
+              "x": 88,
+              "y": 712,
+              "width": 36,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "Cheese Tart",
+        "box": {
+          "x": 226,
+          "y": 706,
+          "width": 172,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Cheese",
+            "box": {
+              "x": 226,
+              "y": 708,
+              "width": 98,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "Tart",
+            "box": {
+              "x": 332,
+              "y": 706,
+              "width": 66,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "Rp 58000.00",
+        "box": {
+          "x": 568,
+          "y": 702,
+          "width": 162,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Rp 58000.00",
+            "box": {
+              "x": 568,
+              "y": 702,
+              "width": 162,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "Bag-S",
+        "box": {
+          "x": 133,
+          "y": 745,
+          "width": 85,
+          "height": 40
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Bag-S",
+            "box": {
+              "x": 133,
+              "y": 745,
+              "width": 85,
+              "height": 40
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "PS Carrier",
+        "box": {
+          "x": 134,
+          "y": 784,
+          "width": 160,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "PS",
+            "box": {
+              "x": 134,
+              "y": 786,
+              "width": 38,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "Carrier",
+            "box": {
+              "x": 182,
+              "y": 784,
+              "width": 112,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "Subtotal: Rp 58000.00",
+        "box": {
+          "x": 87,
+          "y": 852,
+          "width": 651,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Subtotal:",
+            "box": {
+              "x": 87,
+              "y": 857,
+              "width": 145,
+              "height": 39
+            },
+            "confidence": null
+          },
+          {
+            "text": "Rp 58000.00",
+            "box": {
+              "x": 574,
+              "y": 852,
+              "width": 164,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "Total Tax Included: Rp 5272.73",
+        "box": {
+          "x": 88,
+          "y": 892,
+          "width": 650,
+          "height": 43
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Total",
+            "box": {
+              "x": 88,
+              "y": 897,
+              "width": 84,
+              "height": 38
+            },
+            "confidence": null
+          },
+          {
+            "text": "Tax",
+            "box": {
+              "x": 182,
+              "y": 898,
+              "width": 52,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "Included:",
+            "box": {
+              "x": 243,
+              "y": 892,
+              "width": 141,
+              "height": 38
+            },
+            "confidence": null
+          },
+          {
+            "text": "Rp 5272.73",
+            "box": {
+              "x": 590,
+              "y": 892,
+              "width": 148,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "Total: Rp 58000.00",
+        "box": {
+          "x": 90,
+          "y": 966,
+          "width": 654,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Total:",
+            "box": {
+              "x": 90,
+              "y": 976,
+              "width": 96,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "Rp 58000.00",
+            "box": {
+              "x": 577,
+              "y": 966,
+              "width": 167,
+              "height": 40
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L8",
+        "text": "Customer [CUSTOMER] Cash: Rp 100000.00",
+        "box": {
+          "x": 90,
+          "y": 1042,
+          "width": 655,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Customer",
+            "box": {
+              "x": 90,
+              "y": 1054,
+              "width": 130,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "[CUSTOMER]",
+            "box": {
+              "x": 228,
+              "y": 1048,
+              "width": 70,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "Cash:",
+            "box": {
+              "x": 306,
+              "y": 1046,
+              "width": 80,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "Rp 100000.00",
+            "box": {
+              "x": 562,
+              "y": 1042,
+              "width": 183,
+              "height": 42
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L9",
+        "text": "Customer [CUSTOMER] [CUSTOMER]",
+        "box": {
+          "x": 92,
+          "y": 1078,
+          "width": 656,
+          "height": 47
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Customer",
+            "box": {
+              "x": 92,
+              "y": 1092,
+              "width": 128,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "[CUSTOMER]",
+            "box": {
+              "x": 229,
+              "y": 1087,
+              "width": 113,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "[CUSTOMER]",
+            "box": {
+              "x": 578,
+              "y": 1078,
+              "width": 170,
+              "height": 47
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": null,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Bag-S",
+        "qty": null,
+        "unitPrice": null,
+        "lineTotal": null
+      },
+      {
+        "name": "PS Carrier",
+        "qty": null,
+        "unitPrice": null,
+        "lineTotal": null
+      }
+    ]
+  }
+}

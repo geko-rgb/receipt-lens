@@ -1,0 +1,36 @@
+name: Fixtures reproducibility
+
+# The byte-identical regeneration gate for the benchmark fixtures. It needs the pinned
+# raw datasets (2.7 GB), which CI does not carry on every push, so this runs on a
+# schedule and on demand instead. A loader or redaction change that alters fixture
+# bytes fails here and forces a deliberate, reviewable fixture update.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fetch:datasets
+      - run: pnpm generate:fixtures
+      - name: committed fixtures must be byte-identical to a fresh generation
+        run: |
+          git add -N benchmarks/fixtures
+          git diff --exit-code -- benchmarks/fixtures
+      - name: PII scan over regenerated fixtures
+        run: pnpm scan:pii
+      - name: storage ceilings
+        run: node scripts/check-fixture-budget.mjs

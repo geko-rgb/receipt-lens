@@ -1,0 +1,233 @@
+{
+  "receiptId": "cord-v2/dev/64",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 432,
+      "height": 648
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1",
+        "box": {
+          "x": 90,
+          "y": 286,
+          "width": 10,
+          "height": 16
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 90,
+              "y": 286,
+              "width": 10,
+              "height": 16
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "WHOLE WHEAT PAN BREAD",
+        "box": {
+          "x": 102,
+          "y": 284,
+          "width": 156,
+          "height": 24
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "WHOLE",
+            "box": {
+              "x": 102,
+              "y": 284,
+              "width": 44,
+              "height": 20
+            },
+            "confidence": null
+          },
+          {
+            "text": "WHEAT",
+            "box": {
+              "x": 144,
+              "y": 286,
+              "width": 42,
+              "height": 18
+            },
+            "confidence": null
+          },
+          {
+            "text": "PAN",
+            "box": {
+              "x": 188,
+              "y": 286,
+              "width": 28,
+              "height": 20
+            },
+            "confidence": null
+          },
+          {
+            "text": "BREAD",
+            "box": {
+              "x": 216,
+              "y": 288,
+              "width": 42,
+              "height": 20
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "20,000",
+        "box": {
+          "x": 302,
+          "y": 290,
+          "width": 54,
+          "height": 20
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "20,000",
+            "box": {
+              "x": 302,
+              "y": 290,
+              "width": 54,
+              "height": 20
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "TOTAL 20,000",
+        "box": {
+          "x": 102,
+          "y": 322,
+          "width": 250,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 102,
+              "y": 322,
+              "width": 76,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "20,000",
+            "box": {
+              "x": 258,
+              "y": 328,
+              "width": 94,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "CASH 100,000",
+        "box": {
+          "x": 100,
+          "y": 352,
+          "width": 252,
+          "height": 20
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 100,
+              "y": 352,
+              "width": 38,
+              "height": 18
+            },
+            "confidence": null
+          },
+          {
+            "text": "100,000",
+            "box": {
+              "x": 294,
+              "y": 354,
+              "width": 58,
+              "height": 18
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "CHANGE 80,000",
+        "box": {
+          "x": 98,
+          "y": 370,
+          "width": 254,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE",
+            "box": {
+              "x": 98,
+              "y": 370,
+              "width": 94,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "80,000",
+            "box": {
+              "x": 258,
+              "y": 372,
+              "width": 94,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2000000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "WHOLE WHEAT PAN BREAD",
+        "qty": 1,
+        "unitPrice": null,
+        "lineTotal": 2000000
+      }
+    ]
+  }
+}

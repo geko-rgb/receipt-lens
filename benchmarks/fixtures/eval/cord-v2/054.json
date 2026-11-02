@@ -1,0 +1,190 @@
+{
+  "receiptId": "cord-v2/eval/54",
+  "dataset": "cord-v2",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 864,
+      "height": 1296
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "KACANG MERAH",
+        "box": {
+          "x": 211,
+          "y": 746,
+          "width": 195,
+          "height": 40
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "KACANG",
+            "box": {
+              "x": 211,
+              "y": 748,
+              "width": 101,
+              "height": 38
+            },
+            "confidence": null
+          },
+          {
+            "text": "MERAH",
+            "box": {
+              "x": 322,
+              "y": 746,
+              "width": 84,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "10,000",
+        "box": {
+          "x": 616,
+          "y": 738,
+          "width": 92,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "10,000",
+            "box": {
+              "x": 616,
+              "y": 738,
+              "width": 92,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "SUBTOTAL 10,000",
+        "box": {
+          "x": 212,
+          "y": 772,
+          "width": 497,
+          "height": 53
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SUBTOTAL",
+            "box": {
+              "x": 212,
+              "y": 785,
+              "width": 133,
+              "height": 40
+            },
+            "confidence": null
+          },
+          {
+            "text": "10,000",
+            "box": {
+              "x": 615,
+              "y": 772,
+              "width": 94,
+              "height": 38
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "TOTAL 10,000",
+        "box": {
+          "x": 218,
+          "y": 809,
+          "width": 492,
+          "height": 53
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 218,
+              "y": 820,
+              "width": 155,
+              "height": 42
+            },
+            "confidence": null
+          },
+          {
+            "text": "10,000",
+            "box": {
+              "x": 617,
+              "y": 809,
+              "width": 93,
+              "height": 38
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "CASH 10,000",
+        "box": {
+          "x": 216,
+          "y": 845,
+          "width": 495,
+          "height": 51
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 216,
+              "y": 859,
+              "width": 127,
+              "height": 37
+            },
+            "confidence": null
+          },
+          {
+            "text": "10,000",
+            "box": {
+              "x": 616,
+              "y": 845,
+              "width": 95,
+              "height": 39
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 1000000,
+    "subtotal": 1000000,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "KACANG MERAH",
+        "qty": null,
+        "unitPrice": null,
+        "lineTotal": 1000000
+      }
+    ]
+  }
+}

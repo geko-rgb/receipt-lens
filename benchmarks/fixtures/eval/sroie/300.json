@@ -1,0 +1,1034 @@
+{
+  "receiptId": "sroie/eval/300",
+  "dataset": "sroie",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [
+    {
+      "class": "BUSINESS",
+      "line": 0,
+      "word": 0,
+      "beforeLength": 26,
+      "after": "[BUSINESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 2,
+      "word": 0,
+      "beforeLength": 6,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 3,
+      "word": 0,
+      "beforeLength": 18,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 4,
+      "word": 0,
+      "beforeLength": 18,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "PHONE",
+      "line": 5,
+      "word": 0,
+      "beforeLength": 16,
+      "after": "TEL: [PHONE]"
+    },
+    {
+      "class": "TAX_REG",
+      "line": 6,
+      "word": 0,
+      "beforeLength": 21,
+      "after": "GST NO : [TAX_REG]"
+    },
+    {
+      "class": "PHONE",
+      "line": 29,
+      "word": 0,
+      "beforeLength": 39,
+      "after": "CALL LEE HB [PHONE] FOR MODE DETAIL."
+    }
+  ],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 4961,
+      "height": 7016
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "sroie@483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "[BUSINESS]",
+        "box": {
+          "x": 1991,
+          "y": 1312,
+          "width": 926,
+          "height": 87
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[BUSINESS]",
+            "box": {
+              "x": 1991,
+              "y": 1312,
+              "width": 926,
+              "height": 87
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "LEMON TREE RESTAURANT",
+        "box": {
+          "x": 2061,
+          "y": 1402,
+          "width": 744,
+          "height": 75
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "LEMON TREE RESTAURANT",
+            "box": {
+              "x": 2061,
+              "y": 1402,
+              "width": 744,
+              "height": 75
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 1885,
+          "y": 1476,
+          "width": 1126,
+          "height": 87
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 1885,
+              "y": 1476,
+              "width": 1126,
+              "height": 87
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 2095,
+          "y": 1573,
+          "width": 667,
+          "height": 70
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 2095,
+              "y": 1573,
+              "width": 667,
+              "height": 70
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 2134,
+          "y": 1651,
+          "width": 636,
+          "height": 72
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 2134,
+              "y": 1651,
+              "width": 636,
+              "height": 72
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "TEL: [PHONE]",
+        "box": {
+          "x": 2170,
+          "y": 1733,
+          "width": 565,
+          "height": 80
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TEL: [PHONE]",
+            "box": {
+              "x": 2170,
+              "y": 1733,
+              "width": 565,
+              "height": 80
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "GST NO : [TAX_REG]",
+        "box": {
+          "x": 2054,
+          "y": 1814,
+          "width": 757,
+          "height": 85
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST NO : [TAX_REG]",
+            "box": {
+              "x": 2054,
+              "y": 1814,
+              "width": 757,
+              "height": 85
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "CURRENT TAX INVOICE",
+        "box": {
+          "x": 2098,
+          "y": 1984,
+          "width": 674,
+          "height": 77
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CURRENT TAX INVOICE",
+            "box": {
+              "x": 2098,
+              "y": 1984,
+              "width": 674,
+              "height": 77
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L8",
+        "text": "INVOICE . NO : POS015026",
+        "box": {
+          "x": 1648,
+          "y": 2066,
+          "width": 1475,
+          "height": 92
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "INVOICE . NO :",
+            "box": {
+              "x": 1648,
+              "y": 2073,
+              "width": 761,
+              "height": 85
+            },
+            "confidence": null
+          },
+          {
+            "text": "POS015026",
+            "box": {
+              "x": 2487,
+              "y": 2066,
+              "width": 636,
+              "height": 68
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L9",
+        "text": "DATE: 2018-05-01 19:34:09",
+        "box": {
+          "x": 1635,
+          "y": 2156,
+          "width": 899,
+          "height": 85
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "DATE: 2018-05-01 19:34:09",
+            "box": {
+              "x": 1635,
+              "y": 2156,
+              "width": 899,
+              "height": 85
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L10",
+        "text": "TRANSACTION BY: IZZAH",
+        "box": {
+          "x": 1638,
+          "y": 2240,
+          "width": 756,
+          "height": 82
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TRANSACTION BY: IZZAH",
+            "box": {
+              "x": 1638,
+              "y": 2240,
+              "width": 756,
+              "height": 82
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L11",
+        "text": "TABLE: 5",
+        "box": {
+          "x": 1639,
+          "y": 2326,
+          "width": 569,
+          "height": 144
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TABLE:",
+            "box": {
+              "x": 1639,
+              "y": 2326,
+              "width": 418,
+              "height": 144
+            },
+            "confidence": null
+          },
+          {
+            "text": "5",
+            "box": {
+              "x": 2136,
+              "y": 2330,
+              "width": 72,
+              "height": 130
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L12",
+        "text": "PAX: 3",
+        "box": {
+          "x": 1643,
+          "y": 2472,
+          "width": 220,
+          "height": 77
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "PAX: 3",
+            "box": {
+              "x": 1643,
+              "y": 2472,
+              "width": 220,
+              "height": 77
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L13",
+        "text": "NO DESCRIPTION AMT (RM) CODE",
+        "box": {
+          "x": 1641,
+          "y": 2533,
+          "width": 1624,
+          "height": 96
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "NO DESCRIPTION",
+            "box": {
+              "x": 1641,
+              "y": 2554,
+              "width": 510,
+              "height": 75
+            },
+            "confidence": null
+          },
+          {
+            "text": "AMT (RM) CODE",
+            "box": {
+              "x": 2803,
+              "y": 2533,
+              "width": 462,
+              "height": 74
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L14",
+        "text": "1 602 GREEN APPLE JUICE (S) 6.80 SR",
+        "box": {
+          "x": 1650,
+          "y": 2699,
+          "width": 1617,
+          "height": 101
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 1650,
+              "y": 2723,
+              "width": 34,
+              "height": 77
+            },
+            "confidence": null
+          },
+          {
+            "text": "602 GREEN APPLE JUICE (S)",
+            "box": {
+              "x": 1747,
+              "y": 2712,
+              "width": 882,
+              "height": 82
+            },
+            "confidence": null
+          },
+          {
+            "text": "6.80",
+            "box": {
+              "x": 2943,
+              "y": 2702,
+              "width": 150,
+              "height": 77
+            },
+            "confidence": null
+          },
+          {
+            "text": "SR",
+            "box": {
+              "x": 3192,
+              "y": 2699,
+              "width": 75,
+              "height": 68
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L15",
+        "text": "1 106 HAM & CHEESE GRILLED",
+        "box": {
+          "x": 1650,
+          "y": 2794,
+          "width": 950,
+          "height": 89
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 1650,
+              "y": 2808,
+              "width": 29,
+              "height": 75
+            },
+            "confidence": null
+          },
+          {
+            "text": "106 HAM & CHEESE GRILLED",
+            "box": {
+              "x": 1754,
+              "y": 2794,
+              "width": 846,
+              "height": 82
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L16",
+        "text": "CHICKEN 16.80 SR",
+        "box": {
+          "x": 1747,
+          "y": 2864,
+          "width": 1520,
+          "height": 104
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHICKEN",
+            "box": {
+              "x": 1747,
+              "y": 2888,
+              "width": 259,
+              "height": 80
+            },
+            "confidence": null
+          },
+          {
+            "text": "16.80",
+            "box": {
+              "x": 2919,
+              "y": 2866,
+              "width": 172,
+              "height": 70
+            },
+            "confidence": null
+          },
+          {
+            "text": "SR",
+            "box": {
+              "x": 3185,
+              "y": 2864,
+              "width": 82,
+              "height": 72
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L17",
+        "text": "*F. MACARONI BOLOGNESE",
+        "box": {
+          "x": 1817,
+          "y": 2965,
+          "width": 800,
+          "height": 72
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "*F. MACARONI BOLOGNESE",
+            "box": {
+              "x": 1817,
+              "y": 2965,
+              "width": 800,
+              "height": 72
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L18",
+        "text": "*G. COLESLAW",
+        "box": {
+          "x": 1820,
+          "y": 3050,
+          "width": 435,
+          "height": 75
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "*G. COLESLAW",
+            "box": {
+              "x": 1820,
+              "y": 3050,
+              "width": 435,
+              "height": 75
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L19",
+        "text": "1 205 MEE MAMAK 9.80 SR",
+        "box": {
+          "x": 1653,
+          "y": 3110,
+          "width": 1614,
+          "height": 103
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 1653,
+              "y": 3141,
+              "width": 31,
+              "height": 72
+            },
+            "confidence": null
+          },
+          {
+            "text": "205 MEE MAMAK",
+            "box": {
+              "x": 1750,
+              "y": 3137,
+              "width": 476,
+              "height": 70
+            },
+            "confidence": null
+          },
+          {
+            "text": "9.80",
+            "box": {
+              "x": 2941,
+              "y": 3117,
+              "width": 150,
+              "height": 77
+            },
+            "confidence": null
+          },
+          {
+            "text": "SR",
+            "box": {
+              "x": 3185,
+              "y": 3110,
+              "width": 82,
+              "height": 75
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L20",
+        "text": "*ICE LEMON TEA (S) 2.80 SR",
+        "box": {
+          "x": 1820,
+          "y": 3199,
+          "width": 1450,
+          "height": 94
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "*ICE LEMON TEA (S)",
+            "box": {
+              "x": 1820,
+              "y": 3216,
+              "width": 640,
+              "height": 77
+            },
+            "confidence": null
+          },
+          {
+            "text": "2.80",
+            "box": {
+              "x": 2946,
+              "y": 3204,
+              "width": 147,
+              "height": 75
+            },
+            "confidence": null
+          },
+          {
+            "text": "SR",
+            "box": {
+              "x": 3190,
+              "y": 3199,
+              "width": 80,
+              "height": 68
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L21",
+        "text": "SUBTOTAL (3) 36.20",
+        "box": {
+          "x": 1641,
+          "y": 3366,
+          "width": 1626,
+          "height": 97
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SUBTOTAL (3)",
+            "box": {
+              "x": 1641,
+              "y": 3383,
+              "width": 425,
+              "height": 80
+            },
+            "confidence": null
+          },
+          {
+            "text": "36.20",
+            "box": {
+              "x": 3083,
+              "y": 3366,
+              "width": 184,
+              "height": 75
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L22",
+        "text": "GST (6%) 2.17",
+        "box": {
+          "x": 1643,
+          "y": 3451,
+          "width": 1617,
+          "height": 99
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST (6%)",
+            "box": {
+              "x": 1643,
+              "y": 3470,
+              "width": 288,
+              "height": 80
+            },
+            "confidence": null
+          },
+          {
+            "text": "2.17",
+            "box": {
+              "x": 3122,
+              "y": 3451,
+              "width": 138,
+              "height": 72
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L23",
+        "text": "ROUNDING -0.02",
+        "box": {
+          "x": 1643,
+          "y": 3535,
+          "width": 1629,
+          "height": 97
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ROUNDING",
+            "box": {
+              "x": 1643,
+              "y": 3557,
+              "width": 292,
+              "height": 75
+            },
+            "confidence": null
+          },
+          {
+            "text": "-0.02",
+            "box": {
+              "x": 3086,
+              "y": 3535,
+              "width": 186,
+              "height": 68
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L24",
+        "text": "TOTAL 38.35",
+        "box": {
+          "x": 1853,
+          "y": 3705,
+          "width": 1419,
+          "height": 150
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 1853,
+              "y": 3717,
+              "width": 350,
+              "height": 138
+            },
+            "confidence": null
+          },
+          {
+            "text": "38.35",
+            "box": {
+              "x": 2907,
+              "y": 3705,
+              "width": 365,
+              "height": 130
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L25",
+        "text": "GST SUMMARY AMOUNT TAX",
+        "box": {
+          "x": 1641,
+          "y": 3927,
+          "width": 1423,
+          "height": 97
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST SUMMARY",
+            "box": {
+              "x": 1641,
+              "y": 3944,
+              "width": 399,
+              "height": 80
+            },
+            "confidence": null
+          },
+          {
+            "text": "AMOUNT",
+            "box": {
+              "x": 2136,
+              "y": 3939,
+              "width": 222,
+              "height": 75
+            },
+            "confidence": null
+          },
+          {
+            "text": "TAX",
+            "box": {
+              "x": 2946,
+              "y": 3927,
+              "width": 118,
+              "height": 72
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L26",
+        "text": "SR @ GST 6% 36.20 2.17",
+        "box": {
+          "x": 1641,
+          "y": 4014,
+          "width": 1445,
+          "height": 86
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SR @ GST 6%",
+            "box": {
+              "x": 1641,
+              "y": 4028,
+              "width": 399,
+              "height": 72
+            },
+            "confidence": null
+          },
+          {
+            "text": "36.20",
+            "box": {
+              "x": 2141,
+              "y": 4021,
+              "width": 184,
+              "height": 72
+            },
+            "confidence": null
+          },
+          {
+            "text": "2.17",
+            "box": {
+              "x": 2948,
+              "y": 4014,
+              "width": 138,
+              "height": 70
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L27",
+        "text": "THANK YOU FOR DINING WITH US",
+        "box": {
+          "x": 1960,
+          "y": 4183,
+          "width": 996,
+          "height": 72
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "THANK YOU FOR DINING WITH US",
+            "box": {
+              "x": 1960,
+              "y": 4183,
+              "width": 996,
+              "height": 72
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L28",
+        "text": "POWERED BY SOFTWARELAB S/B",
+        "box": {
+          "x": 1960,
+          "y": 4262,
+          "width": 947,
+          "height": 82
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "POWERED BY SOFTWARELAB S/B",
+            "box": {
+              "x": 1960,
+              "y": 4262,
+              "width": 947,
+              "height": 82
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L29",
+        "text": "CALL LEE HB [PHONE] FOR MODE DETAIL.",
+        "box": {
+          "x": 1752,
+          "y": 4348,
+          "width": 1373,
+          "height": 79
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CALL LEE HB [PHONE] FOR MODE DETAIL.",
+            "box": {
+              "x": 1752,
+              "y": 4348,
+              "width": 1373,
+              "height": 79
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L30",
+        "text": "POWERED BY GENIUS POS",
+        "box": {
+          "x": 2064,
+          "y": 4437,
+          "width": 752,
+          "height": 77
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "POWERED BY GENIUS POS",
+            "box": {
+              "x": 2064,
+              "y": 4437,
+              "width": 752,
+              "height": 77
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L31",
+        "text": "WWW.GENIUSPOS.COM.MY",
+        "box": {
+          "x": 2102,
+          "y": 4531,
+          "width": 703,
+          "height": 70
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "WWW.GENIUSPOS.COM.MY",
+            "box": {
+              "x": 2102,
+              "y": 4531,
+              "width": 703,
+              "height": 70
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 3835,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": []
+  }
+}
