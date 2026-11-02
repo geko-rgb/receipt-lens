@@ -61,6 +61,13 @@
       "after": "SERVER: [NAME] [NAME]"
     },
     {
+      "class": "PHONE",
+      "line": 27,
+      "word": 0,
+      "beforeLength": 21,
+      "after": "INQURIES: [PHONE]"
+    },
+    {
       "class": "EMAIL",
       "line": 29,
       "word": 0,
@@ -920,7 +927,7 @@
       },
       {
         "id": "L27",
-        "text": "INQURIES: 012-3225548",
+        "text": "INQURIES: [PHONE]",
         "box": {
           "x": 298,
           "y": 2204,
@@ -930,7 +937,7 @@
         "confidence": null,
         "words": [
           {
-            "text": "INQURIES: 012-3225548",
+            "text": "INQURIES: [PHONE]",
             "box": {
               "x": 298,
               "y": 2204,

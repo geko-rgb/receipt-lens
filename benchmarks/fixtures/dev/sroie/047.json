@@ -31,6 +31,20 @@
       "word": 0,
       "beforeLength": 5,
       "after": "[ADDRESS]"
+    },
+    {
+      "class": "PHONE",
+      "line": 4,
+      "word": 0,
+      "beforeLength": 16,
+      "after": "H/P: [PHONE]"
+    },
+    {
+      "class": "PHONE",
+      "line": 5,
+      "word": 0,
+      "beforeLength": 11,
+      "after": "[PHONE]"
     }
   ],
   "survivors": [],
@@ -136,7 +150,7 @@
       },
       {
         "id": "L4",
-        "text": "H/P: 019-7521215",
+        "text": "H/P: [PHONE]",
         "box": {
           "x": 366,
           "y": 465,
@@ -146,7 +160,7 @@
         "confidence": null,
         "words": [
           {
-            "text": "H/P: 019-7521215",
+            "text": "H/P: [PHONE]",
             "box": {
               "x": 366,
               "y": 465,
@@ -159,7 +173,7 @@
       },
       {
         "id": "L5",
-        "text": "016-7867868",
+        "text": "[PHONE]",
         "box": {
           "x": 402,
           "y": 485,
@@ -169,7 +183,7 @@
         "confidence": null,
         "words": [
           {
-            "text": "016-7867868",
+            "text": "[PHONE]",
             "box": {
               "x": 402,
               "y": 485,

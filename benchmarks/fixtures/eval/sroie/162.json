@@ -24,6 +24,13 @@
       "word": 0,
       "beforeLength": 21,
       "after": "[ADDRESS]"
+    },
+    {
+      "class": "PHONE",
+      "line": 14,
+      "word": 0,
+      "beforeLength": 31,
+      "after": "TRANSACTION NUMBER: [PHONE]"
     }
   ],
   "survivors": [],
@@ -499,7 +506,7 @@
       },
       {
         "id": "L14",
-        "text": "TRANSACTION NUMBER: 01000206618",
+        "text": "TRANSACTION NUMBER: [PHONE]",
         "box": {
           "x": 78,
           "y": 1043,
@@ -509,7 +516,7 @@
         "confidence": null,
         "words": [
           {
-            "text": "TRANSACTION NUMBER: 01000206618",
+            "text": "TRANSACTION NUMBER: [PHONE]",
             "box": {
               "x": 78,
               "y": 1043,

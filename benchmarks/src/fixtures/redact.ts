@@ -108,6 +108,16 @@ const inlineRules: InlineRule[] = [
     placeholder: "[PHONE]",
   },
   {
+    class: "PHONE",
+    // Malaysian mobile `01x…` and landline `0x…`, printed with or without the 60 country
+    // code and no `+`. The landline branch requires a separator after the area code:
+    // without it a nine-digit item code like `000000111` reads as a phone number, which
+    // is the kind of over-redaction that quietly changes scoring.
+    pattern:
+      /(?<!\d)(?:60 ?)?01\d[ -]?\d{3,4}[ -]?\d{4}(?!\d)|(?<!\d)(?:60 ?0?|0)\d[ -]\d{4}[ -]?\d{4}(?!\d)/g,
+    placeholder: "[PHONE]",
+  },
+  {
     class: "ACCOUNT",
     // Any bare run of 13+ digits no narrower rule claimed. Only spaces and dashes may
     // separate digits, so date and money punctuation breaks the run: `25/12/2018
@@ -365,7 +375,11 @@ export function redactWords(
     // each pass outputs placeholders, which no later pattern matches.
     const headed = redactHeaderEntities(original, lineIndex, entities);
     const spanned = redactSpanLine(headed.words);
-    const lineText = original.join(" ");
+    // Label anchors are read from the line with placeholders removed. A `[PHONE]` left
+    // by an earlier rule is not a printed TEL label: without this, redacting one token
+    // creates the anchor that redacts its neighbour, which makes output depend on rule
+    // order and breaks the scan's idempotence gate.
+    const lineText = original.join(" ").replace(/\[[A-Z0-9_]+\]/g, " ");
     const line: string[] = [];
     for (const [wordIndex, word] of spanned.words.entries()) {
       const { text, classes } = redactWord(word, lineText);

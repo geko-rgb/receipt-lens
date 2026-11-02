@@ -33,6 +33,13 @@
       "after": "[ADDRESS]"
     },
     {
+      "class": "PHONE",
+      "line": 6,
+      "word": 0,
+      "beforeLength": 13,
+      "after": "[PHONE]"
+    },
+    {
       "class": "TAX_REG",
       "line": 7,
       "word": 0,
@@ -203,7 +210,7 @@
       },
       {
         "id": "L6",
-        "text": "603-9545 1212",
+        "text": "[PHONE]",
         "box": {
           "x": 204,
           "y": 297,
@@ -213,7 +220,7 @@
         "confidence": null,
         "words": [
           {
-            "text": "603-9545 1212",
+            "text": "[PHONE]",
             "box": {
               "x": 204,
               "y": 297,

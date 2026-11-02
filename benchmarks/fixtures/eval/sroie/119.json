@@ -52,6 +52,13 @@
       "word": 1,
       "beforeLength": 12,
       "after": "CASHIER: [NAME]"
+    },
+    {
+      "class": "PHONE",
+      "line": 9,
+      "word": 1,
+      "beforeLength": 14,
+      "after": "NO: [PHONE]"
     }
   ],
   "survivors": [],
@@ -282,7 +289,7 @@
       },
       {
         "id": "L9",
-        "text": "20:05:56 NO: 0100122617",
+        "text": "20:05:56 NO: [PHONE]",
         "box": {
           "x": 74,
           "y": 806,
@@ -302,7 +309,7 @@
             "confidence": null
           },
           {
-            "text": "NO: 0100122617",
+            "text": "NO: [PHONE]",
             "box": {
               "x": 527,
               "y": 806,
