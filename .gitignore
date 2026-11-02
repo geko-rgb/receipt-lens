@@ -17,6 +17,9 @@ blob-report/
 
 # downloaded dataset snapshots (pinned metadata is committed, raw data is not)
 benchmarks/datasets/raw/
+# timestamped provenance stamp from pnpm fetch:datasets — never committed, it would
+# break byte-identical reproducibility checks
+benchmarks/datasets/.fetch-stamp
 
 # locally retained receipt photos (dev/test scratch convention; app-level
 # opt-in retention lives in browser storage, never committed)
