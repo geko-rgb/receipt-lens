@@ -61,6 +61,13 @@
       "after": "CASHIER: [NAME]"
     },
     {
+      "class": "PHONE",
+      "line": 13,
+      "word": 1,
+      "beforeLength": 21,
+      "after": ": ESWARAN [PHONE]"
+    },
+    {
       "class": "ACCOUNT",
       "line": 42,
       "word": 0,
@@ -432,7 +439,7 @@
       },
       {
         "id": "L13",
-        "text": "NAME : ESWARAN 012-6369400",
+        "text": "NAME : ESWARAN [PHONE]",
         "box": {
           "x": 83,
           "y": 742,
@@ -452,7 +459,7 @@
             "confidence": null
           },
           {
-            "text": ": ESWARAN 012-6369400",
+            "text": ": ESWARAN [PHONE]",
             "box": {
               "x": 256,
               "y": 748,

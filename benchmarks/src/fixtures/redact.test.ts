@@ -107,6 +107,15 @@ describe("redactWords — phone, card and account numbers", () => {
       ["TOTAL:", "193.00"],
     ]);
   });
+  it("does not treat a placeholder on the same line as a TEL label", () => {
+    // Regression, from a real committed line: an already-redacted `[PHONE]` in the next
+    // token must not become the label anchor that redacts `2018 18` out of a date.
+    // Without this, output depends on rule order and the scan cannot be idempotent.
+    const result = redactWords([["14/04/2018 18:30", "1013 [PHONE]"]]);
+
+    expect(result.redactions).toEqual([]);
+    expect([...result.lines[0]!]).toEqual(["14/04/2018 18:30", "1013 [PHONE]"]);
+  });
 });
 
 describe("redactWords — label-value spans", () => {
@@ -221,6 +230,19 @@ describe("redactWords — extended classes (owner ruling, 2026-11-02)", () => {
 
     expect(result.redactions).toEqual([]);
     expect([...result.lines[0]!]).toEqual(["25/12/2018 8:13:39 PM"]);
+  });
+
+  it("redacts Malaysian mobile and landline formats, with or without the 60 code", () => {
+    const result = redactWords([["016-7867868"], ["03-9545 1212"], ["603-9545 1212"], ["011-3194 0284"]]);
+
+    expect(result.lines.map((line) => [...line])).toEqual([["[PHONE]"], ["[PHONE]"], ["[PHONE]"], ["[PHONE]"]]);
+  });
+
+  it("does not let the wider phone rule eat a date or a money amount", () => {
+    const result = redactWords([["26-02-2018"], ["1,234.56"], ["80.90"], ["17500"]]);
+
+    expect(result.redactions).toEqual([]);
+    expect(result.lines.map((line) => [...line])).toEqual([["26-02-2018"], ["1,234.56"], ["80.90"], ["17500"]]);
   });
 
   it("spares a protected token and says why, instead of silently keeping it", () => {
