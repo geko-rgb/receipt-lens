@@ -42,9 +42,12 @@ function toMinor(integerDigits: string, fractionDigits: string): number {
  * ambiguous under en, and the same printed string must not silently take two values.
  */
 export function parseAmountToMinorUnits(input: string, profile: AmountProfile): number {
-  const unsigned = input.trim().replace(/^[^\d+-]+/, "").replace(/^[+-]/, "").trim();
+  const trimmed = input.trim();
+  // The sign can sit outside the currency code (`-Rp 34,363`) as easily as beside the
+  // digits, so the sign comes off before the prefix does.
+  const negative = trimmed.startsWith("-");
+  const unsigned = trimmed.replace(/^[+-]\s*/, "").replace(/^[^\d]+/, "").trim();
   if (unsigned === "" || !/^[\d.,]*\d[\d.,]*$/.test(unsigned)) fail(input, profile);
-  const negative = /^\s*-/.test(input.trim());
 
   let integerDigits: string;
   let fractionDigits: string;

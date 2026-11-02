@@ -1,0 +1,40 @@
+name: Evaluate (eval split)
+
+# Runs the benchmark against eval/ only. Manual trigger by design: eval is never read
+# during development, and a fix prompted by an eval failure would be contamination
+# (DECISIONS/0004). At ticket 03a the only parser under evaluation is the null parser,
+# so this proves the eval fixtures score exactly zero; real scores arrive with 03b.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fetch:datasets
+      - run: pnpm generate:fixtures
+      - run: pnpm report:results -- --split eval
+      - name: name the result eval-<date>-<sha>.json
+        run: |
+          set -eu
+          sha="$(git rev-parse --short HEAD)"
+          day="$(date -u +%Y%m%d)"
+          name="eval-${day}-${sha}.json"
+          cp benchmarks/results/eval-null-bootstrap.json "benchmarks/results/${name}"
+          echo "result_name=${name}" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.result_name }}
+          path: benchmarks/results/${{ env.result_name }}
+          if-no-files-found: error

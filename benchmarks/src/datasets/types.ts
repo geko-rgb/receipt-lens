@@ -1,5 +1,4 @@
 import type { OcrResult } from "@receipt-lens/core";
-import type { Redaction, UnmatchedEntity } from "../fixtures/redact.js";
 
 /**
  * The fields the parser contract can produce. A dataset declares which of these its
@@ -45,6 +44,16 @@ export interface GoldAnnotation {
 
 export type DatasetName = "cord-v2" | "sroie";
 
+/**
+ * An annotation the dataset carries but this harness cannot read as a value — label
+ * text where a number should be, or a quantity printed as a fraction. Recorded rather
+ * than dropped or zeroed, so a missing gold field is always visible and auditable.
+ */
+export interface UnreadableAnnotation {
+  readonly category: string;
+  readonly text: string;
+}
+
 export interface LabeledReceipt {
   /** `dataset/split/row` — stable across regenerations */
   readonly receiptId: string;
@@ -52,6 +61,7 @@ export interface LabeledReceipt {
   readonly split: "dev" | "eval";
   readonly ocr: OcrResult;
   readonly gold: GoldAnnotation;
+  readonly unreadableAnnotations: readonly UnreadableAnnotation[];
 }
 
 export interface DatasetProvenance {
@@ -71,12 +81,4 @@ export interface DatasetProvenance {
    */
   readonly referenceOcrSource: string;
   readonly receipts: number;
-}
-
-export interface FixtureFile {
-  readonly provenance: DatasetProvenance;
-  readonly receipts: readonly LabeledReceipt[];
-  readonly redactionCounts: Readonly<Partial<Record<string, number>>>;
-  readonly unmatchedEntities: readonly UnmatchedEntity[];
-  readonly redactions: readonly Redaction[];
 }

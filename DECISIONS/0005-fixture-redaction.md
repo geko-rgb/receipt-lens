@@ -33,13 +33,14 @@ fidelity gain.
 | Email | `[EMAIL]` | any `local@domain.tld` |
 | UPI ID / VPA | `[UPI]` | handle@psp patterns |
 | Invoice / receipt number | `[INVOICE_NNN]` | labelled invoice/receipt ID values |
-| Card last-4 | `[CARD_XXXX]` | masked card tails, e.g. `XXXXXXXXXXXX4318` |
+| Card last-4 | `[CARD_XXXX]` | masked card tails: `X×n` followed by four digits |
 | **Personal name** (added) | `[NAME]` | staff and customer personal names after `CASHIER`, `SALES PERSON`, `ATTENDED BY`, `SERVER`, `STAFF`, `KASIR`, `WAITER`, `PIC` — **label kept, value redacted** |
 | **Full account number** (added) | `[ACCOUNT]` | runs of 10+ digits near `BANK` / `ACC` / `A/C`. Replaces the earlier "13–19 consecutive digits → card last-4" rule |
 | **Customer identity** (added) | `[CUSTOMER]` | `BILL TO` / `CUSTOMER` business and personal identities |
 
 **Mechanism:** one placeholder per redacted *word*, so word count, line membership,
-ordering and approximate x-extent survive. `NG CHUAN MIN` → `[NAME] [NAME] [NAME]`.
+ordering and approximate x-extent survive. Three name tokens become
+`[NAME] [NAME] [NAME]`.
 Character length is not preserved; token count and position are. All-caps inputs stay
 all-caps by construction. Redaction never changes a scored field, so scores are
 unaffected — that is the point of the keep list above.
@@ -54,14 +55,20 @@ way in `benchmarks/fixtures/README.md`.
 
 ## What prompted the extension (scan of the pinned snapshot, 2026-11-02)
 
-Over `dev` (CORD valid 100) and `eval` (CORD test 100, SROIE test 361) token streams:
+Over `dev` (CORD valid 100) and `eval` (CORD test 100, SROIE test 361) token streams.
+Examples are written as **shapes, not values**: a document that ships in a privacy-first
+project's repo must not itself carry a real account number, phone or email. The raw
+tokens are re-derivable locally from the pinned snapshot under `raw/` whenever needed.
 
-- SROIE test: personal-name markers in **158 of 361** receipts — `CASHIER -> : NG CHUAN
-  MIN`, `SALES PERSON : FATIN`, `CASHIER: ANGELA`, `BILL TO : THE PEAK QUARRY WORKS`.
-  Account-like digit runs in **80** receipts, best example `BANK ACC AMBANK 888 100 123
-  3706` (a full account number, not a last-4). Phones in **23** (`+603-9130 2672`),
-  emails in **13** (`EMAIL:NG@OJCGROUP.COM`). UPI VPAs: 0. `Mr./Mrs./Haji/Hj.` prefixes: 0.
-- CORD valid: 0 hits in every class. CORD test: 1 receipt carrying `2100252000358`.
+- SROIE test: personal-name markers in **158 of 361** receipts — printed as
+  `CASHIER : <given> <family> <family>`, `SALES PERSON : <given>`, and
+  `BILL TO : <customer business words>`. Account-like digit runs in **80** receipts,
+  shaped `BANK ACC <bank> ### ### ### ####` — a full account number, not a last-4.
+  Phones in **23** (shaped `+60##-#### ####`), emails in **13** (shaped
+  `EMAIL:<local>@<domain>`). UPI VPAs: 0. `Mr./Mrs./Haji/Hj.` prefixes: 0.
+- CORD valid: 0 hits in every class. CORD test: 1 receipt carrying a bare 13-digit run
+  with no label beside it, so the ACCOUNT rule does not fire and it is left for the
+  scan to report.
 
 These are why `PERSON_NAME`, `FULL_ACCOUNT_NUMBER` and `CUSTOMER_NAME` joined the list:
 under the first version they would have shipped as ordinary "structural" tokens.

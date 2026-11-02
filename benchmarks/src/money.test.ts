@@ -27,6 +27,12 @@ describe("parseAmountToMinorUnits", () => {
     expect(parseAmountToMinorUnits("RM117.90", "en")).toBe(11790);
   });
 
+  it("reads a signed amount whose currency code sits between the sign and the digits", () => {
+    // A real CORD discount line: "-Rp 34,363".
+    expect(parseAmountToMinorUnits("-Rp 34,363", "id-ID")).toBe(-3436300);
+    expect(parseAmountToMinorUnits("+Rp 34,363", "id-ID")).toBe(3436300);
+  });
+
   it("keeps a printed sign, because round-off is signed", () => {
     expect(parseAmountToMinorUnits("-0.43", "en")).toBe(-43);
     expect(parseAmountToMinorUnits("+0.43", "en")).toBe(43);
