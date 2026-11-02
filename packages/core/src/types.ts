@@ -140,24 +140,6 @@ export interface ReceiptLensResult {
   ocr: OcrResult;
 }
 
-/** Internal PWA normalization; not the public ParseResult schema. */
-export type ChargeType = "tax" | "service_charge" | "tip" | "discount" | "round_off" | "other";
-
-export interface BillCharge {
-  id: string;
-  billId: string;
-  type: ChargeType;
-  label: string;
-  /** resolved integer paise; round_off is signed */
-  amount: number;
-  rate?: number | null;
-  /** finalized charge: inclusion confirmed */
-  included: boolean;
-  /** used only when type = "other" */
-  otherSign?: "add" | "subtract" | "unknown";
-  source: "detected" | "user_confirmed";
-}
-
 export interface ExtractOptions extends ValidateOptions {
   provider: "pp-ocrv6" | OcrProvider;
 }
