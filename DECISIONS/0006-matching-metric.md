@@ -1,6 +1,6 @@
 # DECISIONS/0006 — Name-similarity metric and the `τ_name` pin
 
-Date: 2026-11-02 · Ticket 03b. Closes the Tier-3 gap in `PROJECT(1).md` §8.2: the spec
+Date: 2026-11-03 · Ticket 03b. Closes the Tier-3 gap in `PROJECT(1).md` §8.2: the spec
 requires candidate pairs where "normalized-name similarity is at least `τ_name`" but never
 defines the similarity function, and never gives `τ_name` a value. §8.6 requires both to be
 pinned in `benchmark.config` **before** results are reported; `ROADMAP.md` G8t pre-declares
@@ -34,9 +34,14 @@ pairs):
 The false candidates Levenshtein refuses and Jaro accepts are real menu pairs, not synthetic
 near-duplicates:
 
-- `jamur enoki` vs `jamur kuping` — two different mushrooms, same receipt, same price.
-  Levenshtein 0.500, Jaro 0.819, Jaro-Winkler 0.891.
-- `ice coffe mix` vs `ice black coffe` — Levenshtein 0.333, Jaro-Winkler 0.847.
+- `Jamur Enoki` vs `Jamur Kuping` (dev receipt `079`) — two different mushrooms, same
+  receipt, both qty 1, both line totals 800000. Levenshtein 0.500, Jaro 0.819,
+  Jaro-Winkler **0.891**. This is the exact pair the money gate cannot rescue, because the
+  money gate is what admits it.
+- `ICE COFFE MIX` vs `ICE BLACK COFFE` (dev receipt `041`) — Levenshtein 0.333, Jaro-Winkler
+  0.847. Both annotate a line total of **0**, so money equality is satisfied trivially here
+  while `qty` differs (3 vs 1). §8.2 gates on monetary fields only, so qty is scored, never a
+  gate — which is precisely why the name threshold has to carry the discrimination.
 
 Because the matcher's objective is *pair count first*, a spurious high score between two
 money-equal distinct items is not merely a wrong tie-break: it lets the DP swap two pairings
