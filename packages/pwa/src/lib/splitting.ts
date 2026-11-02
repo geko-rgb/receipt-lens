@@ -34,7 +34,13 @@ export function computeExactShares(state: SplittableBill): SplitResult {
         state.assignments.filter((a) => a.itemUnitId === unit.id).map((a) => a.participantId)
       ),
     ];
-    if (assignees.length === 0) continue;
+    if (assignees.length === 0) {
+      if (!unit.confirmedUnassigned) {
+        // TODO(ticket 13): produce `units_unassigned` instead of throwing
+        throw new Error(`unit ${unit.id} is neither assigned nor acknowledged`);
+      }
+      continue;
+    }
     const price = fromPaise(itemById.get(unit.itemId)!.unitPrice);
     const perAssignee = divInt(price, assignees.length);
     for (const participantId of assignees) {

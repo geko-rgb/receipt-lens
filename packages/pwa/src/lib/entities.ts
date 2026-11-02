@@ -1,4 +1,4 @@
-import type { ParticipantId, ValueSource, QuantitySource, FinalPriceSource, PriceSource } from "@receipt-lens/core";
+import type { ParticipantId, ValueSource, FinalQuantitySource, FinalPriceSource } from "@receipt-lens/core";
 
 /**
  * PWA data model per PROJECT(1).md §10 — these entities are PWA-owned,
@@ -43,10 +43,10 @@ export interface Item {
   name: string;
   /** positive and resolved */
   qty: number;
-  quantitySource: QuantitySource;
+  quantitySource: FinalQuantitySource;
   /** resolved integer paise */
   unitPrice: number;
-  priceSource: FinalPriceSource | PriceSource;
+  priceSource: FinalPriceSource;
   lineTotal: number;
   detectedLineTotal: number | null;
   confidence: number | null;
