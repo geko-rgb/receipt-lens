@@ -103,7 +103,31 @@ describe("mapCordReceipt", () => {
       ],
     };
 
-    expect(mapCordReceipt(fractional, context).gold.items[0]!.qty).toBe(null);
+    const receipt = mapCordReceipt(fractional, context);
+    expect(receipt.gold.items[0]!.qty).toBe(null);
+    expect(receipt.unreadableAnnotations).toEqual([{ category: "menu.cnt", text: "1/2" }]);
+  });
+
+  it("records a scalar line annotated with label text only, rather than parsing the label", () => {
+    // A real CORD shape: the discount line carries "Discount(0%)" and no value word.
+    const labelOnly: CordRow = {
+      imageSize: singleItem.imageSize,
+      validLine: [
+        ...singleItem.validLine,
+        {
+          category: "sub_total.discount_price",
+          group_id: 26,
+          sub_group_id: 0,
+          words: [{ text: "Discount(0%)", quad: quad(100, 100, 200, 120), is_key: 1 }],
+        },
+      ],
+    };
+
+    const receipt = mapCordReceipt(labelOnly, context);
+    expect(receipt.gold.discount).toBe(null);
+    expect(receipt.unreadableAnnotations).toEqual([
+      { category: "sub_total.discount_price", text: "Discount(0%)" },
+    ]);
   });
 
   it("declares the fields CORD does not annotate as excluded, including round-off", () => {

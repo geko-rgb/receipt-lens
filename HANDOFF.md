@@ -14,6 +14,48 @@
 4. **Ticket 02 done:** `packages/pwa/src/lib/{entities,exact-money,splitting,settlement}.ts` + 27 tests — BigInt reduced rationals; golden ₹664.00 table exact (24635/3, 72710/3, 24635/3, 870, 24870 → 66400); largest-remainder settlement (8212/24237/8211/870/24870); sum-invariance property tests (mulberry32 seed 20261102, no deps); unacknowledged-unit and negative/empty settlement guards (both carry `TODO(ticket 13)`). Two-axis code review run; findings fixed (Final* sources per §10; duplicate charge shape removed from core; tests now typechecked in CI).
 5. GitHub setup: PAT permission saga resolved (fine-grained PAT needed Contents+Workflows read/write); PRs #1 (01-closeout), #2 (02 incl. CI-order fix: **build before typecheck** — fresh checkouts need core `dist/index.d.ts` for pwa's `import type`), #3 (tracker status) — all merged; every merge waited for green `unit` CI, protection verified by it actually blocking a queued-check merge.
 
+## CHECKPOINT — ticket 03a in progress (2026-11-02, branch `ticket/03a-benchmark-foundation`)
+
+**Not pushed, no PR yet, and deliberately not push-ready**: the bootstrap test reads the
+committed dev fixtures, and the fixtures are **uncommitted** pending an owner ruling on
+five PII items (below). Fresh-clone `pnpm test` fails until they land.
+
+Done and committed on the branch (5 commits): decision records 0003–0005 + the
+privacy correction here; `pnpm fetch:datasets` with corrected dataset pins (hyparquet
+devDep, `allowBuilds: hyparquet: false`); redaction over all ten PII classes; CORD +
+SROIE loaders + harness money parsing; fixture serialization, the generation driver, the
+results CLI, the PII scan, the scoring/report module, the null-parser bootstrap test,
+`fixtures/README.md`, `fixtures/PII-SCAN.md`, CI gates and two new workflows.
+
+Verified locally: `pnpm build` ✓ `pnpm typecheck` ✓ `pnpm test` 110 passing (core 4, pwa
+27, benchmarks 79) ✓ `pnpm verify:fixtures` = 715 files byte-identical on regeneration ✓
+`pnpm verify:results` ✓ `pnpm scan:pii` idempotence clean ✓ budget 11.9 MB / 50 MB,
+largest file 51 KB ✓ disk 57 GB free.
+
+Generated but **uncommitted**: `benchmarks/fixtures/` (717 files: dev = CORD valid 100 +
+SROIE train 150, eval = CORD test 100 + SROIE test 361) and `benchmarks/results/dev-null-bootstrap.json`.
+Regenerate with `pnpm generate:fixtures` (needs `pnpm fetch:datasets`; raw/ is present
+and hash-verified). Redaction volumes: dev/sroie 817, eval/sroie 1913, CORD 5 total.
+Bootstrap result: strict 0, every field 0, no NaN, on both datasets.
+
+**Owner decisions blocking the fixture commit** (full detail in `benchmarks/fixtures/PII-SCAN.md`):
+unlabeled proprietor names on line 1; business tax registration numbers (GST/SST/ROC);
+16 unlabeled local-format phone numbers; 197 unlabeled digit runs (139 PAN-length); and
+18 receipts whose company/address annotation could not be located in the token stream, so
+some header business/address words survive verbatim. Per DECISIONS/0005 these were
+reported, not redacted on initiative.
+
+**Also pending:** whether the byte-identical regeneration gate can live in per-push CI at
+all (it needs the 2.7 GB snapshot, which was rejected for CI) — currently it is a
+scheduled + manual `fixtures-check.yml`, not a push gate. And: `gh repo rename`/visibility
+corrections are done, the repo is now `geko-rgb/receipt-lens`, private, PAT rotated.
+
+**How to resume cold:** read `AGENTS.md`, this file, `DECISIONS/0003`–`0005`,
+`benchmarks/fixtures/{README,PII-SCAN}.md`, then `.scratch/receipt-lens-v1/issues/03a-*.md`.
+Code lives in `benchmarks/src/{fixtures,datasets,scoring}/*` with one test file per seam:
+S1 redact, S2 loaders, S3 serialize/generate, S4 bootstrap. 03b adds the matcher and the
+item-level scorers — `report.ts` throws rather than scoring items without it.
+
 ## Next: ticket 03a — benchmark foundation (start fresh session, in the home repo)
 Read first: `AGENTS.md`, `.scratch/receipt-lens-v1/spec.md` (Testing Decisions), `issues/03a-benchmark-foundation.md`, `benchmarks/datasets/dataset-manifest.json`, `DECISIONS/0002`, `GLOSSARY.md`, `docs/adr/0003`, `docs/storage.md`.
 Owner-prioritized first tasks: SROIE loader against the pinned snapshot scoring **grandTotal only** (`total → grandTotal`, no item-level fields exist) and CORD loader (layout-stress bucket, Indonesian labels, excluded fields never null-scored). Both read the manifest — **no runtime fetching**. Null-parser bootstrap (exactly 0, no NaN, CI-enforced), fixture cache keyed snapshot+provider+model-hash, byte-identical reports, machine-readable committed results. Call `/tdd` at the pre-agreed benchmark seams; branch `ticket/03a-…` + PR, never direct-push `main`.

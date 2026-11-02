@@ -17,5 +17,11 @@ jobs:
       - run: pnpm build
       - run: pnpm typecheck
       - run: pnpm test
+      # Ticket 03a gates. The null-parser bootstrap itself runs inside `pnpm test`
+      # (benchmarks/src/bootstrap.test.ts) against the committed dev fixtures; these are
+      # the checks around it that a test alone cannot make.
+      - run: pnpm scan:pii
+      - run: pnpm verify:results
+      - run: node scripts/check-fixture-budget.mjs
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

@@ -1,6 +1,6 @@
 import type { OcrBox, OcrLine, OcrResult, OcrWord } from "@receipt-lens/core";
 import { parseAmountToMinorUnits } from "../money.js";
-import type { BenchmarkField, DatasetName, GoldAnnotation, LabeledReceipt } from "./types.js";
+import type { BenchmarkField, DatasetName, GoldAnnotation, LabeledReceipt, UnreadableAnnotation } from "./types.js";
 
 export interface SroieRow {
   readonly words: readonly string[];
@@ -133,8 +133,18 @@ export function mapSroieReceipt(
   };
 
   const printed = row.entities.total?.trim();
+  const unreadable: UnreadableAnnotation[] = [];
+  let grandTotal: number | null = null;
+  if (printed) {
+    try {
+      grandTotal = parseAmountToMinorUnits(printed, "en");
+    } catch {
+      // An unreadable total is a missing gold field, recorded — never a zero.
+      unreadable.push({ category: "entities.total", text: printed });
+    }
+  }
   const gold: GoldAnnotation = {
-    grandTotal: printed ? parseAmountToMinorUnits(printed, "en") : null,
+    grandTotal,
     subtotal: null,
     serviceCharge: null,
     tip: null,
@@ -150,5 +160,6 @@ export function mapSroieReceipt(
     split: context.receiptId.split("/")[1] as "dev" | "eval",
     ocr,
     gold,
+    unreadableAnnotations: unreadable,
   };
 }
