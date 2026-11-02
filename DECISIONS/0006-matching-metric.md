@@ -25,11 +25,17 @@ over `dev/cord-v2` only (254 gold items, 229 distinct normalized names, 228 of t
 — DECISIONS/0004 forbids tuning against `eval/`; all negative counts below are **unordered**
 pairs):
 
-| Metric | positives kept (1-substitution) | false candidates on the **money-equal** surface (n=17) | same-first-word distinct items (n=60) |
+| Metric | single-substitution variants kept | false candidates on the **money-equal** surface (n=16) | same-first-word distinct items (n=60) |
 |---|---|---|---|
-| normalized Levenshtein @0.70 | 97.4% | **0 (0.0%)** | 8.3% |
-| Jaro @0.70 | 99% | 3 (17.6%) | 71.7% |
-| Jaro-Winkler @0.70 | 99% | 3 (17.6%) | 71.7% |
+| normalized Levenshtein @0.70 | 99.42% | **0 (0.0%)** | 5 (8.3%) |
+| Jaro @0.70 | — | 3 (18.8%) | 43 (71.7%) |
+| Jaro-Winkler @0.70 | — | 3 (18.8%) | 43 (71.7%) |
+
+**On the dev money-equal surface, Jaro-Winkler admits 3 of 16 false candidates at τ=0.70
+(18.8%), including the same-brand-different-dish pattern; LEV admits 0.** (The earlier working
+note said 3 of 17 / 17.6%: §8.2 gates on *both* monetary fields, so a pair whose other amount
+conflicts can never become a candidate and was removed from the surface. The committed sweep
+measures 16.)
 
 The false candidates Levenshtein refuses and Jaro accepts are real menu pairs, not synthetic
 near-duplicates:
@@ -53,9 +59,10 @@ shape for receipt menus, where the discriminating token is the *last* word
 
 ## Where Jaro-Winkler is better, and why we still lose nothing
 
-Levenshtein is the weaker metric on truncation: at τ=0.70 it keeps 78% of names cut to 75%
-of their length and 0% of names cut to 50%, where Jaro-Winkler keeps 100%. That is a real
-gap, and it is deliberately not bought. A prediction whose name is truncated relative to
+Levenshtein is the weaker metric on truncation. Over the 454 right-clipped variants of the dev
+name pool — every distinct name cut to 75% and to 50% of its length — it keeps **176 of 454
+(38.8%)** at τ=0.70, where Jaro-Winkler keeps **454 of 454**. That is a real gap, and it is
+deliberately not bought. A prediction whose name is truncated relative to
 gold is a **row-segmentation** failure (ticket 05's geometry work), not a name-spelling
 variant; §8.4 wants it to surface as one false positive plus one false negative. A metric
 that forgives it would hide a segmentation bug inside the metric whose job is to expose the
@@ -66,25 +73,30 @@ noise, where Levenshtein behaves monotonically, not on length-level noise.
 
 ## Why 0.70 rather than 0.75 or 0.80
 
-Levenshtein sweep over `dev/cord-v2` (positives are synthetic single edits of real dev names,
-seeded and reproducible):
+The committed sweep over `dev/cord-v2`. Variants are **exhaustive, not sampled** — every
+single substitution of a non-space character by a different `a-z0-9` character (97,300 cases),
+every adjacent transposition (2,089), every right-clip to 75% and 50% (454) — so nobody has to
+trust a seed. False-candidate counts are pairs above τ, out of the surface size in the header.
 
-| τ | 1-substitution kept | adjacent-transposition kept | within-receipt distinct false (n=406) | money-equal distinct false (n=17) | same-first-word false (n=60) |
+| τ | substitution kept | transposition kept | truncation kept | money-equal false (n=16) LEV / Jaro / JW | same-first-word false (n=60) LEV / Jaro / JW |
 |---|---|---|---|---|---|
-| 0.60 | 98.6% | 95.5% | 1.48% | 0.0% | 16.7% |
-| 0.65 | 98.6% | 93.2% | 0.99% | 0.0% | 11.7% |
-| **0.70** | **97.4%** | **90.5%** | **0.74%** | **0.0%** | **8.3%** |
-| 0.75 | 97.4% | 87.8% | 0.74% | 0.0% | 6.7% |
-| 0.80 | 95.2% | 78.4% | 0.00% | 0.0% | 1.7% |
-| 0.85 | 90.2% | 49.5% | 0.00% | 0.0% | 1.7% |
+| 0.60 | 99.75% | 98.95% | 49.3% | 0 / 5 / 5 | 10 / 55 / 55 |
+| 0.65 | 99.75% | 98.09% | 48.2% | 0 / 3 / 3 | 7 / 50 / 50 |
+| **0.70** | **99.42%** | **96.74%** | **38.8%** | **0 / 3 / 3** | **5 / 43 / 43** |
+| 0.75 | 99.42% | 95.64% | 13.2% | 0 / 1 / 2 | 4 / 24 / 43 |
+| 0.80 | 98.71% | 90.09% | 0.0% | 0 / 1 / 2 | 1 / 17 / 43 |
+| 0.85 | 96.58% | 66.16% | 0.0% | 0 / 0 / 1 | 1 / 6 / 24 |
 
 The money-equal surface — the surface that can actually produce a false candidate — is at
-zero for every τ from 0.60 to 0.85, so tightening past 0.70 buys no safety there and costs
-transposition tolerance (90.5% → 87.8% → 78.4% → 49.5%). Loosening below 0.70 starts
-admitting same-prefix distinct items (8.3% → 11.7% → 16.7%). **0.70 is the highest-recall end
-of the flat-safe region**, it is `ROADMAP.md` G8t's pre-declared default, and no number in
-this project has been tuned to it, because 03a's null-parser bootstrap scores 0 on every
-metric with or without a τ.
+zero for Levenshtein at every τ from 0.60 to 0.85, so tightening past 0.70 buys that metric no
+safety at all while costing transposition tolerance (96.74% → 95.64% → 90.09% → 66.16%) and
+truncation tolerance (38.8% → 13.2% → 0%). It does buy the rejected metrics safety — Jaro
+3 → 0 and Jaro-Winkler 3 → 1 across the same range — which is another way of saying their
+scores are not separated from distinct dishes until τ is uncomfortably tight. Loosening below
+0.70 starts admitting same-prefix distinct items for Levenshtein too (5 → 7 → 10 of 60).
+**0.70 is the highest-recall end of the flat-safe region**, it is `ROADMAP.md` G8t's
+pre-declared default, and no number in this project has been tuned to it, because 03a's
+null-parser bootstrap scores 0 on every metric with or without a τ.
 
 ## Accepted limitations, stated rather than discovered later
 
@@ -121,6 +133,22 @@ metric with or without a τ.
 - The round-off band (§6: within ₹0.02 of `expected_round_off`, magnitude ≤ ₹1.00) is pinned in
   `benchmark.config` by this ticket because G8t groups all three, but no matcher behaviour
   depends on it.
+
+## How this stays honest
+
+The τ-sweep is committed at `benchmarks/src/matching/sweep.ts` and asserts (a) zero false
+candidates at τ=0.70 on the dev money-equal surface, (b) the Jamur Enoki/Kuping pair scores
+0.500 under LEV and 0.891 under JW, (c) the safe band is 0.60–0.85. Any future change to the
+metric or τ must re-derive these numbers; if they change, the sweep fails and the change is
+visible.
+
+`sweep.test.ts` turns those guarantees into a per-push CI gate — it needs only the committed
+dev fixtures, no raw dataset — and additionally pins the surface sizes (16 / 406 / 60), the
+exhaustive variant counts (97,300 substitutions, 2,089 transpositions, 454 truncations) and the
+counts above τ for all three metrics, so the tables in this file cannot drift from the artifact
+that produced them. The sweep also guards the one shortcut in `matching/similarity.ts`:
+JavaScript's `toLowerCase()` is not full Unicode casefolding, and it fails the sweep if a future
+fixture ever carries a `ß`, a ligature, or a dotted/dotless `I`.
 
 ## Lock
 
