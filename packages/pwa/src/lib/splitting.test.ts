@@ -111,4 +111,32 @@ describe("exact share computation", () => {
     expect(r.hasNegativeShare).toBe(true);
     expect(shareOf(r, "P2")).toEqual({ numeratorPaise: "-150", denominator: "1" });
   });
+
+  it("refuses to split a unit that is neither assigned nor acknowledged", () => {
+    const b: SplittableBill = {
+      bill: bill(),
+      participants: [p("P1")],
+      items: [item("A", 1000, 1)],
+      itemUnits: [unit("A", 0)],
+      assignments: [],
+      charges: [],
+    };
+    expect(() => computeExactShares(b)).toThrow("neither assigned nor acknowledged");
+  });
+
+  it("does not mutate the bill state it splits", () => {
+    const b: SplittableBill = {
+      bill: bill(),
+      participants: [p("P1"), p("P2")],
+      items: [item("A", 1000, 1)],
+      itemUnits: [unit("A", 0)],
+      assignments: [asg("A.u0", "P1")],
+      charges: [
+        { id: "c1", billId: "b", type: "service_charge", label: "SC", amount: 500, included: false, source: "detected" },
+      ],
+    };
+    const before = structuredClone(b);
+    computeExactShares(b);
+    expect(b).toEqual(before);
+  });
 });

@@ -16,6 +16,15 @@ export function allocateSettlement(
   confirmedGrandTotalPaise: number
 ): SettlementAllocation[] {
   const target = BigInt(confirmedGrandTotalPaise);
+  if (shares.length === 0) {
+    if (target !== 0n) throw new Error("no shares to allocate against a nonzero total");
+    return [];
+  }
+  const negative = shares.find((s) => compare(s.exactAmount, fromPaise(0)) < 0);
+  if (negative) {
+    // TODO(ticket 13): produce `negative_share_after_discount` instead of throwing
+    throw new Error(`negative exact share for ${negative.participantId}`);
+  }
   const entries = shares.map((s) => {
     const floor = floorPaise(s.exactAmount);
     return {

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { ExactMoney } from "./entities.js";
 import { add, divInt, fromPaise } from "./exact-money.js";
-import { allocateSettlement, type ParticipantShare } from "./settlement.js";
+import type { ParticipantShare } from "./splitting.js";
+import { allocateSettlement } from "./settlement.js";
 
 const em = (n: string, d = "1"): ExactMoney => ({ numeratorPaise: n, denominator: d });
 
@@ -49,5 +50,22 @@ describe("settlement allocation — transfer boundary only", () => {
 
   it("a target the floors cannot reach is rejected, not silently padded", () => {
     expect(() => allocateSettlement([{ participantId: "P1", exactAmount: fromPaise(10) }], 25)).toThrow();
+  });
+
+  it("negative exact shares are refused at the settlement boundary", () => {
+    expect(() =>
+      allocateSettlement(
+        [
+          { participantId: "P1", exactAmount: fromPaise(-150) },
+          { participantId: "P2", exactAmount: fromPaise(50) },
+        ],
+        -100
+      )
+    ).toThrow("negative exact share");
+  });
+
+  it("an empty bill allocates nothing against zero, and rejects a nonzero total", () => {
+    expect(allocateSettlement([], 0)).toEqual([]);
+    expect(() => allocateSettlement([], 5)).toThrow();
   });
 });
