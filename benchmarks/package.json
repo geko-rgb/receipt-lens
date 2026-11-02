@@ -3,9 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "@receipt-lens/core": "workspace:*"
+  },
+  "devDependencies": {
+    "hyparquet": "^1.32.0"
+  },
   "scripts": {
     "build": "tsc -p .",
-    "typecheck": "tsc -p . --noEmit",
+    "typecheck": "tsc -p . --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run"
   }
 }
