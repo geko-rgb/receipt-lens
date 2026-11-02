@@ -1,0 +1,28 @@
+#!/bin/sh
+# Pre-push drift gate for the benchmark fixtures (DECISIONS/0004).
+#
+# The per-push CI job cannot regenerate fixtures — that needs the 2.7 GB pinned
+# snapshot, and no-datasets-in-CI excludes it — so drift is otherwise caught only by
+# the weekly scheduled run. This hook closes that window on any machine that has the
+# raw data, which is exactly the machine that just changed a loader.
+#
+# Enable once per clone:
+#     git config core.hooksPath .githooks
+#
+# If benchmarks/datasets/raw/ is absent this is a no-op: there is nothing to
+# regenerate from, and a silent pass beats a hook that blocks unrelated work.
+
+set -eu
+
+repo_root="$(git rev-parse --show-toplevel)"
+raw_dir="$repo_root/benchmarks/datasets/raw"
+
+if [ ! -d "$raw_dir/cord-v2" ] || [ ! -d "$raw_dir/sroie" ]; then
+  echo "pre-push: raw dataset snapshot not present — skipping fixture drift check"
+  exit 0
+fi
+
+echo "pre-push: regenerating fixtures in memory and comparing to the committed bytes"
+cd "$repo_root"
+pnpm verify:fixtures
+pnpm scan:pii

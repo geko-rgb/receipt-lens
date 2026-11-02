@@ -1,0 +1,233 @@
+{
+  "receiptId": "cord-v2/dev/9",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 1152,
+      "height": 1728
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1",
+        "box": {
+          "x": 242,
+          "y": 938,
+          "width": 20,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 242,
+              "y": 938,
+              "width": 20,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "Tahu Ikan Oma Giok",
+        "box": {
+          "x": 308,
+          "y": 929,
+          "width": 303,
+          "height": 41
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Tahu",
+            "box": {
+              "x": 308,
+              "y": 936,
+              "width": 74,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "Ikan",
+            "box": {
+              "x": 392,
+              "y": 934,
+              "width": 72,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "Oma",
+            "box": {
+              "x": 474,
+              "y": 934,
+              "width": 54,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "Giok",
+            "box": {
+              "x": 538,
+              "y": 929,
+              "width": 73,
+              "height": 38
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "20,000",
+        "box": {
+          "x": 800,
+          "y": 924,
+          "width": 104,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "20,000",
+            "box": {
+              "x": 800,
+              "y": 924,
+              "width": 104,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "TOTAL 20,000",
+        "box": {
+          "x": 574,
+          "y": 1004,
+          "width": 342,
+          "height": 72
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 574,
+              "y": 1038,
+              "width": 88,
+              "height": 38
+            },
+            "confidence": null
+          },
+          {
+            "text": "20,000",
+            "box": {
+              "x": 800,
+              "y": 1004,
+              "width": 116,
+              "height": 72
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "CASH 20,000",
+        "box": {
+          "x": 230,
+          "y": 1119,
+          "width": 688,
+          "height": 55
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 230,
+              "y": 1136,
+              "width": 76,
+              "height": 38
+            },
+            "confidence": null
+          },
+          {
+            "text": "20,000",
+            "box": {
+              "x": 809,
+              "y": 1119,
+              "width": 109,
+              "height": 43
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "CHANGED 0",
+        "box": {
+          "x": 228,
+          "y": 1166,
+          "width": 692,
+          "height": 52
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGED",
+            "box": {
+              "x": 228,
+              "y": 1178,
+              "width": 128,
+              "height": 40
+            },
+            "confidence": null
+          },
+          {
+            "text": "0",
+            "box": {
+              "x": 896,
+              "y": 1166,
+              "width": 24,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2000000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Tahu Ikan Oma Giok",
+        "qty": 1,
+        "unitPrice": null,
+        "lineTotal": 2000000
+      }
+    ]
+  }
+}

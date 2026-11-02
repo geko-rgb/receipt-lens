@@ -4,24 +4,28 @@
     "cord-v2": {
       "role": "layout-stress bucket, out-of-language (DQ-04/ADR-010): Indonesian labels, never mixed into headline English accuracy",
       "source": "https://huggingface.co/datasets/naver-clova-ix/cord-v2",
+      "revision": "7f0115a4b758a71d6473b8d085751692da2fef98",
+      "resolveBase": "https://huggingface.co/datasets/naver-clova-ix/cord-v2/resolve/7f0115a4b758a71d6473b8d085751692da2fef98/",
       "license": "CC-BY-4.0",
-      "acquisition": "six parquet files downloaded to raw/cord-v2/; sha256 of each verified against the Hugging Face LFS content identifier",
+      "acquisition": "six parquet files downloaded to raw/cord-v2/data/; sha256 of each verified against the Hugging Face LFS content identifier. Revision pin added 2026-11-02 with scripts/fetch-datasets.mjs: this commit was confirmed to carry all six pinned file hashes, so a `main` bump cannot silently change what is fetched",
       "labelCoverageNote": "item name/quantity/unit price/line total + subtotal/total read from CORD menu structures; fields the parser does not support are excluded from scoring by the 03a loader, never null-scored",
       "files": [
-        { "name": "train-00000-of-00004-b4aaeceff1d90ecb.parquet", "bytes": 490224630, "sha256": "da3994eee1bf9bd3c57f0d53a72c3a6812c8696c5ba26245987949ddf73483cc" },
-        { "name": "train-00001-of-00004-7dbbe248962764c5.parquet", "bytes": 441418432, "sha256": "cce4def16a0d6a6c75f80be712f7494c56c318a8829b712f5c62650155c9e58e" },
-        { "name": "train-00002-of-00004-688fe1305a55e5cc.parquet", "bytes": 443802181, "sha256": "591e2db8fe8b1d364b054f46e8c375b7f00e72578914ba46a573b6858162cab2" },
-        { "name": "train-00003-of-00004-2d0cd200555ed7fd.parquet", "bytes": 455555434, "sha256": "1ffd9de8d6fbcee7630fd4cdfedff05b9b7fabc0fae4fc17557c5fe7cf178748" },
-        { "name": "validation-00000-of-00001-cc3c5779fe22e8ca.parquet", "bytes": 242080800, "sha256": "0d0f6dac11fdcc549de2746aa9f53136a3bc22a2a1aff2b0b847f7622ad60c15" },
-        { "name": "test-00000-of-00001-9c204eb3f4e11791.parquet", "bytes": 234202795, "sha256": "51c65f1788faff392abe2a0b55b023eb23e9be551c509138eaa3a832514224e7" }
+        { "name": "data/train-00000-of-00004-b4aaeceff1d90ecb.parquet", "bytes": 490224630, "sha256": "da3994eee1bf9bd3c57f0d53a72c3a6812c8696c5ba26245987949ddf73483cc" },
+        { "name": "data/train-00001-of-00004-7dbbe248962764c5.parquet", "bytes": 441418432, "sha256": "cce4def16a0d6a6c75f80be712f7494c56c318a8829b712f5c62650155c9e58e" },
+        { "name": "data/train-00002-of-00004-688fe1305a55e5cc.parquet", "bytes": 443802181, "sha256": "591e2db8fe8b1d364b054f46e8c375b7f00e72578914ba46a573b6858162cab2" },
+        { "name": "data/train-00003-of-00004-2d0cd200555ed7fd.parquet", "bytes": 455555434, "sha256": "1ffd9de8d6fbcee7630fd4cdfedff05b9b7fabc0fae4fc17557c5fe7cf178748" },
+        { "name": "data/validation-00000-of-00001-cc3c5779fe22e8ca.parquet", "bytes": 242080800, "sha256": "0d0f6dac11fdcc549de2746aa9f53136a3bc22a2a1aff2b0b847f7622ad60c15" },
+        { "name": "data/test-00000-of-00001-9c204eb3f4e11791.parquet", "bytes": 234202795, "sha256": "51c65f1788faff392abe2a0b55b023eb23e9be551c509138eaa3a832514224e7" }
       ],
-      "status": "acquired: all six parquet files in raw/cord-v2/ verified byte-exact against these SHA-256 hashes (Hugging Face LFS content identifiers), 2.3 GB total"
+      "status": "acquired: all six parquet files in raw/cord-v2/data/ verified byte-exact against these SHA-256 hashes (Hugging Face LFS content identifiers), 2.3 GB total"
     },
     "sroie": {
       "role": "grand-total-only contract: company/date/address/total entities are the annotated scope; score total → grandTotal only, no item-level scoring",
       "source": "https://huggingface.co/datasets/jsdnrs/ICDAR2019-SROIE (community mirror of ICDAR 2019 SROIE, approved by owner 2026-11-02 — see DECISIONS/0002-sroie-snapshot.md)",
+      "revision": "bffe40c26759f3376ec2b3ae9031dbba54cd587c",
+      "resolveBase": "https://huggingface.co/datasets/jsdnrs/ICDAR2019-SROIE/resolve/bffe40c26759f3376ec2b3ae9031dbba54cd587c/",
       "license": "CC-BY-4.0 as declared in the mirror's dataset card, LICENSE text, and NOTICE; the primary ICDAR host (rrc.cvc.uab.es/?ch=13, registration/consent) was NOT used and primary-source verification was NOT performed",
-      "acquisition": "files downloaded to raw/sroie/; LFS oids verified byte-exact for both parquets and the sample image; plain files hash-pinned as fetched",
+      "acquisition": "files downloaded to raw/sroie/; LFS oids verified byte-exact for both parquets and the sample image; plain files hash-pinned as fetched. Revision pin added 2026-11-02 with scripts/fetch-datasets.mjs: this commit was confirmed to carry the pinned file hashes",
       "labelCoverageNote": "entities: company, date, address, total (string, extracted); words+bboxes layout present; the loader scores grandTotal only (total → grandTotal mapping)",
       "splitStats": { "train": { "examples": 626, "bytes": 318620215 }, "test": { "examples": 361, "bytes": 191045976 } },
       "files": [

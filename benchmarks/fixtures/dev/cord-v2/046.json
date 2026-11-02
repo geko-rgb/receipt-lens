@@ -1,0 +1,259 @@
+{
+  "receiptId": "cord-v2/dev/46",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 576,
+      "height": 864
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "MARBLE CASTELA",
+        "box": {
+          "x": 102,
+          "y": 372,
+          "width": 148,
+          "height": 26
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "MARBLE",
+            "box": {
+              "x": 102,
+              "y": 372,
+              "width": 68,
+              "height": 26
+            },
+            "confidence": null
+          },
+          {
+            "text": "CASTELA",
+            "box": {
+              "x": 174,
+              "y": 374,
+              "width": 76,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "1",
+        "box": {
+          "x": 188,
+          "y": 400,
+          "width": 10,
+          "height": 22
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 188,
+              "y": 400,
+              "width": 10,
+              "height": 22
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "22,000",
+        "box": {
+          "x": 294,
+          "y": 400,
+          "width": 64,
+          "height": 26
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "22,000",
+            "box": {
+              "x": 294,
+              "y": 400,
+              "width": 64,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "22,000",
+        "box": {
+          "x": 403,
+          "y": 402,
+          "width": 73,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "22,000",
+            "box": {
+              "x": 403,
+              "y": 402,
+              "width": 73,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "TOTAL 22,000",
+        "box": {
+          "x": 174,
+          "y": 450,
+          "width": 301,
+          "height": 58
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 174,
+              "y": 450,
+              "width": 102,
+              "height": 40
+            },
+            "confidence": null
+          },
+          {
+            "text": "22,000",
+            "box": {
+              "x": 340,
+              "y": 454,
+              "width": 135,
+              "height": 54
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "1",
+        "box": {
+          "x": 105,
+          "y": 465,
+          "width": 12,
+          "height": 23
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 105,
+              "y": 465,
+              "width": 12,
+              "height": 23
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "CASH 22,000",
+        "box": {
+          "x": 174,
+          "y": 488,
+          "width": 300,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 174,
+              "y": 488,
+              "width": 46,
+              "height": 24
+            },
+            "confidence": null
+          },
+          {
+            "text": "22,000",
+            "box": {
+              "x": 402,
+              "y": 502,
+              "width": 72,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "CHANGE 0",
+        "box": {
+          "x": 172,
+          "y": 512,
+          "width": 298,
+          "height": 64
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE",
+            "box": {
+              "x": 172,
+              "y": 512,
+              "width": 125,
+              "height": 46
+            },
+            "confidence": null
+          },
+          {
+            "text": "0",
+            "box": {
+              "x": 446,
+              "y": 536,
+              "width": 24,
+              "height": 40
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2200000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "MARBLE CASTELA",
+        "qty": 1,
+        "unitPrice": 2200000,
+        "lineTotal": 2200000
+      }
+    ]
+  }
+}

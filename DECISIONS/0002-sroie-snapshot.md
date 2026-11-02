@@ -24,3 +24,11 @@ Nothing was silently substituted.
 **Loader contract (03a):** score `grandTotal` only, mapped from the annotated
 `total` entity. Company/date/address are not scored (not part of the parser's
 contract); item-level fields are not annotated and are never null-scored.
+
+**License fallback (owner, 2026-11-02).** If the mirror's licensing is ever contested,
+neither option is to be discovered mid-project:
+
+- **(a)** run CI on CORD-only committed fixtures, and publish SROIE numbers from an
+  owner-run local job with the provenance gap disclosed beside them; or
+- **(b)** replace this snapshot with a fully licensed SROIE source and re-pin the
+  manifest.

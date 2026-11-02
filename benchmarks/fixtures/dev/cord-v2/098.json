@@ -1,0 +1,223 @@
+{
+  "receiptId": "cord-v2/dev/98",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 576,
+      "height": 864
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1",
+        "box": {
+          "x": 114,
+          "y": 284,
+          "width": 12,
+          "height": 20
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 114,
+              "y": 284,
+              "width": 12,
+              "height": 20
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "Hulk Topper Package",
+        "box": {
+          "x": 148,
+          "y": 274,
+          "width": 188,
+          "height": 28
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Hulk",
+            "box": {
+              "x": 148,
+              "y": 280,
+              "width": 46,
+              "height": 22
+            },
+            "confidence": null
+          },
+          {
+            "text": "Topper",
+            "box": {
+              "x": 196,
+              "y": 278,
+              "width": 64,
+              "height": 22
+            },
+            "confidence": null
+          },
+          {
+            "text": "Package",
+            "box": {
+              "x": 262,
+              "y": 274,
+              "width": 74,
+              "height": 22
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "100.000",
+        "box": {
+          "x": 432,
+          "y": 268,
+          "width": 76,
+          "height": 24
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "100.000",
+            "box": {
+              "x": 432,
+              "y": 268,
+              "width": 76,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "TOTAL 100.000",
+        "box": {
+          "x": 302,
+          "y": 318,
+          "width": 212,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 302,
+              "y": 338,
+              "width": 56,
+              "height": 24
+            },
+            "confidence": null
+          },
+          {
+            "text": "100.000",
+            "box": {
+              "x": 434,
+              "y": 318,
+              "width": 80,
+              "height": 38
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "CASH 100.000",
+        "box": {
+          "x": 108,
+          "y": 378,
+          "width": 408,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 108,
+              "y": 386,
+              "width": 44,
+              "height": 24
+            },
+            "confidence": null
+          },
+          {
+            "text": "100.000",
+            "box": {
+              "x": 436,
+              "y": 378,
+              "width": 80,
+              "height": 26
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "CHANGED 0",
+        "box": {
+          "x": 105,
+          "y": 404,
+          "width": 411,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGED",
+            "box": {
+              "x": 105,
+              "y": 408,
+              "width": 77,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "0",
+            "box": {
+              "x": 502,
+              "y": 404,
+              "width": 14,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 10000000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Hulk Topper Package",
+        "qty": 1,
+        "unitPrice": null,
+        "lineTotal": 10000000
+      }
+    ]
+  }
+}

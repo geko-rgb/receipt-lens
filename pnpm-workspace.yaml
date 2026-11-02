@@ -7,3 +7,8 @@ packages:
 # installs script-free and satisfies the frozen-lockfile strict-build check in CI.
 allowBuilds:
   esbuild: false
+  # hyparquet is pure JS with zero dependencies; its only lifecycle script is
+  # `prepare` (type build), which does not run for a registry tarball. Declined
+  # explicitly so a future republish with an install hook cannot slip past the
+  # script-free frozen-install check in CI.
+  hyparquet: false

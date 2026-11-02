@@ -179,7 +179,15 @@ importers:
         specifier: ^3.0.0
         version: 3.2.7(@types/node@22.20.5)
 
-  benchmarks: {}
+  benchmarks:
+    dependencies:
+      '@receipt-lens/core':
+        specifier: workspace:*
+        version: link:../packages/core
+    devDependencies:
+      hyparquet:
+        specifier: ^1.32.0
+        version: 1.32.0
 
   packages/core: {}
 
@@ -603,6 +611,9 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
+
+  hyparquet@1.32.0:
+    resolution: {integrity: sha512-SpkvdfgQjcdCJA+MTzo0WSreLLy/aLRYs3xetk1SsuFvq8vF+J/97OaRnZhf+p5Nx3J27i9FhSC0bJ5eQZG/7Q==}
 
   js-tokens@9.0.1:
     resolution: {integrity: sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ==}
@@ -1063,6 +1074,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  hyparquet@1.32.0: {}
 
   js-tokens@9.0.1: {}
 

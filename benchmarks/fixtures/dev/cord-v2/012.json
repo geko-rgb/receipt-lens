@@ -1,0 +1,223 @@
+{
+  "receiptId": "cord-v2/dev/12",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 1108,
+      "height": 1478
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "ES KOPI SUSU",
+        "box": {
+          "x": 200,
+          "y": 605,
+          "width": 199,
+          "height": 49
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ES",
+            "box": {
+              "x": 200,
+              "y": 608,
+              "width": 36,
+              "height": 42
+            },
+            "confidence": null
+          },
+          {
+            "text": "KOPI",
+            "box": {
+              "x": 246,
+              "y": 605,
+              "width": 72,
+              "height": 49
+            },
+            "confidence": null
+          },
+          {
+            "text": "SUSU",
+            "box": {
+              "x": 327,
+              "y": 608,
+              "width": 72,
+              "height": 45
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "4",
+        "box": {
+          "x": 439,
+          "y": 611,
+          "width": 22,
+          "height": 41
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "4",
+            "box": {
+              "x": 439,
+              "y": 611,
+              "width": 22,
+              "height": 41
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "72.000",
+        "box": {
+          "x": 598,
+          "y": 612,
+          "width": 96,
+          "height": 45
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "72.000",
+            "box": {
+              "x": 598,
+              "y": 612,
+              "width": 96,
+              "height": 45
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "Total 72.000",
+        "box": {
+          "x": 200,
+          "y": 718,
+          "width": 493,
+          "height": 48
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Total",
+            "box": {
+              "x": 200,
+              "y": 718,
+              "width": 88,
+              "height": 44
+            },
+            "confidence": null
+          },
+          {
+            "text": "72.000",
+            "box": {
+              "x": 592,
+              "y": 722,
+              "width": 101,
+              "height": 44
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "GoPay 72.000",
+        "box": {
+          "x": 200,
+          "y": 828,
+          "width": 498,
+          "height": 51
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GoPay",
+            "box": {
+              "x": 200,
+              "y": 828,
+              "width": 89,
+              "height": 51
+            },
+            "confidence": null
+          },
+          {
+            "text": "72.000",
+            "box": {
+              "x": 593,
+              "y": 832,
+              "width": 105,
+              "height": 44
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "Kembali 0",
+        "box": {
+          "x": 196,
+          "y": 882,
+          "width": 492,
+          "height": 54
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Kembali",
+            "box": {
+              "x": 196,
+              "y": 882,
+              "width": 124,
+              "height": 54
+            },
+            "confidence": null
+          },
+          {
+            "text": "0",
+            "box": {
+              "x": 665,
+              "y": 895,
+              "width": 23,
+              "height": 41
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 7200000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "ES KOPI SUSU",
+        "qty": 4,
+        "unitPrice": null,
+        "lineTotal": 7200000
+      }
+    ]
+  }
+}

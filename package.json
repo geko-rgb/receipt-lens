@@ -10,7 +10,13 @@
     "typecheck": "pnpm -r typecheck && tsc -p .",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "test:e2e": "playwright test --config playwright/playwright.config.ts"
+    "test:e2e": "playwright test --config playwright/playwright.config.ts",
+    "fetch:datasets": "node scripts/fetch-datasets.mjs",
+    "generate:fixtures": "pnpm build && node benchmarks/dist/generate-fixtures.js",
+    "verify:fixtures": "pnpm build && node benchmarks/dist/generate-fixtures.js --check",
+    "scan:pii": "pnpm build && node benchmarks/dist/scan-pii.js",
+    "report:results": "pnpm build && node benchmarks/dist/report-results.js",
+    "verify:results": "pnpm build && node benchmarks/dist/report-results.js --check"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",

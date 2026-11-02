@@ -1,0 +1,241 @@
+{
+  "receiptId": "cord-v2/dev/68",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [
+    {
+      "category": "menu.cnt",
+      "text": "2 X"
+    }
+  ],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 864,
+      "height": 1296
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "2 X",
+        "box": {
+          "x": 252,
+          "y": 500,
+          "width": 46,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "2 X",
+            "box": {
+              "x": 252,
+              "y": 500,
+              "width": 46,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "13,000",
+        "box": {
+          "x": 460,
+          "y": 498,
+          "width": 120,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "13,000",
+            "box": {
+              "x": 460,
+              "y": 498,
+              "width": 120,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "Honey Mandarin",
+        "box": {
+          "x": 146,
+          "y": 531,
+          "width": 294,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Honey",
+            "box": {
+              "x": 146,
+              "y": 531,
+              "width": 111,
+              "height": 37
+            },
+            "confidence": null
+          },
+          {
+            "text": "Mandarin",
+            "box": {
+              "x": 274,
+              "y": 536,
+              "width": 166,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "26,000",
+        "box": {
+          "x": 515,
+          "y": 529,
+          "width": 127,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "26,000",
+            "box": {
+              "x": 515,
+              "y": 529,
+              "width": 127,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "TOTAL 26,000",
+        "box": {
+          "x": 210,
+          "y": 599,
+          "width": 430,
+          "height": 40
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 210,
+              "y": 604,
+              "width": 108,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "26,000",
+            "box": {
+              "x": 399,
+              "y": 599,
+              "width": 241,
+              "height": 40
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "CASH 30,000",
+        "box": {
+          "x": 212,
+          "y": 638,
+          "width": 434,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 212,
+              "y": 640,
+              "width": 86,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "30,000",
+            "box": {
+              "x": 520,
+              "y": 638,
+              "width": 126,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "CHANGE 4,000",
+        "box": {
+          "x": 210,
+          "y": 672,
+          "width": 438,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE",
+            "box": {
+              "x": 210,
+              "y": 676,
+              "width": 128,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "4,000",
+            "box": {
+              "x": 542,
+              "y": 672,
+              "width": 106,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2600000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Honey Mandarin",
+        "qty": null,
+        "unitPrice": 1300000,
+        "lineTotal": 2600000
+      }
+    ]
+  }
+}
