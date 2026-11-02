@@ -4,11 +4,14 @@ import { add, fromPaise } from "./exact-money.js";
 import { computeExactShares } from "./splitting.js";
 import { allocateSettlement } from "./settlement.js";
 
-function lcg(seed: number): () => number {
-  let s = seed >>> 0;
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
   return () => {
-    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
-    return s / 4294967296;
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
 
@@ -84,7 +87,7 @@ function randomBill(rand: () => number) {
 
 describe("sum-invariance on randomized bills (property tests)", () => {
   it("exact shares always sum to the confirmed payable total", () => {
-    const rand = lcg(20261102);
+    const rand = mulberry32(20261102);
     for (let trial = 0; trial < 200; trial++) {
       const { state, expectedTotalPaise } = randomBill(rand);
       const { shares, hasNegativeShare } = computeExactShares(state);

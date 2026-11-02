@@ -47,4 +47,17 @@ describe("ExactMoney — rational paise arithmetic", () => {
     const value = divInt(fromPaise(72710), 3);
     expect(JSON.parse(JSON.stringify(value))).toEqual(em("72710", "3"));
   });
+
+  it("non-integer paise are rejected at the money boundary", () => {
+    expect(() => fromPaise(10.5)).toThrow("paise must be an integer");
+  });
+
+  it("both parts of every computed share are plain integer strings — no float ever appears", () => {
+    const third = divInt(fromPaise(16025), 3);
+    const repeated = add(third, third);
+    const json = JSON.stringify(repeated);
+    expect(json).not.toMatch(/\.\d/);
+    expect(repeated.numeratorPaise).toMatch(/^-?\d+$/);
+    expect(repeated.denominator).toMatch(/^\d+$/);
+  });
 });
