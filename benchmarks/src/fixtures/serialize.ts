@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import type { DatasetProvenance, LabeledReceipt } from "../datasets/types.js";
-import type { Redaction, UnmatchedEntity } from "./redact.js";
+import type { Redaction, Survivor, UnmatchedEntity } from "./redact.js";
 
 export interface FixtureFile {
   readonly provenance: DatasetProvenance;
   readonly receipts: readonly LabeledReceipt[];
   readonly redactionCounts: Readonly<Partial<Record<string, number>>>;
   readonly unmatchedEntities: readonly UnmatchedEntity[];
+  readonly survivors: readonly Survivor[];
 }
 
 /**
@@ -95,6 +96,15 @@ export function serializeFixtureFile(file: FixtureFile): string {
             digest: createHash("sha256").update(entity.text).digest("hex").slice(0, 12),
           }))
           .sort((left, right) => `${left.class}${left.digest}`.localeCompare(`${right.class}${right.digest}`)),
+        // Tokens deliberately left in place by a rule, counted by why — the idempotence
+        // scan reads these positions back so a protected token is not reported as a leak.
+        survivorCounts: [...file.survivors.reduce((map, survivor) => {
+          const key = `${survivor.class}\u0000${survivor.reason}`;
+          map.set(key, (map.get(key) ?? 0) + 1);
+          return map;
+        }, new Map<string, number>()).entries()]
+          .map(([key, count]) => ({ class: key.split("\u0000")[0], reason: key.split("\u0000")[1], count }))
+          .sort((left, right) => `${left.class}${left.reason}`.localeCompare(`${right.class}${right.reason}`)),
       },
       null,
       2
@@ -116,7 +126,8 @@ function sortedRedactionCounts(counts: FixtureFile["redactionCounts"]): Record<s
  */
 export function serializeReceiptFile(
   receipt: LabeledReceipt,
-  redactions: readonly Redaction[]
+  redactions: readonly Redaction[],
+  survivors: readonly Survivor[] = []
 ): string {
   const canonical = canonicalReceipt(receipt);
   return (
@@ -135,6 +146,16 @@ export function serializeReceiptFile(
           word: redaction.word,
           beforeLength: redaction.before.length,
           after: redaction.after,
+        })),
+        // Positions deliberately spared, recorded so the audit can re-apply the rules
+        // and still pass. Token text is never repeated here: a survivor is often the
+        // very number the rule wanted to remove.
+        survivors: survivors.map((survivor) => ({
+          class: survivor.class,
+          reason: survivor.reason,
+          line: survivor.line,
+          word: survivor.word,
+          tokenLength: survivor.token.length,
         })),
         ocr: canonical.ocr,
         gold: canonical.gold,

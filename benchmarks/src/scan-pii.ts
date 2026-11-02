@@ -45,6 +45,7 @@ async function fixtureFiles(dir: string): Promise<string[]> {
 interface FixtureReceipt {
   readonly ocr: { readonly lines: readonly { text: string; readonly words: readonly { text: string }[] }[] };
   readonly gold: { readonly items?: readonly { name: string }[] };
+  readonly survivors?: readonly { class: string; reason: string; line: number; word: number; tokenLength: number }[];
 }
 
 function linesOf(receipt: FixtureReceipt): string[][] {
@@ -59,6 +60,7 @@ const problems: string[] = [];
 const advisories = new Map<string, { count: number; shapes: string[] }>();
 let receiptsScanned = 0;
 let tokensScanned = 0;
+let survivorHits = 0;
 
 for (const split of ["dev", "eval"]) {
   for (const file of await fixtureFiles(path.join(fixturesRoot, split))) {
@@ -66,14 +68,18 @@ for (const split of ["dev", "eval"]) {
     receiptsScanned += 1;
     const entities: HeaderEntities = {};
 
-    // 1. Idempotence: a complete redaction re-applies as a no-op.
+    // 1. Idempotence: a complete redaction re-applies as a no-op — except at positions
+    // the generator deliberately spared and recorded, which are reported as survivors.
     const again = redactWords(linesOf(receipt), entities);
-    if (again.redactions.length > 0) {
-      for (const redaction of again.redactions) {
-        problems.push(
-          `${path.relative(repoRoot, file)} line ${redaction.line} word ${redaction.word}: ${redaction.class} would fire again on "${maskShape(redaction.before)}"`
-        );
+    const spared = new Set((receipt.survivors ?? []).map((survivor) => `${survivor.line}:${survivor.word}`));
+    for (const redaction of again.redactions) {
+      if (spared.has(`${redaction.line}:${redaction.word}`)) {
+        survivorHits += 1;
+        continue;
       }
+      problems.push(
+        `${path.relative(repoRoot, file)} line ${redaction.line} word ${redaction.word}: ${redaction.class} would fire again on "${maskShape(redaction.before)}"`
+      );
     }
 
     // 2. Heuristics over every committed token. Word tokens only, never joined line
@@ -107,4 +113,6 @@ if (problems.length > 0) {
   for (const problem of problems.slice(0, 20)) console.error(`  ${problem}`);
   process.exit(1);
 }
-console.log("\nidempotence: re-applying the redaction rules changes nothing");
+console.log(
+  `\nidempotence: re-applying the redaction rules changes nothing (${survivorHits} recorded spared position(s) excluded)`
+);

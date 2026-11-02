@@ -1,0 +1,261 @@
+{
+  "receiptId": "cord-v2/eval/65",
+  "dataset": "cord-v2",
+  "split": "eval",
+  "unreadableAnnotations": [
+    {
+      "category": "sub_total.tax_price",
+      "text": "-"
+    }
+  ],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 960,
+      "height": 1706
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "Bubur Polos + Telur",
+        "box": {
+          "x": 149,
+          "y": 818,
+          "width": 415,
+          "height": 56
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Bubur",
+            "box": {
+              "x": 149,
+              "y": 818,
+              "width": 119,
+              "height": 50
+            },
+            "confidence": null
+          },
+          {
+            "text": "Polos",
+            "box": {
+              "x": 281,
+              "y": 819,
+              "width": 113,
+              "height": 53
+            },
+            "confidence": null
+          },
+          {
+            "text": "+",
+            "box": {
+              "x": 408,
+              "y": 831,
+              "width": 26,
+              "height": 35
+            },
+            "confidence": null
+          },
+          {
+            "text": "Telur",
+            "box": {
+              "x": 447,
+              "y": 818,
+              "width": 117,
+              "height": 56
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "1",
+        "box": {
+          "x": 153,
+          "y": 873,
+          "width": 24,
+          "height": 48
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 153,
+              "y": 873,
+              "width": 24,
+              "height": 48
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "13.000",
+        "box": {
+          "x": 409,
+          "y": 872,
+          "width": 130,
+          "height": 53
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "13.000",
+            "box": {
+              "x": 409,
+              "y": 872,
+              "width": 130,
+              "height": 53
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "13.000",
+        "box": {
+          "x": 703,
+          "y": 881,
+          "width": 135,
+          "height": 47
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "13.000",
+            "box": {
+              "x": 703,
+              "y": 881,
+              "width": 135,
+              "height": 47
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "Subtotal 13.000",
+        "box": {
+          "x": 148,
+          "y": 975,
+          "width": 692,
+          "height": 61
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Subtotal",
+            "box": {
+              "x": 148,
+              "y": 975,
+              "width": 175,
+              "height": 51
+            },
+            "confidence": null
+          },
+          {
+            "text": "13.000",
+            "box": {
+              "x": 702,
+              "y": 985,
+              "width": 138,
+              "height": 51
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "Pajak -",
+        "box": {
+          "x": 147,
+          "y": 1029,
+          "width": 687,
+          "height": 52
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Pajak",
+            "box": {
+              "x": 147,
+              "y": 1029,
+              "width": 116,
+              "height": 52
+            },
+            "confidence": null
+          },
+          {
+            "text": "-",
+            "box": {
+              "x": 811,
+              "y": 1060,
+              "width": 23,
+              "height": 13
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "Total 13.000",
+        "box": {
+          "x": 144,
+          "y": 1081,
+          "width": 696,
+          "height": 64
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Total",
+            "box": {
+              "x": 144,
+              "y": 1081,
+              "width": 115,
+              "height": 53
+            },
+            "confidence": null
+          },
+          {
+            "text": "13.000",
+            "box": {
+              "x": 702,
+              "y": 1091,
+              "width": 138,
+              "height": 54
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 1300000,
+    "subtotal": 1300000,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Bubur Polos + Telur",
+        "qty": 1,
+        "unitPrice": 1300000,
+        "lineTotal": 1300000
+      }
+    ]
+  }
+}

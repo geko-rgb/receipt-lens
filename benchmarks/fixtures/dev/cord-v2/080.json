@@ -1,0 +1,203 @@
+{
+  "receiptId": "cord-v2/dev/80",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 1108,
+      "height": 1478
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "1",
+        "box": {
+          "x": 216,
+          "y": 775,
+          "width": 25,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 216,
+              "y": 775,
+              "width": 25,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "Sate Padang",
+        "box": {
+          "x": 257,
+          "y": 774,
+          "width": 269,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Sate",
+            "box": {
+              "x": 257,
+              "y": 774,
+              "width": 106,
+              "height": 35
+            },
+            "confidence": null
+          },
+          {
+            "text": "Padang",
+            "box": {
+              "x": 382,
+              "y": 776,
+              "width": 144,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "25.000",
+        "box": {
+          "x": 636,
+          "y": 776,
+          "width": 149,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "25.000",
+            "box": {
+              "x": 636,
+              "y": 776,
+              "width": 149,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "Total 25.000",
+        "box": {
+          "x": 258,
+          "y": 846,
+          "width": 526,
+          "height": 69
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Total",
+            "box": {
+              "x": 258,
+              "y": 846,
+              "width": 126,
+              "height": 65
+            },
+            "confidence": null
+          },
+          {
+            "text": "25.000",
+            "box": {
+              "x": 638,
+              "y": 853,
+              "width": 146,
+              "height": 62
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "1",
+        "box": {
+          "x": 216,
+          "y": 848,
+          "width": 20,
+          "height": 59
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1",
+            "box": {
+              "x": 216,
+              "y": 848,
+              "width": 20,
+              "height": 59
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "Cash 25.000",
+        "box": {
+          "x": 211,
+          "y": 950,
+          "width": 577,
+          "height": 68
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Cash",
+            "box": {
+              "x": 211,
+              "y": 950,
+              "width": 105,
+              "height": 65
+            },
+            "confidence": null
+          },
+          {
+            "text": "25.000",
+            "box": {
+              "x": 637,
+              "y": 956,
+              "width": 151,
+              "height": 62
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 2500000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "Sate Padang",
+        "qty": 1,
+        "unitPrice": null,
+        "lineTotal": 2500000
+      }
+    ]
+  }
+}

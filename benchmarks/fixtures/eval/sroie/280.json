@@ -1,0 +1,552 @@
+{
+  "receiptId": "sroie/eval/280",
+  "dataset": "sroie",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [
+    {
+      "class": "BUSINESS",
+      "line": 0,
+      "word": 0,
+      "beforeLength": 22,
+      "after": "[BUSINESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 1,
+      "word": 0,
+      "beforeLength": 14,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "BUSINESS",
+      "line": 2,
+      "word": 0,
+      "beforeLength": 18,
+      "after": "[BUSINESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 3,
+      "word": 0,
+      "beforeLength": 11,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "NAME",
+      "line": 9,
+      "word": 1,
+      "beforeLength": 12,
+      "after": "CASHIER: [NAME]"
+    },
+    {
+      "class": "CUSTOMER",
+      "line": 16,
+      "word": 0,
+      "beforeLength": 30,
+      "after": "CUSTOMER [CUSTOMER] [CUSTOMER]"
+    }
+  ],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 4961,
+      "height": 7016
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "sroie@483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "[BUSINESS]",
+        "box": {
+          "x": 2287,
+          "y": 1340,
+          "width": 887,
+          "height": 103
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[BUSINESS]",
+            "box": {
+              "x": 2287,
+              "y": 1340,
+              "width": 887,
+              "height": 103
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 2447,
+          "y": 1439,
+          "width": 559,
+          "height": 84
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 2447,
+              "y": 1439,
+              "width": 559,
+              "height": 84
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "[BUSINESS]",
+        "box": {
+          "x": 2361,
+          "y": 1541,
+          "width": 730,
+          "height": 88
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[BUSINESS]",
+            "box": {
+              "x": 2361,
+              "y": 1541,
+              "width": 730,
+              "height": 88
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 2361,
+          "y": 1639,
+          "width": 721,
+          "height": 82
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 2361,
+              "y": 1639,
+              "width": 721,
+              "height": 82
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "PREPAY CHIT NUMBER",
+        "box": {
+          "x": 2310,
+          "y": 1924,
+          "width": 734,
+          "height": 88
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "PREPAY CHIT NUMBER",
+            "box": {
+              "x": 2310,
+              "y": 1924,
+              "width": 734,
+              "height": 88
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "44961",
+        "box": {
+          "x": 2471,
+          "y": 2023,
+          "width": 385,
+          "height": 88
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "44961",
+            "box": {
+              "x": 2471,
+              "y": 2023,
+              "width": 385,
+              "height": 88
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "THIS IS NOT A RECEIPT",
+        "box": {
+          "x": 2267,
+          "y": 2211,
+          "width": 842,
+          "height": 90
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "THIS IS NOT A RECEIPT",
+            "box": {
+              "x": 2267,
+              "y": 2211,
+              "width": 842,
+              "height": 90
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "A TAX INVOICE WILL BE ISSUED UPON THE",
+        "box": {
+          "x": 1927,
+          "y": 2309,
+          "width": 1493,
+          "height": 96
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "A TAX INVOICE WILL BE ISSUED UPON THE",
+            "box": {
+              "x": 1927,
+              "y": 2309,
+              "width": 1493,
+              "height": 96
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L8",
+        "text": "COMPLETION OF THE SALE TRANSACTION",
+        "box": {
+          "x": 2023,
+          "y": 2402,
+          "width": 1353,
+          "height": 98
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "COMPLETION OF THE SALE TRANSACTION",
+            "box": {
+              "x": 2023,
+              "y": 2402,
+              "width": 1353,
+              "height": 98
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L9",
+        "text": "08-05-2018 08:17:16 CASHIER: [NAME]",
+        "box": {
+          "x": 1853,
+          "y": 2592,
+          "width": 1441,
+          "height": 97
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "08-05-2018 08:17:16",
+            "box": {
+              "x": 1853,
+              "y": 2592,
+              "width": 769,
+              "height": 92
+            },
+            "confidence": null
+          },
+          {
+            "text": "CASHIER: [NAME]",
+            "box": {
+              "x": 2808,
+              "y": 2605,
+              "width": 486,
+              "height": 84
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L10",
+        "text": "TRANSACTION NO: 1-546045",
+        "box": {
+          "x": 1857,
+          "y": 2693,
+          "width": 963,
+          "height": 86
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TRANSACTION NO: 1-546045",
+            "box": {
+              "x": 1857,
+              "y": 2693,
+              "width": 963,
+              "height": 86
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L11",
+        "text": "ITEM U\\PRICE QNTY AMOUNT",
+        "box": {
+          "x": 1851,
+          "y": 2883,
+          "width": 1555,
+          "height": 103
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ITEM",
+            "box": {
+              "x": 1851,
+              "y": 2883,
+              "width": 170,
+              "height": 84
+            },
+            "confidence": null
+          },
+          {
+            "text": "U\\PRICE",
+            "box": {
+              "x": 2519,
+              "y": 2887,
+              "width": 291,
+              "height": 92
+            },
+            "confidence": null
+          },
+          {
+            "text": "QNTY AMOUNT",
+            "box": {
+              "x": 2959,
+              "y": 2894,
+              "width": 447,
+              "height": 92
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L12",
+        "text": "PPF P7 1.000 50 50.00",
+        "box": {
+          "x": 1846,
+          "y": 3074,
+          "width": 1558,
+          "height": 102
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "PPF",
+            "box": {
+              "x": 1846,
+              "y": 3074,
+              "width": 137,
+              "height": 86
+            },
+            "confidence": null
+          },
+          {
+            "text": "P7",
+            "box": {
+              "x": 2443,
+              "y": 3080,
+              "width": 86,
+              "height": 86
+            },
+            "confidence": null
+          },
+          {
+            "text": "1.000",
+            "box": {
+              "x": 2603,
+              "y": 3080,
+              "width": 209,
+              "height": 92
+            },
+            "confidence": null
+          },
+          {
+            "text": "50",
+            "box": {
+              "x": 3035,
+              "y": 3090,
+              "width": 88,
+              "height": 86
+            },
+            "confidence": null
+          },
+          {
+            "text": "50.00",
+            "box": {
+              "x": 3195,
+              "y": 3092,
+              "width": 209,
+              "height": 78
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L13",
+        "text": "TOTAL AMOUNT",
+        "box": {
+          "x": 2398,
+          "y": 3275,
+          "width": 482,
+          "height": 84
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL AMOUNT",
+            "box": {
+              "x": 2398,
+              "y": 3275,
+              "width": 482,
+              "height": 84
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L14",
+        "text": "CASH RM 50.00",
+        "box": {
+          "x": 2394,
+          "y": 3369,
+          "width": 1002,
+          "height": 98
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 2394,
+              "y": 3369,
+              "width": 166,
+              "height": 88
+            },
+            "confidence": null
+          },
+          {
+            "text": "RM",
+            "box": {
+              "x": 3027,
+              "y": 3383,
+              "width": 94,
+              "height": 84
+            },
+            "confidence": null
+          },
+          {
+            "text": "50.00",
+            "box": {
+              "x": 3183,
+              "y": 3381,
+              "width": 213,
+              "height": 82
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L15",
+        "text": "THANK YOU FOR SHOPPING AT BHPETROMART",
+        "box": {
+          "x": 1918,
+          "y": 3554,
+          "width": 1465,
+          "height": 109
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "THANK YOU FOR SHOPPING AT BHPETROMART",
+            "box": {
+              "x": 1918,
+              "y": 3554,
+              "width": 1465,
+              "height": 109
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L16",
+        "text": "CUSTOMER [CUSTOMER] [CUSTOMER]",
+        "box": {
+          "x": 2055,
+          "y": 3661,
+          "width": 1223,
+          "height": 99
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CUSTOMER [CUSTOMER] [CUSTOMER]",
+            "box": {
+              "x": 2055,
+              "y": 3661,
+              "width": 1223,
+              "height": 99
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 5000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": []
+  }
+}

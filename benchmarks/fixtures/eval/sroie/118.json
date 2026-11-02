@@ -1,0 +1,1343 @@
+{
+  "receiptId": "sroie/eval/118",
+  "dataset": "sroie",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [
+    {
+      "class": "BUSINESS",
+      "line": 0,
+      "word": 0,
+      "beforeLength": 38,
+      "after": "[BUSINESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 1,
+      "word": 0,
+      "beforeLength": 14,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "TAX_REG",
+      "line": 2,
+      "word": 0,
+      "beforeLength": 25,
+      "after": "GST REG NO : [TAX_REG]"
+    },
+    {
+      "class": "INVOICE_NNN",
+      "line": 3,
+      "word": 1,
+      "beforeLength": 7,
+      "after": ": [INVOICE_NNN]"
+    },
+    {
+      "class": "CARD_XXXX",
+      "line": 34,
+      "word": 0,
+      "beforeLength": 24,
+      "after": "MASTER [CARD_XXXX]:"
+    },
+    {
+      "class": "ACCOUNT",
+      "line": 42,
+      "word": 0,
+      "beforeLength": 25,
+      "after": "REF NO: [ACCOUNT]"
+    }
+  ],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 705,
+      "height": 2287
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "sroie@483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "[BUSINESS]",
+        "box": {
+          "x": 61,
+          "y": 183,
+          "width": 558,
+          "height": 53
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[BUSINESS]",
+            "box": {
+              "x": 61,
+              "y": 183,
+              "width": 558,
+              "height": 53
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 146,
+          "y": 232,
+          "width": 399,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 146,
+              "y": 232,
+              "width": 399,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "GST REG NO : [TAX_REG]",
+        "box": {
+          "x": 149,
+          "y": 272,
+          "width": 402,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST REG NO : [TAX_REG]",
+            "box": {
+              "x": 149,
+              "y": 272,
+              "width": 402,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "INVOICE NO : [INVOICE_NNN]",
+        "box": {
+          "x": 47,
+          "y": 393,
+          "width": 302,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "INVOICE NO",
+            "box": {
+              "x": 47,
+              "y": 396,
+              "width": 151,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": ": [INVOICE_NNN]",
+            "box": {
+              "x": 242,
+              "y": 393,
+              "width": 107,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "DATE : 12 MAR 2018 08:51AM",
+        "box": {
+          "x": 43,
+          "y": 431,
+          "width": 523,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "DATE",
+            "box": {
+              "x": 43,
+              "y": 439,
+              "width": 66,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": ": 12 MAR 2018 08:51AM",
+            "box": {
+              "x": 238,
+              "y": 431,
+              "width": 328,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "COUNTER : 09",
+        "box": {
+          "x": 46,
+          "y": 476,
+          "width": 257,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "COUNTER",
+            "box": {
+              "x": 46,
+              "y": 477,
+              "width": 107,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": ": 09",
+            "box": {
+              "x": 244,
+              "y": 476,
+              "width": 59,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "KNIFE COOKING OIL 5KG",
+        "box": {
+          "x": 46,
+          "y": 557,
+          "width": 319,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "KNIFE COOKING OIL 5KG",
+            "box": {
+              "x": 46,
+              "y": 557,
+              "width": 319,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "1 X 25.80 25.80 Z",
+        "box": {
+          "x": 45,
+          "y": 591,
+          "width": 603,
+          "height": 41
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 25.80",
+            "box": {
+              "x": 45,
+              "y": 599,
+              "width": 141,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "25.80 Z",
+            "box": {
+              "x": 545,
+              "y": 591,
+              "width": 103,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L8",
+        "text": "LKK HOI SIN SAUCE 240G",
+        "box": {
+          "x": 46,
+          "y": 639,
+          "width": 334,
+          "height": 35
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "LKK HOI SIN SAUCE 240G",
+            "box": {
+              "x": 46,
+              "y": 639,
+              "width": 334,
+              "height": 35
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L9",
+        "text": "1 X 7.69 7.69 S",
+        "box": {
+          "x": 40,
+          "y": 675,
+          "width": 614,
+          "height": 40
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 7.69",
+            "box": {
+              "x": 40,
+              "y": 681,
+              "width": 136,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "7.69 S",
+            "box": {
+              "x": 560,
+              "y": 675,
+              "width": 94,
+              "height": 27
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L10",
+        "text": "SEVEN FRENCH FRIES S/S 2.5KG",
+        "box": {
+          "x": 44,
+          "y": 718,
+          "width": 426,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SEVEN FRENCH FRIES S/S 2.5KG",
+            "box": {
+              "x": 44,
+              "y": 718,
+              "width": 426,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L11",
+        "text": "1 X 13.50 13.50 S",
+        "box": {
+          "x": 42,
+          "y": 754,
+          "width": 606,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 13.50",
+            "box": {
+              "x": 42,
+              "y": 758,
+              "width": 151,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "13.50 S",
+            "box": {
+              "x": 545,
+              "y": 754,
+              "width": 103,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L12",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 45,
+          "y": 801,
+          "width": 306,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 45,
+              "y": 801,
+              "width": 306,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L13",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 47,
+          "y": 835,
+          "width": 605,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 47,
+              "y": 842,
+              "width": 141,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 544,
+              "y": 835,
+              "width": 108,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L14",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 45,
+          "y": 883,
+          "width": 310,
+          "height": 28
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 45,
+              "y": 883,
+              "width": 310,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L15",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 48,
+          "y": 915,
+          "width": 604,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 48,
+              "y": 924,
+              "width": 138,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 549,
+              "y": 915,
+              "width": 103,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L16",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 47,
+          "y": 963,
+          "width": 310,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 47,
+              "y": 963,
+              "width": 310,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L17",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 49,
+          "y": 995,
+          "width": 602,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 49,
+              "y": 1003,
+              "width": 139,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 547,
+              "y": 995,
+              "width": 104,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L18",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 43,
+          "y": 1043,
+          "width": 304,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 43,
+              "y": 1043,
+              "width": 304,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L19",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 48,
+          "y": 1078,
+          "width": 603,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 48,
+              "y": 1085,
+              "width": 138,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 547,
+              "y": 1078,
+              "width": 104,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L20",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 45,
+          "y": 1120,
+          "width": 303,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 45,
+              "y": 1120,
+              "width": 303,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L21",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 48,
+          "y": 1153,
+          "width": 604,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 48,
+              "y": 1163,
+              "width": 137,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 547,
+              "y": 1153,
+              "width": 105,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L22",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 45,
+          "y": 1198,
+          "width": 306,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 45,
+              "y": 1198,
+              "width": 306,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L23",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 46,
+          "y": 1236,
+          "width": 607,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 46,
+              "y": 1241,
+              "width": 138,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 546,
+              "y": 1236,
+              "width": 107,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L24",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 48,
+          "y": 1278,
+          "width": 300,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 48,
+              "y": 1278,
+              "width": 300,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L25",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 43,
+          "y": 1315,
+          "width": 609,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 43,
+              "y": 1322,
+              "width": 146,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 548,
+              "y": 1315,
+              "width": 104,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L26",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 47,
+          "y": 1358,
+          "width": 303,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 47,
+              "y": 1358,
+              "width": 303,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L27",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 47,
+          "y": 1395,
+          "width": 605,
+          "height": 40
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 47,
+              "y": 1404,
+              "width": 136,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 546,
+              "y": 1395,
+              "width": 106,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L28",
+        "text": "IQF SQUID TUBE 1KG+-",
+        "box": {
+          "x": 48,
+          "y": 1443,
+          "width": 306,
+          "height": 29
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "IQF SQUID TUBE 1KG+-",
+            "box": {
+              "x": 48,
+              "y": 1443,
+              "width": 306,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L29",
+        "text": "1 X 10.90 10.90 Z",
+        "box": {
+          "x": 37,
+          "y": 1474,
+          "width": 617,
+          "height": 41
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 X 10.90",
+            "box": {
+              "x": 37,
+              "y": 1486,
+              "width": 154,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "10.90 Z",
+            "box": {
+              "x": 550,
+              "y": 1474,
+              "width": 104,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L30",
+        "text": "NO OF ITEMS: 12",
+        "box": {
+          "x": 46,
+          "y": 1561,
+          "width": 234,
+          "height": 31
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "NO OF ITEMS: 12",
+            "box": {
+              "x": 46,
+              "y": 1561,
+              "width": 234,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L31",
+        "text": "SUBTOTAL INCL. GST:RM 145.09",
+        "box": {
+          "x": 180,
+          "y": 1597,
+          "width": 473,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SUBTOTAL INCL. GST:RM",
+            "box": {
+              "x": 180,
+              "y": 1603,
+              "width": 322,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "145.09",
+            "box": {
+              "x": 560,
+              "y": 1597,
+              "width": 93,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L32",
+        "text": "ROUNDING:RM 0.01",
+        "box": {
+          "x": 330,
+          "y": 1635,
+          "width": 321,
+          "height": 40
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ROUNDING:RM",
+            "box": {
+              "x": 330,
+              "y": 1641,
+              "width": 170,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.01",
+            "box": {
+              "x": 593,
+              "y": 1635,
+              "width": 58,
+              "height": 38
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L33",
+        "text": "TOTAL INCL. GST:RM 145.10",
+        "box": {
+          "x": 222,
+          "y": 1678,
+          "width": 430,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL INCL. GST:RM",
+            "box": {
+              "x": 222,
+              "y": 1682,
+              "width": 279,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "145.10",
+            "box": {
+              "x": 560,
+              "y": 1678,
+              "width": 92,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L34",
+        "text": "MASTER [CARD_XXXX]: 145.10",
+        "box": {
+          "x": 132,
+          "y": 1719,
+          "width": 520,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "MASTER [CARD_XXXX]:",
+            "box": {
+              "x": 132,
+              "y": 1724,
+              "width": 370,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "145.10",
+            "box": {
+              "x": 559,
+              "y": 1719,
+              "width": 93,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L35",
+        "text": "CHANGE:RM 0.00",
+        "box": {
+          "x": 364,
+          "y": 1757,
+          "width": 291,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CHANGE:RM",
+            "box": {
+              "x": 364,
+              "y": 1761,
+              "width": 141,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 586,
+              "y": 1757,
+              "width": 69,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L36",
+        "text": "MISSED POINT TODAY: 143",
+        "box": {
+          "x": 42,
+          "y": 1802,
+          "width": 359,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "MISSED POINT TODAY: 143",
+            "box": {
+              "x": 42,
+              "y": 1802,
+              "width": 359,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L37",
+        "text": "SERVED BY MIRA SUBRAKTI",
+        "box": {
+          "x": 41,
+          "y": 1843,
+          "width": 361,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SERVED BY MIRA SUBRAKTI",
+            "box": {
+              "x": 41,
+              "y": 1843,
+              "width": 361,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L38",
+        "text": "GST SUMMARY",
+        "box": {
+          "x": 269,
+          "y": 1917,
+          "width": 179,
+          "height": 43
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST SUMMARY",
+            "box": {
+              "x": 269,
+              "y": 1917,
+              "width": 179,
+              "height": 43
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L39",
+        "text": "GST CODE AMOUNT(RM) TAX(RM)",
+        "box": {
+          "x": 43,
+          "y": 1959,
+          "width": 611,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST CODE",
+            "box": {
+              "x": 43,
+              "y": 1967,
+              "width": 128,
+              "height": 27
+            },
+            "confidence": null
+          },
+          {
+            "text": "AMOUNT(RM)",
+            "box": {
+              "x": 360,
+              "y": 1963,
+              "width": 153,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "TAX(RM)",
+            "box": {
+              "x": 540,
+              "y": 1959,
+              "width": 114,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L40",
+        "text": "Z @0.0% 123.90 0.00",
+        "box": {
+          "x": 41,
+          "y": 2002,
+          "width": 607,
+          "height": 35
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Z @0.0%",
+            "box": {
+              "x": 41,
+              "y": 2005,
+              "width": 115,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "123.90",
+            "box": {
+              "x": 423,
+              "y": 2003,
+              "width": 92,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 590,
+              "y": 2002,
+              "width": 58,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L41",
+        "text": "S @6.0% 19.99 1.20",
+        "box": {
+          "x": 42,
+          "y": 2040,
+          "width": 609,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "S @6.0%",
+            "box": {
+              "x": 42,
+              "y": 2046,
+              "width": 119,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "19.99",
+            "box": {
+              "x": 441,
+              "y": 2042,
+              "width": 74,
+              "height": 29
+            },
+            "confidence": null
+          },
+          {
+            "text": "1.20",
+            "box": {
+              "x": 590,
+              "y": 2040,
+              "width": 61,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L42",
+        "text": "REF NO: [ACCOUNT]",
+        "box": {
+          "x": 149,
+          "y": 2167,
+          "width": 379,
+          "height": 29
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "REF NO: [ACCOUNT]",
+            "box": {
+              "x": 149,
+              "y": 2167,
+              "width": 379,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L43",
+        "text": "GOODS SOLD ARE NOT RETURNABLE. TQ",
+        "box": {
+          "x": 86,
+          "y": 2205,
+          "width": 514,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GOODS SOLD ARE NOT RETURNABLE. TQ",
+            "box": {
+              "x": 86,
+              "y": 2205,
+              "width": 514,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 14510,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": []
+  }
+}

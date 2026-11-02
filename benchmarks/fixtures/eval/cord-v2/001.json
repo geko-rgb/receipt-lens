@@ -1,0 +1,271 @@
+{
+  "receiptId": "cord-v2/eval/1",
+  "dataset": "cord-v2",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 960,
+      "height": 1280
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "J.STB PROMO",
+        "box": {
+          "x": 131,
+          "y": 672,
+          "width": 320,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "J.STB",
+            "box": {
+              "x": 131,
+              "y": 672,
+              "width": 149,
+              "height": 39
+            },
+            "confidence": null
+          },
+          {
+            "text": "PROMO",
+            "box": {
+              "x": 312,
+              "y": 672,
+              "width": 139,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "17500",
+        "box": {
+          "x": 685,
+          "y": 675,
+          "width": 139,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "17500",
+            "box": {
+              "x": 685,
+              "y": 675,
+              "width": 139,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "Y.B.BAT",
+        "box": {
+          "x": 128,
+          "y": 723,
+          "width": 207,
+          "height": 43
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Y.B.BAT",
+            "box": {
+              "x": 128,
+              "y": 723,
+              "width": 207,
+              "height": 43
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "46000",
+        "box": {
+          "x": 680,
+          "y": 726,
+          "width": 144,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "46000",
+            "box": {
+              "x": 680,
+              "y": 726,
+              "width": 144,
+              "height": 38
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "Y.BASO PROM",
+        "box": {
+          "x": 125,
+          "y": 773,
+          "width": 325,
+          "height": 45
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "Y.BASO",
+            "box": {
+              "x": 125,
+              "y": 776,
+              "width": 183,
+              "height": 42
+            },
+            "confidence": null
+          },
+          {
+            "text": "PROM",
+            "box": {
+              "x": 342,
+              "y": 773,
+              "width": 108,
+              "height": 40
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "27500",
+        "box": {
+          "x": 682,
+          "y": 776,
+          "width": 142,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "27500",
+            "box": {
+              "x": 682,
+              "y": 776,
+              "width": 142,
+              "height": 39
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "TOTAL 91000",
+        "box": {
+          "x": 130,
+          "y": 825,
+          "width": 683,
+          "height": 49
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 130,
+              "y": 825,
+              "width": 279,
+              "height": 49
+            },
+            "confidence": null
+          },
+          {
+            "text": "91000",
+            "box": {
+              "x": 539,
+              "y": 826,
+              "width": 274,
+              "height": 41
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "CASH 91000",
+        "box": {
+          "x": 127,
+          "y": 880,
+          "width": 686,
+          "height": 51
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 127,
+              "y": 884,
+              "width": 223,
+              "height": 47
+            },
+            "confidence": null
+          },
+          {
+            "text": "91000",
+            "box": {
+              "x": 540,
+              "y": 880,
+              "width": 273,
+              "height": 41
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 9100000,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": [
+      {
+        "name": "J.STB PROMO",
+        "qty": null,
+        "unitPrice": null,
+        "lineTotal": 1750000
+      },
+      {
+        "name": "Y.B.BAT",
+        "qty": null,
+        "unitPrice": null,
+        "lineTotal": 4600000
+      },
+      {
+        "name": "Y.BASO PROM",
+        "qty": null,
+        "unitPrice": null,
+        "lineTotal": 2750000
+      }
+    ]
+  }
+}

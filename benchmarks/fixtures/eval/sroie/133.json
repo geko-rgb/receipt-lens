@@ -1,0 +1,915 @@
+{
+  "receiptId": "sroie/eval/133",
+  "dataset": "sroie",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [
+    {
+      "class": "BUSINESS",
+      "line": 1,
+      "word": 0,
+      "beforeLength": 26,
+      "after": "[BUSINESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 2,
+      "word": 0,
+      "beforeLength": 13,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 3,
+      "word": 0,
+      "beforeLength": 38,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 4,
+      "word": 0,
+      "beforeLength": 18,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "PHONE",
+      "line": 5,
+      "word": 0,
+      "beforeLength": 35,
+      "after": "TEL : [PHONE] / FAX : [PHONE]"
+    },
+    {
+      "class": "TAX_REG",
+      "line": 6,
+      "word": 0,
+      "beforeLength": 21,
+      "after": "GST ID : [TAX_REG]"
+    },
+    {
+      "class": "INVOICE_NNN",
+      "line": 8,
+      "word": 1,
+      "beforeLength": 20,
+      "after": "[INVOICE_NNN]"
+    },
+    {
+      "class": "NAME",
+      "line": 10,
+      "word": 1,
+      "beforeLength": 17,
+      "after": ": [NAME]"
+    }
+  ],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 842,
+      "height": 1280
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "sroie@483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "JUWITA WEDDINGS (366310-U)",
+        "box": {
+          "x": 173,
+          "y": 44,
+          "width": 459,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "JUWITA WEDDINGS (366310-U)",
+            "box": {
+              "x": 173,
+              "y": 44,
+              "width": 459,
+              "height": 39
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "[BUSINESS]",
+        "box": {
+          "x": 210,
+          "y": 82,
+          "width": 388,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[BUSINESS]",
+            "box": {
+              "x": 210,
+              "y": 82,
+              "width": 388,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 249,
+          "y": 113,
+          "width": 303,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 249,
+              "y": 113,
+              "width": 303,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 124,
+          "y": 137,
+          "width": 562,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 124,
+              "y": 137,
+              "width": 562,
+              "height": 44
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 276,
+          "y": 177,
+          "width": 261,
+          "height": 31
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 276,
+              "y": 177,
+              "width": 261,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "TEL : [PHONE] / FAX : [PHONE]",
+        "box": {
+          "x": 207,
+          "y": 205,
+          "width": 404,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TEL : [PHONE] / FAX : [PHONE]",
+            "box": {
+              "x": 207,
+              "y": 205,
+              "width": 404,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "GST ID : [TAX_REG]",
+        "box": {
+          "x": 280,
+          "y": 253,
+          "width": 261,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST ID : [TAX_REG]",
+            "box": {
+              "x": 280,
+              "y": 253,
+              "width": 261,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "TAX INVOICE",
+        "box": {
+          "x": 329,
+          "y": 300,
+          "width": 175,
+          "height": 30
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TAX INVOICE",
+            "box": {
+              "x": 329,
+              "y": 300,
+              "width": 175,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L8",
+        "text": "INVOICE NO. : [INVOICE_NNN]",
+        "box": {
+          "x": 140,
+          "y": 341,
+          "width": 477,
+          "height": 43
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "INVOICE NO. :",
+            "box": {
+              "x": 140,
+              "y": 352,
+              "width": 151,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "[INVOICE_NNN]",
+            "box": {
+              "x": 309,
+              "y": 341,
+              "width": 308,
+              "height": 35
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L9",
+        "text": "RECEIPT DATE : 28-FEB-2018 16:37:04",
+        "box": {
+          "x": 140,
+          "y": 379,
+          "width": 452,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "RECEIPT DATE : 28-FEB-2018 16:37:04",
+            "box": {
+              "x": 140,
+              "y": 379,
+              "width": 452,
+              "height": 44
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L10",
+        "text": "CASHIER : [NAME]",
+        "box": {
+          "x": 143,
+          "y": 426,
+          "width": 386,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASHIER",
+            "box": {
+              "x": 143,
+              "y": 437,
+              "width": 98,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": ": [NAME]",
+            "box": {
+              "x": 308,
+              "y": 426,
+              "width": 221,
+              "height": 35
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L11",
+        "text": "ITEM DESCRIPTION QTY RM",
+        "box": {
+          "x": 139,
+          "y": 483,
+          "width": 505,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ITEM DESCRIPTION",
+            "box": {
+              "x": 139,
+              "y": 494,
+              "width": 219,
+              "height": 35
+            },
+            "confidence": null
+          },
+          {
+            "text": "QTY",
+            "box": {
+              "x": 456,
+              "y": 490,
+              "width": 49,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "RM",
+            "box": {
+              "x": 601,
+              "y": 483,
+              "width": 43,
+              "height": 27
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L12",
+        "text": "1640310083",
+        "box": {
+          "x": 143,
+          "y": 540,
+          "width": 151,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1640310083",
+            "box": {
+              "x": 143,
+              "y": 540,
+              "width": 151,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L13",
+        "text": "1PCS 2 4.10 SR",
+        "box": {
+          "x": 142,
+          "y": 572,
+          "width": 553,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1PCS",
+            "box": {
+              "x": 142,
+              "y": 591,
+              "width": 71,
+              "height": 27
+            },
+            "confidence": null
+          },
+          {
+            "text": "2",
+            "box": {
+              "x": 473,
+              "y": 581,
+              "width": 11,
+              "height": 19
+            },
+            "confidence": null
+          },
+          {
+            "text": "4.10 SR",
+            "box": {
+              "x": 590,
+              "y": 572,
+              "width": 105,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L14",
+        "text": "MEASUREMENTTAPE",
+        "box": {
+          "x": 140,
+          "y": 615,
+          "width": 288,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "MEASUREMENTTAPE",
+            "box": {
+              "x": 140,
+              "y": 615,
+              "width": 288,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L15",
+        "text": "714WH",
+        "box": {
+          "x": 141,
+          "y": 658,
+          "width": 96,
+          "height": 27
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "714WH",
+            "box": {
+              "x": 141,
+              "y": 658,
+              "width": 96,
+              "height": 27
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L16",
+        "text": "4.10",
+        "box": {
+          "x": 657,
+          "y": 685,
+          "width": 54,
+          "height": 24
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "4.10",
+            "box": {
+              "x": 657,
+              "y": 685,
+              "width": 54,
+              "height": 24
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L17",
+        "text": "SUB TOTAL :",
+        "box": {
+          "x": 148,
+          "y": 702,
+          "width": 130,
+          "height": 27
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SUB TOTAL :",
+            "box": {
+              "x": 148,
+              "y": 702,
+              "width": 130,
+              "height": 27
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L18",
+        "text": "4.10",
+        "box": {
+          "x": 621,
+          "y": 735,
+          "width": 66,
+          "height": 29
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "4.10",
+            "box": {
+              "x": 621,
+              "y": 735,
+              "width": 66,
+              "height": 29
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L19",
+        "text": "TOTAL :",
+        "box": {
+          "x": 160,
+          "y": 752,
+          "width": 192,
+          "height": 35
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TOTAL",
+            "box": {
+              "x": 160,
+              "y": 752,
+              "width": 113,
+              "height": 35
+            },
+            "confidence": null
+          },
+          {
+            "text": ":",
+            "box": {
+              "x": 340,
+              "y": 756,
+              "width": 12,
+              "height": 25
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L20",
+        "text": "CASH : 4.10",
+        "box": {
+          "x": 159,
+          "y": 796,
+          "width": 546,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH :",
+            "box": {
+              "x": 159,
+              "y": 810,
+              "width": 115,
+              "height": 32
+            },
+            "confidence": null
+          },
+          {
+            "text": "4.10",
+            "box": {
+              "x": 639,
+              "y": 796,
+              "width": 66,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L21",
+        "text": "BALANCE : 0.00",
+        "box": {
+          "x": 163,
+          "y": 838,
+          "width": 544,
+          "height": 47
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "BALANCE :",
+            "box": {
+              "x": 163,
+              "y": 850,
+              "width": 177,
+              "height": 35
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 641,
+              "y": 838,
+              "width": 66,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L22",
+        "text": "INC. GST 6.00% : 0.23",
+        "box": {
+          "x": 165,
+          "y": 881,
+          "width": 544,
+          "height": 49
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "INC. GST 6.00% :",
+            "box": {
+              "x": 165,
+              "y": 889,
+              "width": 271,
+              "height": 41
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.23",
+            "box": {
+              "x": 642,
+              "y": 881,
+              "width": 67,
+              "height": 30
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L23",
+        "text": "GST SUMMARY AMOUNT (RM) TAX (RM)",
+        "box": {
+          "x": 152,
+          "y": 940,
+          "width": 550,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST SUMMARY",
+            "box": {
+              "x": 152,
+              "y": 958,
+              "width": 192,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "AMOUNT (RM)",
+            "box": {
+              "x": 374,
+              "y": 947,
+              "width": 174,
+              "height": 30
+            },
+            "confidence": null
+          },
+          {
+            "text": "TAX (RM)",
+            "box": {
+              "x": 585,
+              "y": 940,
+              "width": 117,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L24",
+        "text": "SR 3.87 0.23",
+        "box": {
+          "x": 156,
+          "y": 984,
+          "width": 516,
+          "height": 47
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SR",
+            "box": {
+              "x": 156,
+              "y": 1003,
+              "width": 39,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "3.87",
+            "box": {
+              "x": 435,
+              "y": 992,
+              "width": 54,
+              "height": 28
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.23",
+            "box": {
+              "x": 616,
+              "y": 984,
+              "width": 56,
+              "height": 28
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L25",
+        "text": "ALL PAYMENTS MUST BE MADE ONLY IN THE FORM",
+        "box": {
+          "x": 167,
+          "y": 1038,
+          "width": 534,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ALL PAYMENTS MUST BE MADE ONLY IN THE FORM",
+            "box": {
+              "x": 167,
+              "y": 1038,
+              "width": 534,
+              "height": 46
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L26",
+        "text": "OF A CREDIT CARD OR CASH PAYABLE TO JUWITA",
+        "box": {
+          "x": 190,
+          "y": 1072,
+          "width": 501,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "OF A CREDIT CARD OR CASH PAYABLE TO JUWITA",
+            "box": {
+              "x": 190,
+              "y": 1072,
+              "width": 501,
+              "height": 46
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L27",
+        "text": "WEDDINGS SDN BHD. EXCHANGE ARE ALLOWED",
+        "box": {
+          "x": 182,
+          "y": 1108,
+          "width": 513,
+          "height": 46
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "WEDDINGS SDN BHD. EXCHANGE ARE ALLOWED",
+            "box": {
+              "x": 182,
+              "y": 1108,
+              "width": 513,
+              "height": 46
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L28",
+        "text": "WITHIN 3 DAY WITH RECEIPT. STRICTLY NO CASH",
+        "box": {
+          "x": 196,
+          "y": 1143,
+          "width": 493,
+          "height": 45
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "WITHIN 3 DAY WITH RECEIPT. STRICTLY NO CASH",
+            "box": {
+              "x": 196,
+              "y": 1143,
+              "width": 493,
+              "height": 45
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L29",
+        "text": "REFUND. THANK YOU.",
+        "box": {
+          "x": 335,
+          "y": 1184,
+          "width": 220,
+          "height": 32
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "REFUND. THANK YOU.",
+            "box": {
+              "x": 335,
+              "y": 1184,
+              "width": 220,
+              "height": 32
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 410,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": []
+  }
+}

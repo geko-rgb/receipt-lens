@@ -73,6 +73,29 @@ tokens are re-derivable locally from the pinned snapshot under `raw/` whenever n
 These are why `PERSON_NAME`, `FULL_ACCOUNT_NUMBER` and `CUSTOMER_NAME` joined the list:
 under the first version they would have shipped as ordinary "structural" tokens.
 
+## Second ruling (2026-11-02, after the first scan reported five residual classes)
+
+| Class | Ruling | Implementation |
+|---|---|---|
+| Unlabeled proprietor names on line 1 | **Accepted residual** | Not redacted: no label anchor exists, and guessing at header text to catch a name would damage fixtures the parser needs. Documented in `PII-SCAN.md` as a known limitation. |
+| GST/SST/ROC/BRN registration numbers | Redact | New class `TAX_REG` → `[TAX_REG]`. 9–12 digits, or the ROC `digits-letter` form, in a line carrying a tax/registration label. Label-anchored so `TOTAL GST : 6.37` cannot be caught. |
+| Unlabeled local-format phones | Redact | `PHONE` extended to `##-#### ####` / `##-### ####` with neither `+` nor a TEL label. Applied inline, so one token printing `T: … \| F: …` yields two placeholders. |
+| Unlabeled 13+ digit runs | Redact | `ACCOUNT` extended: any bare run of 13+ digits not already claimed. Only space and dash may separate digits, so date and money punctuation break the run — `25/12/2018 8:13:39 PM` is 14 digits and survives untouched, correctly. |
+| Annotation/print mismatch (18 receipts) | Redact | Header anchor is now **word-level**: a distinctive entity word (4+ characters, stop-words excluded) appearing anywhere in a header token anchors it. This is a dataset quirk, not a rule extension — CORD/SROIE annotations routinely differ from the print by a character. 15 `SDN`/`BHD`-class connectives are excluded so they cannot anchor a match alone. |
+
+**Kept-token protection.** Because the 13+ rule can hit an item code or a printed total,
+`redactWords` now takes `protectedTokens` — the tokens DECISIONS/0005 keeps verbatim (CORD
+item names, quantities, the printed form of a scored monetary value). A protected token a
+rule wanted to redact is left alone **and recorded** as a survivor with its class, reason
+and position. Survivors are committed as `{class, reason, line, word, tokenLength}`:
+positions so the idempotence scan can exclude them, lengths not text, since a survivor is
+often the very number the rule wanted to remove. A spared token nobody explained is a
+leak, not a judgement call.
+
+After this ruling: **zero** 13+ digit runs remain in the committed fixtures, unmatched
+entities fell from 18 receipts to 6, and redaction volume rose from 2,733 to 3,605 tokens.
+The remaining advisories are enumerated in `benchmarks/fixtures/PII-SCAN.md`.
+
 ## Discipline
 
 - Same input → same output: redaction is a pure function, so the byte-identical fixture

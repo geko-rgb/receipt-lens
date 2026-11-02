@@ -1,0 +1,1327 @@
+{
+  "receiptId": "sroie/eval/58",
+  "dataset": "sroie",
+  "split": "eval",
+  "unreadableAnnotations": [],
+  "redactions": [
+    {
+      "class": "BUSINESS",
+      "line": 1,
+      "word": 0,
+      "beforeLength": 32,
+      "after": "[BUSINESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 2,
+      "word": 0,
+      "beforeLength": 4,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 3,
+      "word": 0,
+      "beforeLength": 17,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "ADDRESS",
+      "line": 4,
+      "word": 0,
+      "beforeLength": 19,
+      "after": "[ADDRESS]"
+    },
+    {
+      "class": "PHONE",
+      "line": 5,
+      "word": 0,
+      "beforeLength": 22,
+      "after": "TEL NO. : [PHONE]"
+    },
+    {
+      "class": "TAX_REG",
+      "line": 6,
+      "word": 0,
+      "beforeLength": 23,
+      "after": "GST REG. : [TAX_REG]"
+    },
+    {
+      "class": "INVOICE_NNN",
+      "line": 7,
+      "word": 1,
+      "beforeLength": 10,
+      "after": "[INVOICE_NNN]"
+    },
+    {
+      "class": "NAME",
+      "line": 10,
+      "word": 1,
+      "beforeLength": 6,
+      "after": "[NAME]"
+    }
+  ],
+  "survivors": [],
+  "ocr": {
+    "imageSize": {
+      "width": 939,
+      "height": 2280
+    },
+    "provider": "dataset-reference-ocr",
+    "version": "sroie@483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+    "lines": [
+      {
+        "id": "L0",
+        "text": "TAX INVOICE",
+        "box": {
+          "x": 47,
+          "y": 207,
+          "width": 283,
+          "height": 52
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TAX INVOICE",
+            "box": {
+              "x": 47,
+              "y": 207,
+              "width": 283,
+              "height": 52
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L1",
+        "text": "[BUSINESS]",
+        "box": {
+          "x": 45,
+          "y": 285,
+          "width": 770,
+          "height": 55
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[BUSINESS]",
+            "box": {
+              "x": 45,
+              "y": 285,
+              "width": 770,
+              "height": 55
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L2",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 44,
+          "y": 358,
+          "width": 307,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 44,
+              "y": 358,
+              "width": 307,
+              "height": 39
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L3",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 46,
+          "y": 405,
+          "width": 319,
+          "height": 42
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 46,
+              "y": 405,
+              "width": 319,
+              "height": 42
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L4",
+        "text": "[ADDRESS]",
+        "box": {
+          "x": 44,
+          "y": 452,
+          "width": 359,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "[ADDRESS]",
+            "box": {
+              "x": 44,
+              "y": 452,
+              "width": 359,
+              "height": 39
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L5",
+        "text": "TEL NO. : [PHONE]",
+        "box": {
+          "x": 42,
+          "y": 509,
+          "width": 405,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TEL NO. : [PHONE]",
+            "box": {
+              "x": 42,
+              "y": 509,
+              "width": 405,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L6",
+        "text": "GST REG. : [TAX_REG]",
+        "box": {
+          "x": 46,
+          "y": 554,
+          "width": 397,
+          "height": 42
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST REG. : [TAX_REG]",
+            "box": {
+              "x": 46,
+              "y": 554,
+              "width": 397,
+              "height": 42
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L7",
+        "text": "INVOICE NO. : [INVOICE_NNN]",
+        "box": {
+          "x": 44,
+          "y": 639,
+          "width": 457,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "INVOICE NO. :",
+            "box": {
+              "x": 44,
+              "y": 642,
+              "width": 198,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "[INVOICE_NNN]",
+            "box": {
+              "x": 306,
+              "y": 639,
+              "width": 195,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L8",
+        "text": "DATE: 09/02/2018 09:21:19AM",
+        "box": {
+          "x": 46,
+          "y": 688,
+          "width": 651,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "DATE:",
+            "box": {
+              "x": 46,
+              "y": 688,
+              "width": 99,
+              "height": 39
+            },
+            "confidence": null
+          },
+          {
+            "text": "09/02/2018 09:21:19AM",
+            "box": {
+              "x": 310,
+              "y": 691,
+              "width": 387,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L9",
+        "text": "TERMINAL : T01",
+        "box": {
+          "x": 47,
+          "y": 741,
+          "width": 328,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "TERMINAL :",
+            "box": {
+              "x": 47,
+              "y": 744,
+              "width": 153,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "T01",
+            "box": {
+              "x": 307,
+              "y": 741,
+              "width": 68,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L10",
+        "text": "CASHIER : [NAME]",
+        "box": {
+          "x": 44,
+          "y": 790,
+          "width": 377,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASHIER :",
+            "box": {
+              "x": 44,
+              "y": 790,
+              "width": 135,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "[NAME]",
+            "box": {
+              "x": 312,
+              "y": 793,
+              "width": 109,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L11",
+        "text": "DESC U. PRICE DISC AMOUNT TAX",
+        "box": {
+          "x": 46,
+          "y": 886,
+          "width": 820,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "DESC",
+            "box": {
+              "x": 46,
+              "y": 886,
+              "width": 98,
+              "height": 37
+            },
+            "confidence": null
+          },
+          {
+            "text": "U. PRICE",
+            "box": {
+              "x": 319,
+              "y": 886,
+              "width": 146,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "DISC",
+            "box": {
+              "x": 551,
+              "y": 886,
+              "width": 67,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "AMOUNT TAX",
+            "box": {
+              "x": 655,
+              "y": 886,
+              "width": 211,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L12",
+        "text": "QTY RM RM CODE",
+        "box": {
+          "x": 85,
+          "y": 922,
+          "width": 812,
+          "height": 54
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "QTY",
+            "box": {
+              "x": 85,
+              "y": 935,
+              "width": 73,
+              "height": 41
+            },
+            "confidence": null
+          },
+          {
+            "text": "RM",
+            "box": {
+              "x": 411,
+              "y": 933,
+              "width": 52,
+              "height": 37
+            },
+            "confidence": null
+          },
+          {
+            "text": "RM CODE",
+            "box": {
+              "x": 741,
+              "y": 922,
+              "width": 156,
+              "height": 47
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L13",
+        "text": "GELPEN REFILL PILOT G2 0.5 BLACK",
+        "box": {
+          "x": 46,
+          "y": 1017,
+          "width": 562,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GELPEN REFILL PILOT G2 0.5 BLACK",
+            "box": {
+              "x": 46,
+              "y": 1017,
+              "width": 562,
+              "height": 39
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L14",
+        "text": "5 PCS * 2.86 0.00 14.30 SR",
+        "box": {
+          "x": 153,
+          "y": 1065,
+          "width": 696,
+          "height": 41
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "5 PCS",
+            "box": {
+              "x": 153,
+              "y": 1065,
+              "width": 93,
+              "height": 41
+            },
+            "confidence": null
+          },
+          {
+            "text": "*",
+            "box": {
+              "x": 283,
+              "y": 1074,
+              "width": 16,
+              "height": 21
+            },
+            "confidence": null
+          },
+          {
+            "text": "2.86",
+            "box": {
+              "x": 423,
+              "y": 1068,
+              "width": 72,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 551,
+              "y": 1068,
+              "width": 76,
+              "height": 37
+            },
+            "confidence": null
+          },
+          {
+            "text": "14.30 SR",
+            "box": {
+              "x": 709,
+              "y": 1069,
+              "width": 140,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L15",
+        "text": "GELPEN REFILL PILOT G2 0.5 BLUE",
+        "box": {
+          "x": 47,
+          "y": 1126,
+          "width": 543,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GELPEN REFILL PILOT G2 0.5 BLUE",
+            "box": {
+              "x": 47,
+              "y": 1126,
+              "width": 543,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L16",
+        "text": "5 PCS * 2.86 0.00 14.30 SR",
+        "box": {
+          "x": 151,
+          "y": 1175,
+          "width": 699,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "5 PCS",
+            "box": {
+              "x": 151,
+              "y": 1175,
+              "width": 99,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "*",
+            "box": {
+              "x": 278,
+              "y": 1182,
+              "width": 24,
+              "height": 23
+            },
+            "confidence": null
+          },
+          {
+            "text": "2.86",
+            "box": {
+              "x": 423,
+              "y": 1177,
+              "width": 75,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 553,
+              "y": 1177,
+              "width": 73,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "14.30 SR",
+            "box": {
+              "x": 710,
+              "y": 1175,
+              "width": 140,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L17",
+        "text": "GELPEN REFILL PILOT G2 0.5 RED",
+        "box": {
+          "x": 46,
+          "y": 1234,
+          "width": 523,
+          "height": 33
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GELPEN REFILL PILOT G2 0.5 RED",
+            "box": {
+              "x": 46,
+              "y": 1234,
+              "width": 523,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L18",
+        "text": "2 PCS * 2.86 0.00 5.72 SR",
+        "box": {
+          "x": 153,
+          "y": 1279,
+          "width": 699,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "2 PCS",
+            "box": {
+              "x": 153,
+              "y": 1279,
+              "width": 98,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "*",
+            "box": {
+              "x": 281,
+              "y": 1287,
+              "width": 20,
+              "height": 16
+            },
+            "confidence": null
+          },
+          {
+            "text": "2.86",
+            "box": {
+              "x": 426,
+              "y": 1281,
+              "width": 75,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 554,
+              "y": 1281,
+              "width": 73,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "5.72 SR",
+            "box": {
+              "x": 722,
+              "y": 1279,
+              "width": 130,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L19",
+        "text": "GLUE - CLEAR GLUE 1000ML",
+        "box": {
+          "x": 44,
+          "y": 1336,
+          "width": 439,
+          "height": 34
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GLUE - CLEAR GLUE 1000ML",
+            "box": {
+              "x": 44,
+              "y": 1336,
+              "width": 439,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L20",
+        "text": "1 BTL * 7.42 0.00 7.42 SR",
+        "box": {
+          "x": 154,
+          "y": 1385,
+          "width": 694,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 BTL",
+            "box": {
+              "x": 154,
+              "y": 1386,
+              "width": 91,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "*",
+            "box": {
+              "x": 281,
+              "y": 1391,
+              "width": 18,
+              "height": 20
+            },
+            "confidence": null
+          },
+          {
+            "text": "7.42",
+            "box": {
+              "x": 423,
+              "y": 1385,
+              "width": 73,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 553,
+              "y": 1388,
+              "width": 78,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "7.42 SR",
+            "box": {
+              "x": 723,
+              "y": 1388,
+              "width": 125,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L21",
+        "text": "LIQUID PAPER - PAPERMATE NP10 7ML.",
+        "box": {
+          "x": 42,
+          "y": 1440,
+          "width": 613,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "LIQUID PAPER - PAPERMATE NP10 7ML.",
+            "box": {
+              "x": 42,
+              "y": 1440,
+              "width": 613,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L22",
+        "text": "2 PCS * 3.71 0.00 7.42 SR",
+        "box": {
+          "x": 151,
+          "y": 1492,
+          "width": 700,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "2 PCS",
+            "box": {
+              "x": 151,
+              "y": 1492,
+              "width": 96,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "*",
+            "box": {
+              "x": 275,
+              "y": 1495,
+              "width": 29,
+              "height": 20
+            },
+            "confidence": null
+          },
+          {
+            "text": "3.71",
+            "box": {
+              "x": 426,
+              "y": 1494,
+              "width": 70,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 556,
+              "y": 1495,
+              "width": 72,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "7.42 SR",
+            "box": {
+              "x": 727,
+              "y": 1492,
+              "width": 124,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L23",
+        "text": "PERMANENT MARKER SHARPIE FINE BLACK 30051",
+        "box": {
+          "x": 42,
+          "y": 1549,
+          "width": 783,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "PERMANENT MARKER SHARPIE FINE BLACK 30051",
+            "box": {
+              "x": 42,
+              "y": 1549,
+              "width": 783,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L24",
+        "text": "1 PCS * 2.33 0.00 2.33 SR",
+        "box": {
+          "x": 159,
+          "y": 1598,
+          "width": 690,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 PCS",
+            "box": {
+              "x": 159,
+              "y": 1599,
+              "width": 91,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "*",
+            "box": {
+              "x": 276,
+              "y": 1601,
+              "width": 29,
+              "height": 18
+            },
+            "confidence": null
+          },
+          {
+            "text": "2.33",
+            "box": {
+              "x": 424,
+              "y": 1599,
+              "width": 72,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 551,
+              "y": 1598,
+              "width": 76,
+              "height": 31
+            },
+            "confidence": null
+          },
+          {
+            "text": "2.33 SR",
+            "box": {
+              "x": 722,
+              "y": 1598,
+              "width": 127,
+              "height": 36
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L25",
+        "text": "BALLPEN PILOT FRIXION 0.5 BLACK",
+        "box": {
+          "x": 44,
+          "y": 1651,
+          "width": 553,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "BALLPEN PILOT FRIXION 0.5 BLACK",
+            "box": {
+              "x": 44,
+              "y": 1651,
+              "width": 553,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L26",
+        "text": "1 PCS * 5.30 0.00 5.30 SR",
+        "box": {
+          "x": 156,
+          "y": 1700,
+          "width": 693,
+          "height": 39
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "1 PCS",
+            "box": {
+              "x": 156,
+              "y": 1703,
+              "width": 91,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "*",
+            "box": {
+              "x": 280,
+              "y": 1710,
+              "width": 21,
+              "height": 15
+            },
+            "confidence": null
+          },
+          {
+            "text": "5.30",
+            "box": {
+              "x": 427,
+              "y": 1703,
+              "width": 70,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.00",
+            "box": {
+              "x": 554,
+              "y": 1705,
+              "width": 75,
+              "height": 33
+            },
+            "confidence": null
+          },
+          {
+            "text": "5.30 SR",
+            "box": {
+              "x": 722,
+              "y": 1700,
+              "width": 127,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L27",
+        "text": "SUB TOTAL(INCLUSIVE GST) : 56.80",
+        "box": {
+          "x": 96,
+          "y": 1780,
+          "width": 708,
+          "height": 37
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SUB TOTAL(INCLUSIVE GST) :",
+            "box": {
+              "x": 96,
+              "y": 1780,
+              "width": 405,
+              "height": 37
+            },
+            "confidence": null
+          },
+          {
+            "text": "56.80",
+            "box": {
+              "x": 715,
+              "y": 1780,
+              "width": 89,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L28",
+        "text": "ROUNDING ADJUSTMENT : 0.01",
+        "box": {
+          "x": 153,
+          "y": 1843,
+          "width": 647,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ROUNDING ADJUSTMENT :",
+            "box": {
+              "x": 153,
+              "y": 1843,
+              "width": 349,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "0.01",
+            "box": {
+              "x": 728,
+              "y": 1843,
+              "width": 72,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L29",
+        "text": "ROUNDED TOTAL (RM): 56.80",
+        "box": {
+          "x": 76,
+          "y": 1905,
+          "width": 732,
+          "height": 50
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "ROUNDED TOTAL (RM):",
+            "box": {
+              "x": 76,
+              "y": 1905,
+              "width": 427,
+              "height": 50
+            },
+            "confidence": null
+          },
+          {
+            "text": "56.80",
+            "box": {
+              "x": 688,
+              "y": 1907,
+              "width": 120,
+              "height": 37
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L30",
+        "text": "CASH 100.00",
+        "box": {
+          "x": 88,
+          "y": 2004,
+          "width": 713,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH",
+            "box": {
+              "x": 88,
+              "y": 2004,
+              "width": 78,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "100.00",
+            "box": {
+              "x": 694,
+              "y": 2006,
+              "width": 107,
+              "height": 31
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L31",
+        "text": "CASH CHANGE 43.20",
+        "box": {
+          "x": 86,
+          "y": 2054,
+          "width": 715,
+          "height": 38
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "CASH CHANGE",
+            "box": {
+              "x": 86,
+              "y": 2056,
+              "width": 206,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "43.20",
+            "box": {
+              "x": 707,
+              "y": 2054,
+              "width": 94,
+              "height": 33
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L32",
+        "text": "GST SUMMARY AMOUNT(RM) TAX(RM)",
+        "box": {
+          "x": 88,
+          "y": 2116,
+          "width": 745,
+          "height": 44
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "GST SUMMARY",
+            "box": {
+              "x": 88,
+              "y": 2116,
+              "width": 218,
+              "height": 41
+            },
+            "confidence": null
+          },
+          {
+            "text": "AMOUNT(RM)",
+            "box": {
+              "x": 380,
+              "y": 2116,
+              "width": 198,
+              "height": 42
+            },
+            "confidence": null
+          },
+          {
+            "text": "TAX(RM)",
+            "box": {
+              "x": 696,
+              "y": 2119,
+              "width": 137,
+              "height": 41
+            },
+            "confidence": null
+          }
+        ]
+      },
+      {
+        "id": "L33",
+        "text": "SR @ 6% 53.58 3.21",
+        "box": {
+          "x": 89,
+          "y": 2186,
+          "width": 743,
+          "height": 36
+        },
+        "confidence": null,
+        "words": [
+          {
+            "text": "SR @ 6%",
+            "box": {
+              "x": 89,
+              "y": 2187,
+              "width": 154,
+              "height": 34
+            },
+            "confidence": null
+          },
+          {
+            "text": "53.58",
+            "box": {
+              "x": 494,
+              "y": 2186,
+              "width": 91,
+              "height": 36
+            },
+            "confidence": null
+          },
+          {
+            "text": "3.21",
+            "box": {
+              "x": 762,
+              "y": 2188,
+              "width": 70,
+              "height": 34
+            },
+            "confidence": null
+          }
+        ]
+      }
+    ]
+  },
+  "gold": {
+    "grandTotal": 5680,
+    "subtotal": null,
+    "serviceCharge": null,
+    "tip": null,
+    "discount": null,
+    "roundOff": null,
+    "taxTotal": null,
+    "items": []
+  }
+}

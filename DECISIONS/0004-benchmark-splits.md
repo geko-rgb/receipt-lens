@@ -28,6 +28,26 @@ test 100; SROIE train 626, test 361.
   field is scored from SROIE at all, so no itemized field is being tuned on it.
 - The null-parser bootstrap (03a) runs against `dev/` only.
 
+## Regeneration gate: where it runs, and what that costs
+
+The byte-identical regeneration check (`pnpm verify:fixtures`) is **scheduled (Mondays
+06:00 UTC) plus `workflow_dispatch`** (`.github/workflows/fixtures-check.yml`) — it is
+**not** a per-push gate.
+
+- **Reason:** regenerating requires the 2.7 GB raw snapshot, which the
+  no-datasets-in-CI decision excludes from every-push jobs.
+- **Drift window: up to 7 days** between a loader/redaction change and automated
+  detection. This is a known limitation, recorded here, not a silent one.
+- **Mitigation:** `.githooks/pre-push` runs `pnpm verify:fixtures` + `pnpm scan:pii`
+  before any push, on any machine that has `benchmarks/datasets/raw/`. That is precisely
+  the machine where a loader was changed, so drift normally dies before it reaches a PR.
+  It is a no-op when the raw snapshot is absent, so it never blocks unrelated work.
+  One-time activation, deliberately left to each clone rather than set by an agent:
+  `git config core.hooksPath .githooks`.
+- Per-push CI still runs everything that needs no raw data: the null-parser bootstrap
+  over the committed dev fixtures, `scan:pii` idempotence, `verify:results`
+  reproducibility, and the storage-budget check.
+
 ## CORD's role, narrowed and stated — not narrowed silently
 
 `ground_truth` in the pinned HF parquet carries exactly
