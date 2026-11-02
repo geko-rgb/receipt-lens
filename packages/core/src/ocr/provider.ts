@@ -14,5 +14,5 @@ export async function ocr(
   image: ImageBitmap | Blob | File,
   options: OcrOptions
 ): Promise<OcrResult> {
-  return options.provider.recognize(image);
+  throw new Error("not implemented");
 }

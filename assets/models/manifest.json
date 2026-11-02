@@ -1,17 +1,24 @@
 {
+  "provider": "PP-OCRv6",
+  "version": "tiny",
+  "license": "Apache-2.0 (per upstream model repo; re-verified in ticket 08)",
+  "upstream": "https://github.com/PaddlePaddle/PaddleOCR",
   "assets": [
     {
       "file": "PP-OCRv6_tiny_det.onnx",
+      "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
       "bytes": 1780590,
       "sha256": "193bab7a04fca699a6c82e6abb5b81bdb28177f0abd4062552b04908dafb19f8"
     },
     {
       "file": "PP-OCRv6_tiny_rec.onnx",
+      "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
       "bytes": 4462639,
       "sha256": "9ef676d6ed3c88256a2d92c640c44f25b0c40947e111b14b8be8f594091563e6"
     },
     {
       "file": "PP-OCRv6_tiny_rec.txt",
+      "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
       "bytes": 34063,
       "sha256": "65f694d6e8cd39efa1c5480bbfd2fe90e631a6b17bbb3190089f261eb5e6f043"
     }
