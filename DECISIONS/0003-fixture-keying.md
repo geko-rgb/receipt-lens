@@ -16,8 +16,16 @@ over bytes verified against the pins on 2026-11-02, all 12 files byte-exact):
 `sha256` of the per-dataset canonical list — files sorted by name, one `"<name> <sha256>"`
 line each, `\n`-terminated lines, trailing newline.
 
-- `cord-v2` = `aa5f5674d40e710046c3e0ba30829b9e10937b7a45b185b0c706c2171d6d0c94`
+- `cord-v2` = `6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054`
 - `sroie` = `483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4`
+
+These are derived, not authored — recomputing them is part of `pnpm fetch:datasets`. The
+`cord-v2` value moved on 2026-11-02 when the manifest was corrected to carry CORD's real
+paths (`data/…parquet`, the pinned names had no `data/` prefix and the bare names 404
+against `resolve/main`); the underlying bytes and every file hash are unchanged. The same
+pass pinned each dataset to a specific commit (`revision` in the manifest, confirmed to
+carry the pinned file hashes) so an upstream `main` bump cannot silently change what a
+fresh clone fetches.
 
 Manifest `files[].name` values are relative to `benchmarks/datasets/raw/<datasetKey>/`,
 not to `raw/`.
