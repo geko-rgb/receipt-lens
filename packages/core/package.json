@@ -1,0 +1,22 @@
+{
+  "name": "@receipt-lens/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Privacy-first in-browser receipt parsing: staged OCR, deterministic parsing, conditional validation.",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
+    "test": "vitest run"
+  }
+}
