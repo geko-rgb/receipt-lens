@@ -25,7 +25,7 @@
 
 ## Comments
 
-2026-11-02 — TDD at the pre-agreed split-engine seam (§11/§12). Files: `packages/pwa/src/lib/exact-money.ts` (BigInt rationals, reduced, positive denominator), `entities.ts` (§10 PWA-owned types), `splitting.ts` (`computeExactShares` → shares + `hasNegativeShare`; `other` charges with `sign: "unknown"` excluded from arithmetic per business §6.5), `settlement.ts` (`allocateSettlement` largest-remainder, ties by stable id, throws on inconsistent target, never mutates shares), 4 test files / 21 tests. Property tests use a seeded LCG — no new dependency added.
+2026-11-02 — TDD at the pre-agreed split-engine seam (§11/§12). Files: `packages/pwa/src/lib/exact-money.ts` (BigInt rationals, reduced, positive denominator), `entities.ts` (§10 PWA-owned types), `splitting.ts` (`computeExactShares` → shares + `hasNegativeShare`; `other` charges with `sign: "unknown"` excluded from arithmetic per business §6.5), `settlement.ts` (`allocateSettlement` largest-remainder, ties by stable id, throws on inconsistent target, never mutates shares), 5 test files / 27 tests. Property tests use mulberry32 (no new dependency). Two-axis review run; findings fixed in cbaa198 (Final* sources, unacknowledged-unit throw, settlement negative/empty guards, tests now typechecked in CI).
 
 Charge-taxonomy ownership recorded as an amendment note on `docs/adr/0008` (the shape itself was transcribed into core types at ticket 01 — single owner is ADR-008 + `packages/core/src/types.ts`).
 
