@@ -4,7 +4,7 @@
 
 **Blocked by:** 01 (walking skeleton)
 
-**Status:** done — branch `ticket/02-exact-money`; two-axis code review + merge pending
+**Status:** done — merged to `main` via PR #2 (`1aeede3`); CI `unit` green
 
 **Effort:** ~32 h · **Roadmap:** workstream 3D (tasks 3D.1–3D.4), pulled ahead of parser work · **Week:** W17 slot · **Milestone:** M3
 **Verify:** `pnpm -r test` runs the golden-table assertion, the sum-invariance property test and the settlement boundary suite
