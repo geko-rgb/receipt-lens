@@ -1,4 +1,6 @@
 {
+  "schemaVersion": "1.1",
+  "scorerVersion": "03b.1",
   "headlineMode": "cached-reference-ocr-node",
   "parser": "null",
   "accuracyIsACeiling": true,
@@ -6,12 +8,31 @@
     "fixtures are the dataset's own reference OCR, so no OCR error reaches these numbers (DECISIONS/0003)",
     "development happens against dev/, so bugs a dev-driven fix would have caught on eval/ are already gone (DECISIONS/0004)"
   ],
-  "strictTier": "scalar fields only; item agreement joins this tier when the 03b matcher lands",
-  "nullSemantics": "gold-null and predicted-null count as agreement on absence, never as a true positive; a gold value with no prediction is a false negative, and a prediction with no gold behind it is a false positive; fields a dataset does not label are excluded, not scored",
+  "protocol": {
+    "nameSimilarityMetric": "normalized-levenshtein",
+    "nameNormalization": "nfc-lowercase-punctuation-to-space-collapse-v1",
+    "tauName": 0.7,
+    "averaging": "per-field-micro; dataset-macro-over-fields-with-scored-cells",
+    "matching": "order-respecting one-to-one dynamic programming: pair count first, total name similarity second (§8.3)",
+    "itemFieldAgreement": "exact normalized-string equality for names and integer equality for amounts and quantities; tau governs pairing only",
+    "roundOffBand": {
+      "reconcileToleranceMinorUnits": 2,
+      "magnitudeCapMinorUnits": 100
+    },
+    "ocrConfidenceFloors": {
+      "critical": 0.5,
+      "warning": 0.7
+    }
+  },
+  "strictTier": "every field the dataset labels must agree — scalars and matched items alike (§8 Tier 1)",
+  "nullSemantics": "gold-null and predicted-null count as agreement on absence, never as a true positive; a gold value with no prediction is a false negative, and a prediction with no gold behind it is a false positive; a gold cell the dataset never annotated is excluded from that field — neither a hit nor a miss; fields a dataset does not label are excluded, not scored",
   "datasets": [
     {
       "dataset": "cord-v2",
       "snapshotHash": "6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+      "provider": "dataset-reference-ocr",
+      "providerVersion": "cord-v2@6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+      "license": "CC-BY-4.0",
       "receipts": 100,
       "strict": {
         "receipts": 100,
@@ -19,6 +40,21 @@
         "goldless": 0,
         "matched": 0,
         "rate": 0
+      },
+      "macro": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "fields": 9,
+        "listed": 9
+      },
+      "items": {
+        "gold": 254,
+        "predicted": 0,
+        "matchedPairs": 0,
+        "unmatchedGold": 254,
+        "unmatchedPredicted": 0,
+        "tau": 0.7
       },
       "fieldsLabeled": [
         "grandTotal",
@@ -38,99 +74,129 @@
       "fields": [
         {
           "field": "grandTotal",
+          "tier": "scalar",
           "tp": 0,
           "fp": 0,
           "fn": 96,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 4
+          "absentAgreements": 4,
+          "excludedCells": 0,
+          "goldCells": 96
         },
         {
           "field": "subtotal",
+          "tier": "scalar",
           "tp": 0,
           "fp": 0,
           "fn": 65,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 35
+          "absentAgreements": 35,
+          "excludedCells": 0,
+          "goldCells": 65
         },
         {
           "field": "serviceCharge",
+          "tier": "scalar",
           "tp": 0,
           "fp": 0,
           "fn": 12,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 88
+          "absentAgreements": 88,
+          "excludedCells": 0,
+          "goldCells": 12
         },
         {
           "field": "discount",
+          "tier": "scalar",
           "tp": 0,
           "fp": 0,
           "fn": 5,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 95
+          "absentAgreements": 95,
+          "excludedCells": 0,
+          "goldCells": 5
         },
         {
           "field": "taxTotal",
+          "tier": "scalar",
           "tp": 0,
           "fp": 0,
           "fn": 45,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 55
+          "absentAgreements": 55,
+          "excludedCells": 0,
+          "goldCells": 45
         },
         {
           "field": "item.name",
+          "tier": "item",
           "tp": 0,
           "fp": 0,
           "fn": 254,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 0
+          "absentAgreements": 0,
+          "excludedCells": 0,
+          "goldCells": 254
         },
         {
           "field": "item.qty",
+          "tier": "item",
           "tp": 0,
           "fp": 0,
           "fn": 198,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 0
+          "absentAgreements": 0,
+          "excludedCells": 56,
+          "goldCells": 198
         },
         {
           "field": "item.unitPrice",
+          "tier": "item",
           "tp": 0,
           "fp": 0,
           "fn": 49,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 0
+          "absentAgreements": 0,
+          "excludedCells": 205,
+          "goldCells": 49
         },
         {
           "field": "item.lineTotal",
+          "tier": "item",
           "tp": 0,
           "fp": 0,
           "fn": 222,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 0
+          "absentAgreements": 0,
+          "excludedCells": 32,
+          "goldCells": 222
         }
       ]
     },
     {
       "dataset": "sroie",
       "snapshotHash": "483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+      "provider": "dataset-reference-ocr",
+      "providerVersion": "sroie@483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+      "license": "CC-BY-4.0 as declared in the mirror's dataset card, LICENSE text, and NOTICE; the primary ICDAR host (rrc.cvc.uab.es/?ch=13, registration/consent) was NOT used and primary-source verification was NOT performed",
       "receipts": 150,
       "strict": {
         "receipts": 150,
@@ -138,6 +204,21 @@
         "goldless": 1,
         "matched": 0,
         "rate": 0
+      },
+      "macro": {
+        "precision": 0,
+        "recall": 0,
+        "f1": 0,
+        "fields": 1,
+        "listed": 1
+      },
+      "items": {
+        "gold": 0,
+        "predicted": 0,
+        "matchedPairs": 0,
+        "unmatchedGold": 0,
+        "unmatchedPredicted": 0,
+        "tau": 0.7
       },
       "fieldsLabeled": [
         "grandTotal"
@@ -157,13 +238,16 @@
       "fields": [
         {
           "field": "grandTotal",
+          "tier": "scalar",
           "tp": 0,
           "fp": 0,
           "fn": 149,
           "precision": 0,
           "recall": 0,
           "f1": 0,
-          "absentAgreements": 1
+          "absentAgreements": 1,
+          "excludedCells": 0,
+          "goldCells": 149
         }
       ]
     }

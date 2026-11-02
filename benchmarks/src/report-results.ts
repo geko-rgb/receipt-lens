@@ -30,6 +30,7 @@ for (const dataset of ["cord-v2", "sroie"] as const) {
       dataset,
       fieldsLabeled: provenance.fieldsLabeled,
       fieldsExcluded: provenance.fieldsExcluded,
+      license: provenance.license,
     })
   );
 }
