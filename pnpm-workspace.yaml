@@ -2,5 +2,8 @@ packages:
   - packages/*
   - benchmarks
 
-onlyBuiltDependencies:
-  - esbuild
+# esbuild ships its binary through platform optionalDependencies (@esbuild/linux-x64);
+# its postinstall only re-downloads a fallback. Denying the build script keeps
+# installs script-free and satisfies the frozen-lockfile strict-build check in CI.
+allowBuilds:
+  esbuild: false

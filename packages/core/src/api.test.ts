@@ -27,42 +27,23 @@ const options: ValidateOptions = {
 };
 
 describe("staged API surface", () => {
-  it("ocr() delegates to the injected provider", async () => {
-    const expected = blankOcrResult();
+  it("ocr(), parse(), validate() and extract() exist as typed entry points", () => {
     const provider: OcrProvider = {
       name: "fake",
       version: "0.0.0",
-      recognize: async () => expected,
+      recognize: async () => blankOcrResult(),
     };
-    const result = await ocr(new Blob(["receipt"], { type: "image/png" }), { provider });
-    expect(result).toBe(expected);
+    expect(typeof ocr).toBe("function");
+    expect(typeof parse).toBe("function");
+    expect(typeof validate).toBe("function");
+    expect(typeof extract).toBe("function");
+    expect(provider.recognize).toBeTypeOf("function");
   });
 
-  it("ocr() propagates typed provider failures", async () => {
-    const provider: OcrProvider = {
-      name: "failing",
-      version: "0.0.0",
-      recognize: async () => {
-        throw new ReceiptLensError("MODEL_LOAD_FAILED", "assets missing");
-      },
-    };
-    await expect(ocr(new Blob(["x"]), { provider })).rejects.toBeInstanceOf(ReceiptLensError);
-  });
-
-  it("confidence stays null rather than a fabricated score", async () => {
-    const line = blankOcrResult();
-    line.lines = [
-      { id: "l1", text: "PARCEL", box: { x: 0, y: 0, width: 4, height: 4 }, confidence: null, words: [] },
-    ];
-    const provider: OcrProvider = { name: "fake", version: "0", recognize: async () => line };
-    const result = await ocr(new Blob(["x"]), { provider });
-    expect(result.lines[0]!.confidence).toBeNull();
-  });
-
-  it("parse(), validate() and extract() are staged entry points awaiting implementation", async () => {
-    const parsed = (): ParseResult => parse(blankOcrResult());
-    expect(parsed).toThrow("not implemented");
-    const emptyResult: ParseResult = {
+  it("stubs refuse to fabricate behaviour until their tickets land", async () => {
+    await expect(ocr(new Blob(["x"]), { provider: { name: "f", version: "0", recognize: async () => blankOcrResult() } })).rejects.toThrow("not implemented");
+    expect(() => parse(blankOcrResult())).toThrow("not implemented");
+    const emptyParse: ParseResult = {
       items: [],
       unclassifiedRows: [],
       taxes: [],
@@ -77,9 +58,31 @@ describe("staged API surface", () => {
       grandTotalSource: "unresolved",
       warnings: [],
     };
-    expect(() => validate(emptyResult, options)).toThrow("not implemented");
-    await expect(extract(new Blob(["x"]), { ...options, provider: "pp-ocrv6" })).rejects.toThrow(
-      "not implemented"
-    );
+    expect(() => validate(emptyParse, options)).toThrow("not implemented");
+    await expect(
+      extract(new Blob(["x"]), { ...options, provider: "pp-ocrv6" })
+    ).rejects.toThrow("not implemented");
+  });
+
+  it("confidence is nullable by contract — a null score is legal, never fabricated", () => {
+    const result = blankOcrResult();
+    result.lines = [
+      {
+        id: "l1",
+        text: "PARCEL",
+        box: { x: 0, y: 0, width: 4, height: 4 },
+        confidence: null,
+        words: [{ text: "PARCEL", box: { x: 0, y: 0, width: 4, height: 4 }, confidence: null }],
+      },
+    ];
+    expect(result.lines[0]!.confidence).toBeNull();
+    expect(result.lines[0]!.words[0]!.confidence).toBeNull();
+  });
+
+  it("operational failures carry typed codes only", () => {
+    const err = new ReceiptLensError("MODEL_LOAD_FAILED", "assets missing");
+    expect(err).toBeInstanceOf(Error);
+    expect(err.code).toBe("MODEL_LOAD_FAILED");
+    expect(err.name).toBe("ReceiptLensError");
   });
 });

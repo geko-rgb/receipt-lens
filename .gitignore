@@ -8,9 +8,16 @@ blob-report/
 *.log
 .DS_Store
 
+# editor artifacts
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
 # downloaded dataset snapshots (pinned metadata is committed, raw data is not)
 benchmarks/datasets/raw/
-!benchmarks/datasets/dataset-manifest.json
 
-# opt-in locally retained receipt images — never commit user photos
+# locally retained receipt photos (dev/test scratch convention; app-level
+# opt-in retention lives in browser storage, never committed)
 receipts-retained/

@@ -7,13 +7,14 @@
     "node": ">=22"
   },
   "scripts": {
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm -r typecheck && tsc -p .",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "test:e2e": "playwright test --config playwright/playwright.config.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",
+    "@types/node": "^22.0.0",
     "typescript": "^5.6.0",
     "vitest": "^3.0.0"
   }
