@@ -183,7 +183,11 @@ importers:
 
   packages/core: {}
 
-  packages/pwa: {}
+  packages/pwa:
+    dependencies:
+      '@receipt-lens/core':
+        specifier: workspace:*
+        version: link:../core
 
 packages:
 
