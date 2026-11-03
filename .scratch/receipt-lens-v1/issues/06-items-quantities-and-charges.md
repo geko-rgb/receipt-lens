@@ -187,3 +187,16 @@ zero, negative, NaN, or infinity". 07 reports it as a critical and does not repa
 needing an owner call rather than an agent's guess: either an explicit zero is an illegal value 06 should
 have refused (→ `unresolved`), or it is a printed fact §7's positivity rule does not account for (→ the spec
 rule needs revisiting). It is 1 item in 518, so neither reading moves a headline number.
+
+**230 dev items carry `priceSource: "detected"` from a line total promoted to a unit price on an assumed
+qty 1** (`parse/items.ts:132`). §7's `detected` means the value was read off the receipt, not line total ÷
+assumed quantity. **Gate the rescue on `quantitySource: "explicit"`.** Consequence: **~230 items move from
+`detected` to `unresolved`** — dev currently reports 518 items / **331 `detected`** / 187 `unresolved`, so
+the gate takes `detected` to roughly 101 — which changes 09b's `unitPrice` detection accuracy materially.
+**Do not land until 09b's measurement plan accounts for the shift** (ticket 09b carries the matching note).
+
+Two known cases where the promotion is provably wrong against gold: `cord-v2/dev/8` `i1` TALAM UNGU returns
+`unitPrice 1,950,000` where gold prints 650,000 × qty 3 (the `3X @6500` row is on a separate line 05
+classified `noise_header`), and `cord-v2/dev/68` `i1` Honey Mandarin returns 2,600,000 against a gold
+1,300,000. Committed in `validationPins.test.ts` ("price provenance", "the matcher's money gate hid 06's
+wrong unit prices").

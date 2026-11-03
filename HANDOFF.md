@@ -353,7 +353,7 @@ price split, V15 outlier multiple) at a checkpoint **before** validator code exi
 27-critical mechanism to be sampled first. Both gates changed what the record says — see corrections.
 
 **Headline dev numbers, all re-derived by the shipped `validate()` in the committed
-`benchmarks/src/parser/validationPins.test.ts` (11 tests) — not by an in-test restatement:** 1,781 findings
+`benchmarks/src/parser/validationPins.test.ts` (12 tests) — not by an in-test restatement:** 1,781 findings
 over 250 receipts, 106 critical, **86 receipts `uncertain`**. `ambiguous_row` 820,
 `confidence_unavailable` 250, `qty_assumed` 231, `price_not_resolved` 185, `qty_unresolved` 141,
 `zero_items` 42, `arithmetic_total` 34, `arithmetic_item_sum` 27, `unclassified_charge` 22,
@@ -394,7 +394,7 @@ genuinely over-counts. 8 of 27 have an excess exactly equal to the Σ of their `
 `charges.ts:108` silently drops every row whose label is outside the dictionary — is filed as **ticket 20**.
 
 **Verified locally:** `pnpm install --frozen-lockfile` ✓ (no dependency change) `pnpm build` ✓
-`pnpm typecheck` ✓ `pnpm -r test` **447 passing** (core 222, pwa 27, benchmarks 198; base `de1667f` had
+`pnpm typecheck` ✓ `pnpm -r test` **448 passing** (core 222, pwa 27, benchmarks 199; base `de1667f` had
 348) ✓ `pnpm verify:results` byte-identical ✓ `pnpm verify:fixtures` 715 files byte-identical ✓
 `pnpm scan:pii` idempotence clean, 51 advisories unchanged ✓ `node scripts/model-manifest.mjs --check` up to
 date ✓ fixture budget 12.0 MB / 50 MB ✓ `npm pack --dry-run` ✓ (85.2 kB, session-measured). Disk: **56 GB free** on `/home`;

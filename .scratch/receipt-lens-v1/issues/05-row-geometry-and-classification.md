@@ -230,3 +230,21 @@ tax/aggregate-precedence mechanism. The subtotal parse is not the problem — wh
 subtotal, 06 reads it correctly on all **21 of 21** checkable receipts, so the item list genuinely
 over-counts. Census committed in `validationPins.test.ts` ("the item-sum criticals are over-inclusive
 item lists").
+
+**27 dev receipts carry ≥1 `arithmetic_item_sum` critical from charge/tender rows classified as items.**
+Mechanism: charge labels that are not in P3's pattern families fall through to rule 3 (item) rather than to
+a charge-like or ambiguous class — `PB 1 10%`, `P.Rest 10 %`, `PB1 (10%)`, `P. Resto 10%`,
+`SERV CHARGE 10%`, `SR 6%`, `SR= 6%`, `SR@6%`, `10% SRV CHG`, and the tender shapes `BCA Card`,
+`DEBIT BCA`, `Card`. **The subtotal parse is correct throughout:** where CORD annotates a subtotal, 06's
+value agrees with gold on **21 of the 27** (gold annotates 21; 6 have none), 0 disagreements — so the
+over-sum is entirely extra rows, not a wrong operand. Census (committed, shipped predicates only): the
+excess equals the Σ of `%`-row items on **8 of 27**, a `%`-row item is present on **11**, and 06's own
+`matchesTenderFamily` accounts for the excess on **1** — the tender shapes are outside Q7's family too.
+16 receipts remain unattributed by any shipped predicate, and 07 added no rule to explain them.
+
+This is **complementary to Ticket 20** (recognised labels → dropped from `ParseResult`): together they show
+05 has no path for a charge-like row whose label is unrecognised — it becomes an item. **Not fixed in 07.**
+**09b must not cite the 27 as evidence about arithmetic accuracy until this and Ticket 20 are addressed** —
+the findings are correct responses to a classification leak, not measurements of arithmetic.
+Committed in `benchmarks/src/parser/validationPins.test.ts` ("the item-sum criticals are over-inclusive
+item lists", "emission census"); mechanism attribution in DECISIONS/0011 V3.1.

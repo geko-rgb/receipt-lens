@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 (items, quantities and charges)
 
-**Status:** in-review — implemented on `ticket/07-validation-findings-and-extract`, `pnpm -r test` 447 passing
+**Status:** in-review — implemented on `ticket/07-validation-findings-and-extract`, `pnpm -r test` 448 passing
 
 **Effort:** ~40 h · **Roadmap:** workstream 1C (tasks 1C.1–1C.6) plus `extract()` wiring (S4) · **Week:** W6–7 · **Milestone:** M1
 **Verify:** `pnpm -r test` green on the validation fixture suite; `extract()` integration test passes from the package entry point
@@ -60,7 +60,7 @@ violates §5 line 159 and is filed as **ticket 20**.
    `i10` with `qty: 0` marked `explicit`, which §7 forbids. Filed on 06.
 
 **Verified locally:** `pnpm install --frozen-lockfile` ✓ (lockfile unchanged — no dependency added)
-`pnpm build` ✓ `pnpm typecheck` ✓ `pnpm -r test` **447 passing** (core 222, pwa 27, benchmarks 198) ✓
+`pnpm build` ✓ `pnpm typecheck` ✓ `pnpm -r test` **448 passing** (core 222, pwa 27, benchmarks 199) ✓
 `pnpm verify:results` byte-identical ✓ `pnpm verify:fixtures` 715 files byte-identical ✓ `pnpm scan:pii`
 idempotence clean, 51 advisories unchanged ✓ `node scripts/model-manifest.mjs --check` up to date ✓
 fixture budget 12.0 MB / 50 MB ✓ `npm pack --dry-run` clean ✓. **Not done:** no `npm publish` (needs an

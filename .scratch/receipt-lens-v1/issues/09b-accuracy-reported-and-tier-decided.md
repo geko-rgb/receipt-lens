@@ -68,3 +68,16 @@ blocked by specific criticals". Also: `zero_items` fires on any zero-item `Parse
 cannot distinguish "receipt wasn't itemized" from "parse failed". The 42 is mixed — 09b must state this
 limitation. The census is the shipped `validate()` run over dev, committed in
 `validationPins.test.ts` ("emission census") — not a restatement of the rules.
+
+**Unit-price provenance must be split before any `detected` accuracy is published.** Current dev corpus:
+**331 items with `priceSource: "detected"`, of which 230 are line totals promoted on an assumed qty 1**
+(ticket 06's rescue note). Pending 06's rescue-gate fix, **do not publish "detected unit price accuracy"**
+without distinguishing the two sources — the 230 are derivative, not direct. Gating the rescue on
+`explicit` moves `detected` from 331 to roughly 101, so any pre-fix number is measuring a different
+population than the post-fix one. Counts committed in `validationPins.test.ts` ("price provenance").
+
+**Confidence floors (0.50/0.70) are consumed from DECISIONS/0006 as pinned defaults.** Dev corpus has no
+scored OCR words (0 of 10,424), so floors are tested on authored fixtures only, not dev. M1-exit
+calibration is an open loop requiring a calibration-corpus decision — no such corpus exists today, and
+creating one is a dataset-selection decision, not a tuning parameter. **The README must state floors are
+defaults, not measured.**
