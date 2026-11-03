@@ -9,10 +9,10 @@
  */
 
 /** Bumped whenever scoring or matching semantics change, so a stale number is identifiable. */
-export const scorerVersion = "03b.1";
+export const scorerVersion = "03b.2";
 
 /** Shape version of `benchmarks/results/*.json`, echoed into the file it describes. */
-export const resultsSchemaVersion = "1.1";
+export const resultsSchemaVersion = "1.2";
 
 /** DECISIONS/0006 — the metric name is part of the published pin, not an implementation detail. */
 export const nameSimilarityMetric = "normalized-levenshtein";
@@ -107,7 +107,7 @@ export const resultsSchema = {
     "recall",
     "f1",
     "absentAgreements",
-    "excludedCells",
+    "unannotatedGoldCells",
     "goldCells",
   ],
 } as const;

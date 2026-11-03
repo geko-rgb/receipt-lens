@@ -1,6 +1,6 @@
 {
-  "schemaVersion": "1.1",
-  "scorerVersion": "03b.1",
+  "schemaVersion": "1.2",
+  "scorerVersion": "03b.2",
   "headlineMode": "cached-reference-ocr-node",
   "parser": "null",
   "accuracyIsACeiling": true,
@@ -25,7 +25,7 @@
     }
   },
   "strictTier": "every field the dataset labels must agree — scalars and matched items alike (§8 Tier 1)",
-  "nullSemantics": "gold-null and predicted-null count as agreement on absence, never as a true positive; a gold value with no prediction is a false negative, and a prediction with no gold behind it is a false positive; a gold cell the dataset never annotated is excluded from that field — neither a hit nor a miss; fields a dataset does not label are excluded, not scored",
+  "nullSemantics": "strict at the cell level, for both tiers: gold-null and predicted-null is an abstention and never a true positive; a gold value with no prediction is a false negative; a prediction where the dataset annotated nothing is a false positive (the cost of reading §8 literally, and the reason unannotatedGoldCells is published beside the counts); fields a dataset does not label at all are excluded from scoring and from macro averaging, not null-scored",
   "datasets": [
     {
       "dataset": "cord-v2",
@@ -82,7 +82,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 4,
-          "excludedCells": 0,
+          "unannotatedGoldCells": 0,
           "goldCells": 96
         },
         {
@@ -95,7 +95,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 35,
-          "excludedCells": 0,
+          "unannotatedGoldCells": 0,
           "goldCells": 65
         },
         {
@@ -108,7 +108,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 88,
-          "excludedCells": 0,
+          "unannotatedGoldCells": 0,
           "goldCells": 12
         },
         {
@@ -121,7 +121,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 95,
-          "excludedCells": 0,
+          "unannotatedGoldCells": 0,
           "goldCells": 5
         },
         {
@@ -134,7 +134,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 55,
-          "excludedCells": 0,
+          "unannotatedGoldCells": 0,
           "goldCells": 45
         },
         {
@@ -147,7 +147,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 0,
-          "excludedCells": 0,
+          "unannotatedGoldCells": 0,
           "goldCells": 254
         },
         {
@@ -160,7 +160,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 0,
-          "excludedCells": 56,
+          "unannotatedGoldCells": 56,
           "goldCells": 198
         },
         {
@@ -173,7 +173,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 0,
-          "excludedCells": 205,
+          "unannotatedGoldCells": 205,
           "goldCells": 49
         },
         {
@@ -186,7 +186,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 0,
-          "excludedCells": 32,
+          "unannotatedGoldCells": 32,
           "goldCells": 222
         }
       ]
@@ -246,7 +246,7 @@
           "recall": 0,
           "f1": 0,
           "absentAgreements": 1,
-          "excludedCells": 0,
+          "unannotatedGoldCells": 0,
           "goldCells": 149
         }
       ]

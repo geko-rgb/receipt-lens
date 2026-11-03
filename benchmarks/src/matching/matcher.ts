@@ -40,12 +40,17 @@ export interface ItemMatch {
  * §8.2: a candidate pair needs name similarity of at least `tau` **and** compatible monetary
  * fields at integer-paise equality.
  *
- * "Compatible" is the owner's Option A ruling, following §8's own words — unannotated fields
- * are excluded, never treated as false negatives or as null ground truth. In `dev/cord-v2`
- * gold annotates `unitPrice` on only 49 of 254 items, so a gate demanding equality on an
- * unannotated field would refuse four fifths of true pairs and report every price-parse
- * failure as a *missing item*. A field one side lacks simply does not vote. Nothing about
- * prices is relaxed: where both sides carry a value, equality is exact and integer (§8.5).
+ * "Compatible" here means *non-conflicting*: where both sides annotate a monetary field the
+ * two integers must be equal, and a field one side lacks does not vote. This is the pairing
+ * gate only, and it is deliberately weaker than the scoring rule — §8 also says a null-vs-
+ * populated cell "counts as an error for the applicable field", which `scoring/itemScores.ts`
+ * applies as a false positive. Reading the gate the same strict way would refuse about four
+ * fifths of true pairs, because dev CORD gold annotates `unitPrice` on only 49 of 254 items,
+ * and it would report every price-parse failure as a *missing item* rather than as a price
+ * error. So: pair on name plus non-conflicting money, then charge the mismatch at field level.
+ *
+ * Nothing here relaxes a price. Where both sides carry a value, equality is exact and integer
+ * (§8.5); there is no monetary tolerance anywhere in this harness.
  */
 export function monetaryFieldsAgree(gold: GoldItem, predicted: ParsedItem): boolean {
   if (gold.unitPrice !== null && predicted.unitPrice !== null && gold.unitPrice !== predicted.unitPrice) return false;

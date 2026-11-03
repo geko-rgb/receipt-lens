@@ -38,14 +38,15 @@ export interface ScoredField {
   readonly precision: number;
   readonly recall: number;
   readonly f1: number;
-  /** gold-null and predicted-null on the same receipt: agreement on absence, never counted as a hit */
+  /** gold-null and predicted-null on the same cell: agreement on absence, never counted as a hit */
   readonly absentAgreements: number;
   /**
-   * Cells this dataset did not annotate, excluded instead of scored — the owner's Option A
-   * reading of §8's "never treated as false negatives or as null ground truth". `goldCells`
-   * beside it is what the ratios were actually computed over.
+   * Gold cells this dataset left unannotated, whatever the parser asserted. Under §8's strict
+   * cell rule an unannotated gold cell with a value in it is a **false positive**, so this
+   * counter is not an exclusion — it is the disclosure §8 requires for sparse fields: how much
+   * of a field's apparent error rate comes from the dataset simply not printing the value.
    */
-  readonly excludedCells: number;
+  readonly unannotatedGoldCells: number;
   readonly goldCells: number;
 }
 
@@ -99,7 +100,7 @@ function scoreCounts(
   fp: number,
   fn: number,
   absentAgreements: number,
-  excludedCells: number,
+  unannotatedGoldCells: number,
   field: string,
   tier: "scalar" | "item"
 ): ScoredField {
@@ -115,7 +116,7 @@ function scoreCounts(
     recall,
     f1: ratio(2 * precision * recall, precision + recall),
     absentAgreements,
-    excludedCells,
+    unannotatedGoldCells,
     goldCells: tp + fn,
   };
 }
@@ -144,7 +145,7 @@ export function scoreReceipts(
   const scalarCounts = new Map<string, { tp: number; fp: number; fn: number; absent: number; strictFailures: number }>();
   for (const field of scalars) scalarCounts.set(field, { tp: 0, fp: 0, fn: 0, absent: 0, strictFailures: 0 });
   const itemCounts = new Map<string, ItemFieldCounts>();
-  for (const attribute of scoredAttributes) itemCounts.set(`item.${attribute}`, { tp: 0, fp: 0, fn: 0, excluded: 0 });
+  for (const attribute of scoredAttributes) itemCounts.set(`item.${attribute}`, { tp: 0, fp: 0, fn: 0, absent: 0, unannotated: 0 });
 
   const itemTotals = { gold: 0, predicted: 0, matchedPairs: 0, unmatchedGold: 0, unmatchedPredicted: 0 };
   let matchedTau = tauName;
@@ -205,7 +206,7 @@ export function scoreReceipts(
       return scoreCounts(counts.tp, counts.fp, counts.fn, counts.absent, 0, field, "scalar");
     }),
     ...[...itemCounts.entries()].map(([field, counts]) =>
-      scoreCounts(counts.tp, counts.fp, counts.fn, 0, counts.excluded, field, "item")
+      scoreCounts(counts.tp, counts.fp, counts.fn, counts.absent, counts.unannotated, field, "item")
     ),
   ];
 
@@ -274,7 +275,7 @@ export function renderReport(scores: readonly DatasetScore[]): string {
         },
         strictTier: "every field the dataset labels must agree — scalars and matched items alike (§8 Tier 1)",
         nullSemantics:
-          "gold-null and predicted-null count as agreement on absence, never as a true positive; a gold value with no prediction is a false negative, and a prediction with no gold behind it is a false positive; a gold cell the dataset never annotated is excluded from that field — neither a hit nor a miss; fields a dataset does not label are excluded, not scored",
+          "strict at the cell level, for both tiers: gold-null and predicted-null is an abstention and never a true positive; a gold value with no prediction is a false negative; a prediction where the dataset annotated nothing is a false positive (the cost of reading §8 literally, and the reason unannotatedGoldCells is published beside the counts); fields a dataset does not label at all are excluded from scoring and from macro averaging, not null-scored",
         datasets: scores.map((score) => ({
           dataset: score.dataset,
           snapshotHash: score.snapshotHash,
@@ -303,7 +304,7 @@ export function renderReport(scores: readonly DatasetScore[]): string {
             recall: field.recall,
             f1: field.f1,
             absentAgreements: field.absentAgreements,
-            excludedCells: field.excludedCells,
+            unannotatedGoldCells: field.unannotatedGoldCells,
             goldCells: field.goldCells,
           })),
         })),
