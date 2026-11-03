@@ -505,6 +505,29 @@ to 06 for the reason §5 line 340 gives: rows are classified before their conten
 output, not just `ParseResult`. `ParseResult` drops `noise_header` rows. The 06 implementer must read
 DECISIONS/0008 P7 and use the internal channel, or split-layout names are unrecoverable.**
 
+## Reporting discipline
+
+> Pre/post deltas in reports must name the two heads being compared (e.g. "base head `528c989` →
+> shipped head `e00394e`"). Deltas that don't name both heads are ambiguous and must be re-derived
+> against an explicit pair before publication. Every published number in a report should be reproducible
+> from a test or committed artifact; session arithmetic is not a source of truth. The
+> `noise_header == 3,517` assertion is the model: the claim is enforced by a check, not by a report.
+
+This ticket published three deltas that had to be corrected, and all three trace to the same missing
+piece — a comparison whose two sides were never named. The heads are `9dcc8e1` (classifier as first
+shipped, phantom empty names), `4826236` (rule 3's lettered test, header zone still keyed to items — the
+regressed head) and `e00394e` (rule 3 plus the price-keyed zone — shipped). "62 rows discarded" and the
+gold-name pair "46 → 38" were measured `9dcc8e1 → 4826236` while being reported as though the pair were
+`4826236 → e00394e`; "142 of 253 (56.1%)" was described as case-folded substring containment over
+non-empty names, which re-derives as 156 of 254, so the arithmetic behind it was not the arithmetic
+described either. Each corrected figure now lives in a committed assertion
+(`rowClassification.test.ts`: 198 preserved rows, 3,517 discarded, 156/37/45/16 gold-name split), which
+is the only reason the correction is durable rather than a fourth number in a later message.
+
+Same principle ticket 03a applies to fixtures and 03b to results: **artifacts are checked, not claimed.**
+A report line that cannot be regenerated from a committed artifact is a claim about a session, and a
+session is not evidence.
+
 
 ## IDs, purity, determinism
 

@@ -226,7 +226,9 @@ artifact that produced it. Headline (rule 3 plus the price-keyed header zone): 5
    SROIE) moved from preserved to `noise_header`, which ticket 06 cannot reach. The shipped classifier
    keys the zone to the price column instead, and the two ruled changes together now move **zero** rows
    into the discard class — `noiseHeader` 3,517 is exactly what the pre-rule-3 classifier discarded, and
-   that equality is the assertion to keep. Guardrail stated in `DECISIONS/0008` P7.
+   that equality is the assertion to keep. Guardrail stated in `DECISIONS/0008` P7, with the reporting
+   discipline added after it: a pre/post delta must name both heads, and a published number must be
+   reproducible from a committed artifact — session arithmetic is not evidence.
 
 **Rule 3, added after the pre-merge verification (owner ruling Q1=(a)):** an item row needs ≥1
 lettered non-price word as well as a price candidate, because a row that is only a number (`1,818`

@@ -41,3 +41,14 @@ discarded. CORD now preserves 198 of 788 rows, of which 13 are name rows sitting
 all-number row — the split-layout reattachment, counted. `DECISIONS/0008` P7's guardrail applies to you
 as well as to 05: any rule change in 06 that could move a row into a discard class ships with a
 pre/post transition table over the dev fixtures.
+
+## Investigate before 09b publishes a gold-recovery number (carried by 05; not blocking 06)
+
+Investigate the **16 CORD gold names not appearing in any classified row** (`rowClassification.test.ts`
+reports the bucket: 156 reached / 37 dropped / 45 preserved-but-unreached / **16 absent**, of 254 gold
+names). That is a floor no parser improvement can fix — those gold names are not reachable from any
+classified row at all. It could be split-layout (a name above row 14 that gets dropped), a fixture quirk
+(the gold name matches no OCR text), or a classifier failure. If these are split-layout cases resolvable
+by reattachment, they belong in 06's scope. If they are fixture quirks or dropped noise, they need to be
+enumerated so 09b's gold-recovery metric can state them as a floor rather than a parser failure. Not
+blocking 05; **blocking 09b's number quality.**
