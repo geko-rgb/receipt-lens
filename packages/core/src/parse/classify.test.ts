@@ -51,6 +51,43 @@ describe("clean item rows", () => {
     expect(parsed.grandTotalSource).toBe("unresolved");
   });
 
+  it("a row that is nothing but a number is real money, not a product", () => {
+    // DECISIONS/0008 P7 rule 3: an item needs a name as well as a price.
+    const thousands = ocrRow("n1", 92, [["1,818", 150, 20]]);
+    const small = ocrRow("n2", 108, [["200", 155, 15]]);
+    const named = ocrRow("n3", 124, [["PANEER", 10, 24], ["200", 155, 15]]);
+    const result = classifyRows(receipt(ITEM_A, thousands, small, named));
+    expect(result.rows.map((entry) => entry.classification)).toEqual([
+      "item",
+      "ambiguous",
+      "ambiguous",
+      "item",
+    ]);
+    expect(result.rows.filter((entry) => entry.classification === "ambiguous").map((entry) => entry.row.text)).toEqual([
+      "1,818",
+      "200",
+    ]);
+    expect(result.rows[3]!.row.text).toBe("PANEER 200");
+  });
+
+  it("cannot produce an item with an empty name", () => {
+    const parsed = parse(
+      receipt(
+        COLUMN_LABELS,
+        ITEM_A,
+        ocrRow("n4", 92, [["1,818", 150, 20]]),
+        ocrRow("n5", 108, [["200", 155, 15]]),
+        ocrRow("n6", 140, [["45.000", 140, 30]]),
+        ocrRow("n7", 156, [["0", 165, 8]])
+      )
+    );
+    expect(parsed.items.length).toBeGreaterThan(0);
+    for (const item of parsed.items) {
+      expect(item.name.trim().length).toBeGreaterThan(0);
+      expect(item.name.trim()).not.toBe("");
+    }
+  });
+
   it("do not reuse the provider's OcrLine as a row: one visual row spread over lines clusters to one item", () => {
     const quantity = ocrRow("q", 60, [["1", 10, 8]]);
     const name = ocrRow("n", 61, [["MIKA", 30, 20], ["GORENG", 54, 32]]);
