@@ -102,8 +102,12 @@ describe("row geometry over the committed dev fixtures", () => {
     expect(totals.items + totals.continuations + totals.noiseHeader + totals.ambiguous).toBe(totals.rows);
     expect(totals.items).toBe(713);
     expect(totals.continuations).toBe(43);
-    expect(totals.noiseHeader).toBe(3583);
-    expect(totals.ambiguous).toBe(860);
+    // 3,517 is also the `noise_header` count of the classifier as it stood before rule 3's lettered
+    // test: the two ruled changes together move no row into the discard class, which is the guardrail
+    // DECISIONS/0008 P7 sets for any later rule touching the header zone. A rise here is rows going
+    // silently unrecoverable, not a rate improving.
+    expect(totals.noiseHeader).toBe(3517);
+    expect(totals.ambiguous).toBe(926);
   });
 
   it("infers the price column at the rate DECISIONS/0008 P6 publishes", async () => {
@@ -167,7 +171,34 @@ describe("parse() through the core seam", () => {
         result.unclassifiedRows.length
       );
     }
-    expect(preserved).toBe(860);
+    expect(preserved).toBe(926);
+  });
+
+  it("accounts for every CORD gold item name by the class of the row that carries it", async () => {
+    // DECISIONS/0008 P7's reachability claim, measured rather than asserted: a gold name whose only
+    // carrier row is `noise_header` is unrecoverable from `ParseResult`, so that count is the cost of
+    // the discard class and the reason the header zone is keyed to price rather than to rule 3.
+    const { receipts } = await loadFixtureSplit(fixturesRoot, "dev", "cord-v2");
+    const norm = (value: string) => value.toLowerCase().replace(/\s+/g, " ").trim();
+    const buckets = { reached: 0, dropped: 0, preserved: 0, absent: 0, total: 0 };
+    for (const fixture of receipts) {
+      const ocr = fixture.ocr as unknown as OcrResult;
+      const names = parse(ocr).items.map((item) => norm(item.name)).filter((name) => name.length > 0);
+      const rows = classifyRows(ocr).rows;
+      for (const gold of fixture.gold.items) {
+        const name = norm(gold.name);
+        if (name.length === 0) continue;
+        buckets.total += 1;
+        if (names.some((item) => item.includes(name))) buckets.reached += 1;
+        else {
+          const carriers = rows.filter((entry) => norm(entry.row.text).includes(name));
+          if (carriers.length === 0) buckets.absent += 1;
+          else if (carriers.some((entry) => entry.classification === "noise_header")) buckets.dropped += 1;
+          else buckets.preserved += 1;
+        }
+      }
+    }
+    expect(buckets).toEqual({ total: 254, reached: 156, dropped: 37, preserved: 45, absent: 16 });
   });
 
   it("produces no item with an empty name (DECISIONS/0008 P7 rule 3)", async () => {
@@ -182,6 +213,50 @@ describe("parse() through the core seam", () => {
     // A row whose only content is its price word is money, not a product: 49 such rows existed in
     // CORD and 34 in SROIE before rule 3 required a lettered non-price word.
     expect(offenders).toEqual([]);
+  });
+
+  it("splits CORD's preserved rows into the causes DECISIONS/0008 P7 publishes", async () => {
+    const { receipts } = await loadFixtureSplit(fixturesRoot, "dev", "cord-v2");
+    // The predicates are the ones P7's table states, applied in that order: tender before bare
+    // integer (`CHANGE: 0` is both), and a split-layout name row only when the row beneath it is
+    // nothing but numbers.
+    const TENDER = /(^|\W)(cash|change|tender|balance|payment|pay|mode\s*pay|round\s*off|diskon|kembali)(\W|$)/i;
+    const BARE_INTEGER = /(^|\s)\d{1,2}(\s|$)/;
+    const NUMBER_ONLY = /^[\d.,+-]+$/;
+    const causes = new Map<string, number>();
+    for (const fixture of receipts) {
+      const rows = classifyRows(fixture.ocr as unknown as OcrResult).rows;
+      for (const [index, entry] of rows.entries()) {
+        if (entry.classification !== "ambiguous") continue;
+        const below = rows[index + 1];
+        const cause =
+          entry.priceCandidates.length >= 2
+            ? "more than one price candidate"
+            : entry.priceCandidates.length === 1
+              ? "priced row with no lettered name word"
+              : TENDER.test(entry.row.text)
+                ? "tender or payment line"
+                : entry.row.text.includes("%")
+                  ? "percent or modifier line"
+                  : BARE_INTEGER.test(entry.row.text)
+                    ? "money prints as a bare 1–2 digit integer"
+                    : below !== undefined && below.row.text.split(/\s+/).every((word) => NUMBER_ONLY.test(word))
+                      ? "name row above an all-number row"
+                      : "other price-less content";
+        causes.set(cause, (causes.get(cause) ?? 0) + 1);
+      }
+    }
+    const total = [...causes.values()].reduce((sum, count) => sum + count, 0);
+    expect(total).toBe(198);
+    expect(Object.fromEntries(causes)).toEqual({
+      "priced row with no lettered name word": 64,
+      "money prints as a bare 1–2 digit integer": 52,
+      "other price-less content": 32,
+      "tender or payment line": 31,
+      "name row above an all-number row": 13,
+      "percent or modifier line": 4,
+      "more than one price candidate": 2,
+    });
   });
 
   it("never loses a word and never places one in two rows", async () => {

@@ -124,7 +124,7 @@ describe("header and noise rows never become items", () => {
     expect(parse(receipt(...args)).unclassifiedRows).toHaveLength(0);
   });
 
-  it("classifies everything above the first item as noise whatever it says", () => {
+  it("classifies everything above the item region as noise whatever it says", () => {
     expect(classesOf(COLUMN_LABELS, SHOUTY_ROW)).toEqual(["noise_header", "noise_header"]);
     expect(classesOf(COLUMN_LABELS, WRAP_1)).toEqual(["noise_header", "noise_header"]);
   });
@@ -168,6 +168,34 @@ describe("ambiguous rows are preserved, never discarded and never forced into it
     expect(parsed.items).toEqual([]);
     expect(parsed.unclassifiedRows).toEqual([]);
     expect(parsed.warnings).toEqual([]);
+  });
+});
+
+describe("the header zone ends at the first priced row, not at the first item", () => {
+  const nameless = ocrRow("z3", 140, [["kaya", 10, 24], ["bred", 38, 22]]);
+
+  it("preserves a price-less row that follows a priced row rule 3 refused", () => {
+    const priceOnly1 = ocrRow("z1", 92, [["1,818", 150, 20]]);
+    const priceOnly2 = ocrRow("z2", 108, [["20,000", 148, 22]]);
+    expect(classesOf(COLUMN_LABELS, priceOnly1, priceOnly2, nameless)).toEqual([
+      "noise_header",
+      "ambiguous",
+      "ambiguous",
+      "ambiguous",
+    ]);
+  });
+
+  it("discards the same row while no priced row has appeared, so the case above is the zone and not the text", () => {
+    expect(classesOf(COLUMN_LABELS, nameless)).toEqual(["noise_header", "noise_header"]);
+  });
+
+  it("is ended by a priced row the separator rule could not resolve either", () => {
+    const separator = ocrRow("z4", 92, [["8.00", 150, 20], ["9.00", 152, 18]]);
+    expect(classesOf(COLUMN_LABELS, separator, nameless)).toEqual(["noise_header", "ambiguous", "ambiguous"]);
+  });
+
+  it("is not ended by a pattern-matched header row that happens to carry an amount", () => {
+    expect(classesOf(COLUMN_LABELS, TAX_ROW, nameless)).toEqual(["noise_header", "noise_header", "noise_header"]);
   });
 });
 

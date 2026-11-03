@@ -136,7 +136,8 @@ export function classifyRows(ocrResult: OcrResult): RowClassifyResult {
 
   const classified: ClassifiedRow[] = [];
   const itemNameLengths: number[] = [];
-  let itemsSeen = 0;
+  /** Item-region rows seen so far, which is where §5's header zone ends. */
+  let pricedRowsSeen = 0;
   /** Index of the item currently open for continuation, and whether the previous row belonged to it. */
   let openItem: { index: number; nameColumnLeft: number } | null = null;
   let previousWasItemOrContinuation = false;
@@ -154,6 +155,11 @@ export function classifyRows(ocrResult: OcrResult): RowClassifyResult {
       continue;
     }
 
+    // A row that reaches here with an entry in the price column sits in the item region, whatever
+    // rules 2 and 3 make of it: §5's "above the first item" is a statement about document position,
+    // not classification status, so a priced row failing rule 3's name test still ends the zone.
+    if (candidates.length >= 1) pricedRowsSeen += 1;
+
     // 2. several plausible prices is never resolved by picking one.
     if (candidates.length >= 2) {
       previousWasItemOrContinuation = false;
@@ -165,7 +171,6 @@ export function classifyRows(ocrResult: OcrResult): RowClassifyResult {
     // that is nothing but a number is real money but not a product, so it is preserved rather than
     // promoted — see DECISIONS/0008 P7's rule 3.
     if (candidates.length === 1 && hasNameContent(row, candidates)) {
-      itemsSeen += 1;
       itemNameLengths.push(itemNameLength(row, candidates));
       openItem = { index: classified.length, nameColumnLeft: row.left };
       previousWasItemOrContinuation = true;
@@ -194,13 +199,14 @@ export function classifyRows(ocrResult: OcrResult): RowClassifyResult {
 
     previousWasItemOrContinuation = false;
 
-    // 5. above the first item there is nothing to continue, so the row is header noise.
-    if (itemsSeen === 0) {
+    // 5. above the item region there is nothing to continue, so the row is header noise.
+    if (pricedRowsSeen === 0) {
       push("noise_header", null, null);
       continue;
     }
 
-    // 6. once items exist, an unmerged price-less row is set aside visibly rather than discarded.
+    // 6. once the item region has started, an unmerged price-less row is set aside visibly rather
+    // than discarded.
     push("ambiguous", null, null);
   }
 

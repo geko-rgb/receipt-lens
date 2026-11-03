@@ -27,6 +27,7 @@ is superseded by `ItemUnit` + `ItemUnitAssignment` — never reintroduce the old
 | `ambiguous_row` | A preserved source line whose classification could not be established. Not an item and not silently discarded. |
 | `Row class` | §5's four labels for a clustered row: `item`, `continuation`, `noise_header`, `ambiguous`. Assigned by the parser's own y-band clustering, never copied from a provider `OcrLine`; thresholds pinned in `DECISIONS/0008`. |
 | `Price column` | The right-aligned column inferred from amount-word right edges agreeing within 5% of image width. A geometry band that says *a row has a price candidate*; it parses no amount, and an inferred column is not the same as a verified one (see the fallback state). |
+| `Item region` | The part of a receipt at and below its first row carrying a price-column entry. §5's "above the first item" is read as this document-position test, not a classification result: a priced row rule 3 refuses for want of a name still ends the region, so rows beneath it are preserved rather than discarded as header noise. |
 | Strict score | Dataset-scoped exact match across supported annotated fields. SROIE result is grand-total-only, not whole-receipt itemized accuracy. |
 | Field-level F1 | Diagnostic P/R/F1 using deterministic one-to-one item matching. |
 | Local inference | Receipt image/text processing runs on-device after required assets are available. Not a claim that app loading or intentional sharing makes no requests. |
