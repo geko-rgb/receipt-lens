@@ -7,21 +7,30 @@ import { normalizeItemName } from "../matching/similarity.js";
 /**
  * Field-level precision/recall/F1 over matched item pairs (§8 Tier 2, ticket 03b box 4).
  *
- * The cell rules, in the order they are decided:
+ * The cell rules, in the order they are decided — **strict at the cell level**, the same rule
+ * the scalar tier applies, per §8's "Null-vs-populated counts as an error for the applicable
+ * field":
  *
  * | gold cell | predicted cell | outcome |
  * |---|---|---|
- * | missing | anything | **excluded** — unannotated, never a hit and never a miss |
+ * | missing | missing | **abstention** — agreement on absence, never a hit |
+ * | missing | present | **false positive** — a value asserted where the dataset annotated none |
  * | present | missing | **false negative** — a recall miss on that field |
  * | present | present, equal | **true positive** |
  * | present | present, unequal | **false positive + false negative** — a wrong value is both |
  *
- * "Missing" means `null` for the numeric fields and an empty name; §8's own words are the
- * authority: unannotated fields are excluded, never treated as false negatives or as null
- * ground truth. `dev/cord-v2` gold has no `unitPrice` on 205 of 254 items, so the excluded
- * row is the common case rather than an edge case — and it is why `excluded` is published
- * next to tp/fp/fn: a reader must be able to see how much of a field's denominator the
- * dataset actually annotated.
+ * "Missing" means `null` for the numeric fields and an empty name. The second row is the cost
+ * of this reading, accepted knowingly: `dev/cord-v2` gold annotates `unitPrice` on only 49 of
+ * 254 items, so a parser that correctly infers a unit price the dataset never printed is
+ * charged a false positive. The alternative — excluding those cells — would be a lenient
+ * reinterpretation of a spec sentence that says the opposite, and §1's claim is honest
+ * accuracy, not comfortable accuracy. `unannotated` is published beside the counts so a reader
+ * can see how much of a field's denominator came from this row, which is the disclosure §8
+ * demands for sparse fields; `item.unitPrice` is the row to watch when a real parser lands.
+ *
+ * An abstention is recorded only for a **paired** cell, where both sides genuinely exist: an
+ * unmatched item has no counterpart cell to agree absence with, so its absent fields count
+ * nothing (its populated ones still count as fn or fp, per §8.4).
  *
  * A field is compared by **exact** agreement — normalized string equality for names, integer
  * equality for amounts and quantities. τ loosens *pairing*, never scoring: two names that
@@ -34,8 +43,10 @@ export interface ItemFieldCounts {
   tp: number;
   fp: number;
   fn: number;
-  /** cells the dataset did not annotate: excluded, counted nowhere else */
-  excluded: number;
+  /** paired cells where neither side carried a value: agreement on absence, never a hit */
+  absent: number;
+  /** gold cells carrying no annotation, whatever the prediction did: the sparse-field denominator */
+  unannotated: number;
 }
 
 export interface ReceiptItemScore {
@@ -58,14 +69,15 @@ export interface ReceiptItemScore {
 }
 
 function emptyCounts(): ItemFieldCounts {
-  return { tp: 0, fp: 0, fn: 0, excluded: 0 };
+  return { tp: 0, fp: 0, fn: 0, absent: 0, unannotated: 0 };
 }
 
 export function addItemCounts(target: ItemFieldCounts, source: ItemFieldCounts): void {
   target.tp += source.tp;
   target.fp += source.fp;
   target.fn += source.fn;
-  target.excluded += source.excluded;
+  target.absent += source.absent;
+  target.unannotated += source.unannotated;
 }
 
 /** The gold side's own vocabulary: `null` amounts and empty names are both "not annotated". */
@@ -93,47 +105,67 @@ export function scoreReceiptItems(
   const counts = Object.fromEntries(attributes.map((attribute) => [attribute, emptyCounts()])) as Record<ItemAttribute, ItemFieldCounts>;
   let fieldMisses = 0;
 
-  const scoreCell = (attribute: ItemAttribute, goldItem: GoldItem | null, predictedItem: ParsedItem | null): void => {
-    const counter = counts[attribute];
-    if (!counter) return;
-    const expected = goldItem === null ? null : goldValue(attribute, goldItem);
-    const actual = predictedItem === null ? null : predictedValue(attribute, predictedItem);
-
-    if (expected === null) {
-      counter.excluded += 1;
-      return;
-    }
-    if (actual === null) {
-      counter.fn += 1;
-      fieldMisses += 1;
-      return;
-    }
-    if (expected === actual) {
-      counter.tp += 1;
-      return;
-    }
-    counter.fp += 1;
-    counter.fn += 1;
-    fieldMisses += 1;
-  };
+  const counterFor = (attribute: ItemAttribute): ItemFieldCounts | undefined => counts[attribute];
 
   for (const pair of match.pairs) {
+    const goldItem = gold[pair.goldIndex];
+    const asserted = predicted[pair.predictedIndex];
+    if (!goldItem || !asserted) continue;
     for (const attribute of attributes) {
-      scoreCell(attribute, gold[pair.goldIndex] ?? null, predicted[pair.predictedIndex] ?? null);
+      const counter = counterFor(attribute);
+      if (!counter) continue;
+      const expected = goldValue(attribute, goldItem);
+      const actual = predictedValue(attribute, asserted);
+
+      if (expected === null) {
+        counter.unannotated += 1;
+        if (actual === null) {
+          counter.absent += 1;
+          continue;
+        }
+        // §8: null-vs-populated counts as an error for the applicable field.
+        counter.fp += 1;
+        fieldMisses += 1;
+        continue;
+      }
+      if (actual === null) {
+        counter.fn += 1;
+        fieldMisses += 1;
+        continue;
+      }
+      if (expected === actual) {
+        counter.tp += 1;
+        continue;
+      }
+      counter.fp += 1;
+      counter.fn += 1;
+      fieldMisses += 1;
     }
   }
+
   // An unmatched gold item asserts nothing that was wrong; every field it annotates is simply
   // not recovered (§8.4). An unmatched prediction asserts values with nothing behind them, so
   // each populated field is a false positive — and a field it left null is not one, because
   // no claim was made.
   for (const index of match.unmatchedGold) {
-    for (const attribute of attributes) scoreCell(attribute, gold[index] ?? null, null);
+    const missed = gold[index];
+    if (!missed) continue;
+    for (const attribute of attributes) {
+      const counter = counterFor(attribute);
+      if (!counter) continue;
+      if (goldValue(attribute, missed) === null) {
+        counter.unannotated += 1;
+        continue;
+      }
+      counter.fn += 1;
+      fieldMisses += 1;
+    }
   }
   for (const index of match.unmatchedPredicted) {
     const asserted = predicted[index];
     if (!asserted) continue;
     for (const attribute of attributes) {
-      const counter = counts[attribute];
+      const counter = counterFor(attribute);
       if (!counter || predictedValue(attribute, asserted) === null) continue;
       counter.fp += 1;
       fieldMisses += 1;

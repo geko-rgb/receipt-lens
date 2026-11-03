@@ -260,7 +260,7 @@ describe("two-tier composition: macro averaging and coverage", () => {
 
     expect(scores.items).toEqual({ gold: 1, predicted: 0, matchedPairs: 0, unmatchedGold: 1, unmatchedPredicted: 0, tau: 0.7 });
     const name = scores.fields.find((field) => field.field === "item.name")!;
-    expect([name.tp, name.fp, name.fn, name.goldCells, name.excludedCells]).toEqual([0, 0, 1, 1, 0]);
+    expect([name.tp, name.fp, name.fn, name.goldCells, name.unannotatedGoldCells]).toEqual([0, 0, 1, 1, 0]);
   });
 });
 
@@ -296,14 +296,35 @@ describe("edge fixtures: no NaN and no misleading non-zero", () => {
     expect(JSON.parse(report).datasets[0].fields).toEqual([]);
   });
 
-  it("a receipt whose every gold cell is unannotated is excluded, not scored, and never 1.0", () => {
+  it("a receipt whose every gold cell is unannotated is no evidence, and never scores 1.0", () => {
     const emptyGold = receipt({ gold: gold({ grandTotal: null, items: [{ name: " ", qty: null, unitPrice: null, lineTotal: null }] }) });
     const scores = scoreReceipts([emptyGold], cordSpec);
 
     for (const field of scores.fields) {
       expect([field.precision, field.recall, field.f1], field.field).toEqual([0, 0, 0]);
     }
-    // Nothing is annotated here, so strict has no denominator to be generous about.
+    // Nothing is annotated here, so strict has no denominator to be generous about — and the
+    // unannotated cells stay visible rather than vanishing from the report.
+    expect(scores.strict).toEqual({ receipts: 1, scoreable: 0, goldless: 1, matched: 0, rate: 0 });
+    expect(scores.fields.filter((field) => field.tier === "item").map((field) => field.unannotatedGoldCells)).toEqual([1, 1, 1, 1]);
+    expect(scores.items).toMatchObject({ gold: 1, predicted: 0, matchedPairs: 0, unmatchedGold: 1 });
+  });
+
+  it("a value asserted over an unannotated gold cell is charged, per §8's strict cell rule", () => {
+    const emptyGold = receipt({ gold: gold({ grandTotal: null, items: [{ name: " ", qty: null, unitPrice: null, lineTotal: null }] }) });
+    const parser = () => ({
+      ...emptyParseResult(),
+      items: [
+        { id: "i0", name: "AYAM BAKAR", qty: 2, quantitySource: "explicit" as const, unitPrice: 8000, priceSource: "detected" as const, lineTotal: 16000, confidence: null, sourceLineIds: [], warnings: [] },
+      ],
+    });
+    const scores = scoreReceipts([emptyGold], cordSpec, parser);
+
+    // The name normalizes to empty, so no pair can form: the prediction is unmatched and every
+    // field it asserts is a false positive, while the gold cells stay unannotated rather than
+    // becoming false negatives.
+    const qty = scores.fields.find((field) => field.field === "item.qty")!;
+    expect([qty.tp, qty.fp, qty.fn, qty.absentAgreements, qty.unannotatedGoldCells]).toEqual([0, 1, 0, 0, 1]);
     expect(scores.strict).toEqual({ receipts: 1, scoreable: 0, goldless: 1, matched: 0, rate: 0 });
   });
 

@@ -121,18 +121,55 @@ null-parser bootstrap scores 0 on every metric with or without a τ.
 - τ gates *pairing* only. Tier-1 strict and field-level `item.name` agreement use **exact
   equality of normalized names** (§8.1), never "≥ τ" — a name that needs tolerance to match is
   a match for pairing purposes and a field miss for scoring purposes.
-- The reading of "compatible monetary fields" (§8.2) when one side's amount is `null` is
-  **not settled here**; it has been reported to the owner as an open interpretation question,
-  and the matcher is not written until that answer lands. It is not a corner case: in
-  `dev/cord-v2` gold, `unitPrice` is null on **205 of 254** items (80.7%), `qty` on 56 (22.0%)
-  and `lineTotal` on 32 (12.6%). A gate that demanded equality on any field the gold side
-  never annotated would refuse about four fifths of true pairs and report a price-parse
-  failure as a *missing item* — the opposite of what §8's field-level diagnostics are for.
+- "Compatible monetary fields" (§8.2) is settled as **non-conflicting at the pairing gate**:
+  where both sides annotate an amount the integers must be equal, and a field one side lacks
+  does not vote. It is *not* a scoring leniency — see the correction below. In `dev/cord-v2`
+  gold, `unitPrice` is null on **205 of 254** items (80.7%), `qty` on 56 (22.0%) and `lineTotal`
+  on 32 (12.6%), so a gate demanding equality on an unannotated field would refuse about four
+  fifths of true pairs and report every price-parse failure as a *missing item*.
 - The two OCR confidence floors stay at the §6 defaults (0.50 critical, 0.70 warning) —
   ticket 04 owns them, not this file.
 - The round-off band (§6: within ₹0.02 of `expected_round_off`, magnitude ≤ ₹1.00) is pinned in
   `benchmark.config` by this ticket because G8t groups all three, but no matcher behaviour
   depends on it.
+
+## Correction (2026-11-03): item-cell null semantics, Option A → Option B
+
+Option A was originally ruled for item-level null semantics on a misreading of §8 as
+"unannotated cells excluded"; re-reading shows "null-vs-populated counts as an error" is the
+literal rule. Corrected to Option B before any real-parser numbers were published. No published
+numbers change today — the null parser never predicts — but this binds when a real parser lands
+and will produce lower, more conservative numbers.
+
+The conflation was between two different §8 sentences: *"Unannotated fields are excluded, never
+treated as false negatives or as null ground truth"* — which is about **fields a dataset does not
+label at all**, and still holds as an exclusion at dataset level — and *"Null-vs-populated counts
+as an error for the applicable field"* — which is about an individual **cell**, and is the strict
+rule. Item cells now follow it exactly as scalar cells already did under 03a, so the harness has
+one rule at both tiers rather than two.
+
+The cost is accepted knowingly: a parser that correctly recovers a unit price on a receipt CORD
+never printed is charged a false positive, and `dev/cord-v2` annotates `unitPrice` on only 49 of
+254 items, so this is the common case for that field rather than an edge. The alternative was a
+lenient reinterpretation of a spec sentence that says the opposite, which would undercut the
+"privacy-first **and** accurate, measured honestly" claim in §1. `unannotatedGoldCells` is
+published beside `tp/fp/fn` precisely so a reader can separate "the parser was wrong" from "the
+dataset did not print it" — §8's own instruction to disclose that this choice affects sparse
+fields.
+
+Two things did **not** change with this correction, and a future reader should not assume they
+did: the §8.2 pairing gate stays non-conflicting (an unannotated amount does not block a pairing),
+and the macro-averaging rule in DECISIONS/0004 is unaffected.
+
+## Deviation (recorded, not hidden): casefold
+
+§8.1 specifies casefold; implemented as locale-independent `toLowerCase()` with a sweep guard
+that fails on `ß`, a ligature, or a dotted/dotless `I`. This is an approximation — full Unicode
+casefolding would require the CaseFolding.txt mapping tables (NFKC does not cover it, and
+bundling them adds an asset to a privacy-first runtime for a handful of characters). The guard
+ensures the deviation never silently misbehaves: if a dataset ships a casefold-sensitive
+character, the sweep fails and the implementation must be upgraded before the numbers mean what
+§8.1 says they mean. Verified absent today over all 254 dev CORD gold item names.
 
 ## How this stays honest
 
