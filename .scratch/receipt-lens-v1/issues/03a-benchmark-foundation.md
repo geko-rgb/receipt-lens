@@ -9,12 +9,12 @@
 **Effort:** ~32 h · **Roadmap:** workstream 1D part 1 (tasks 1D.1–1D.4) · **Week:** W2 · **Milestone:** M1
 **Verify:** `pnpm -r test` (benchmark suite) green; the null-parser bootstrap runs in CI against non-empty data and fails the build if any score is non-zero
 
-- [ ] Two dataset loaders read the pinned manifest committed by 01 — the layout-stress bucket and the grand-total-only set — each recording source, licence and content hash, and declaring which fields its annotations actually label; unlabeled fields are excluded from scoring, never null-scored
-- [ ] Runs entirely on cached OCR fixtures in Node — no browser, no network
-- [ ] The fixture cache is keyed by snapshot + provider + model hash with full keys, and regenerates deterministically by script
-- [ ] The null-parser bootstrap scores exactly 0 on strict match and every field precision/recall/F1 against non-empty sets; NaN is impossible
-- [ ] Report format carries a strict exact-match tier alongside field-level precision/recall/F1, per dataset, with labelled-field coverage stated in the output
-- [ ] Null and missing-value semantics are explicit and disclosed in the report rather than silently skipped
-- [ ] Locale normalization used for annotations matches the locale profiles applied to predictions
-- [ ] Two runs on the same fixtures produce a byte-identical report
-- [ ] Machine-readable results are written to a stable committed location so published numbers can be regenerated
+- [x] Two dataset loaders read the pinned manifest committed by 01 — the layout-stress bucket and the grand-total-only set — each recording source, licence and content hash, and declaring which fields its annotations actually label; unlabeled fields are excluded from scoring, never null-scored
+- [x] Runs entirely on cached OCR fixtures in Node — no browser, no network
+- [x] The fixture cache is keyed by snapshot + provider + model hash with full keys, and regenerates deterministically by script
+- [x] The null-parser bootstrap scores exactly 0 on strict match and every field precision/recall/F1 against non-empty sets; NaN is impossible
+- [x] Report format carries a strict exact-match tier alongside field-level precision/recall/F1, per dataset, with labelled-field coverage stated in the output
+- [x] Null and missing-value semantics are explicit and disclosed in the report rather than silently skipped
+- [x] Locale normalization used for annotations matches the locale profiles applied to predictions
+- [x] Two runs on the same fixtures produce a byte-identical report
+- [x] Machine-readable results are written to a stable committed location so published numbers can be regenerated
