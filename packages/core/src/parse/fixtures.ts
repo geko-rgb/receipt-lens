@@ -60,6 +60,31 @@ export const TOO_LONG_ROW = ocrRow("w1", 92, [
 ]);
 export const MISALIGNED_ROW = ocrRow("m1", 76, [["Remarks", 90, 40], ["only", 134, 16]]);
 
+/**
+ * Ticket 06's required coverage. Row classes come from 05's set above; these rows exist to be *parsed*.
+ */
+export const SGST_ROW = ocrRow("x2", 196, [["SGST", 10, 22], ["2.50", 150, 20]]);
+/** Two taxes named on one row, one amount printed — the pair the receipt never separated. */
+export const TAX_PAIR_ROW = ocrRow("x3", 200, [["CGST", 10, 22], ["SGST", 40, 22], ["5.00", 150, 20]]);
+/** An inclusion cue: the tax word qualifies the aggregate, so the row is a total, not a second tax. */
+export const INCLUDED_TAX_ROW = ocrRow("x4", 216, [["TOTAL", 10, 30], ["INCL", 44, 24], ["GST", 72, 20], ["118.00", 140, 30]]);
+export const SUBTOTAL_ROW = ocrRow("x5", 232, [["SUBTOTAL", 10, 40], ["108.00", 140, 30]]);
+export const GRAND_TOTAL_ROW = ocrRow("x6", 248, [["GRAND", 10, 34], ["TOTAL", 48, 30], ["118.00", 140, 30]]);
+export const ROUND_OFF_ROW = ocrRow("x7", 264, [["ROUND", 10, 34], ["OFF", 48, 18], ["0.20", 152, 18]]);
+export const DISCOUNT_ROW = ocrRow("x8", 280, [["DISCOUNT", 10, 46], ["10.00", 150, 20]]);
+export const SERVICE_ROW = ocrRow("x9", 296, [["SERVICE", 10, 40], ["CHARGE", 54, 36], ["5.90", 152, 18]]);
+export const TIP_ROW = ocrRow("x10", 312, [["TIP", 10, 20], ["3.00", 152, 18]]);
+/** A labelled row whose two amounts cannot be told apart: kept as an unclassified charge, never guessed. */
+export const AMBIGUOUS_CHARGE_ROW = ocrRow("x11", 328, [["TOTAL", 10, 30], ["50.00", 90, 20], ["41.00", 112, 20]]);
+/** No label and no name — money the parser keeps visible instead of turning into a product or a charge. */
+export const NAMELESS_AMOUNT_ROW = ocrRow("u1", 344, [["5,000", 150, 20]]);
+/** Q6: the row total really is 0, printed as a bare integer the price band excludes. */
+export const ZERO_TOTAL_ROW = ocrRow("z1", 360, [["MIKA", 10, 20], ["KECIL", 34, 30], ["0", 162, 8]]);
+/** Q7: a tender prints an amount and is not a product. */
+export const TENDER_ROW = ocrRow("td1", 376, [["CASH", 10, 30], ["20.000", 150, 20]]);
+/** Indian lakh grouping, the form the app's own profile has to read. */
+export const LAKH_ITEM_ROW = ocrRow("lk1", 392, [["PANEER", 10, 30], ["TICKA", 44, 26], ["1,23,456.78", 120, 50]]);
+
 /** A whole small receipt: header, two priced items, one wrapped name, charges and a footer. */
 export const FULL_RECEIPT = receipt(
   COLUMN_LABELS,

@@ -129,6 +129,31 @@ function isColumnLabelRow(words: readonly string[]): boolean {
   return fragments.every((fragment) => COLUMN_LABELS.has(fragment));
 }
 
+/**
+ * P3 family 2 as a named predicate. Ticket 06 needs the family, not the boolean: `GST NO: 0010 9010
+ * 5344` carries a tax word and no tax amount, so a row matched here never becomes a charge.
+ */
+export function isRegistrationRow(words: readonly string[]): boolean {
+  return REGISTRATION_LABEL.test(words.join(" "));
+}
+
+/**
+ * P3 family 5 — tender and payment lines (DECISIONS/0010 Q7), added by ticket 06, not by §5.
+ *
+ * 06 found 423 dev rows matching this shape and 204 of them classified as `item`: `CASH 50,000` and
+ * `CHANGE 4,500` were being sold as products, none of them a gold item. §5's dictionary has no tender
+ * term and `ParseResult` has no tender field (ADR-008 locked), so the family is a discard, and it is
+ * attributable per row: the vocabulary is 0008's measured predicate plus `changed` (an OCR misspelling on
+ * 3 CORD rows) and `kembalian` (Indonesian "change due", 2 CORD rows), and minus `round off`/`diskon`,
+ * which are §5 charge labels — counting those as tenders would misattribute rows the charge path owns.
+ */
+const TENDER_TERMS = "(?:cash|change|changed|tender|balance|payment|pay|paid|kembali|kembalian)";
+const TENDER_WORD = new RegExp(`(^|\\W)${TENDER_TERMS}(\\W|$)`, "i");
+
+export function matchesTenderFamily(text: string): boolean {
+  return TENDER_WORD.test(text);
+}
+
 /** True when the row carries a §5 charge label (longest-first). Ticket 06 turns these into charges. */
 export function matchesChargeLabel(text: string): boolean {
   const haystack = ` ${text.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ")} `;

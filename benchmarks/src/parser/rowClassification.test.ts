@@ -100,14 +100,15 @@ describe("row geometry over the committed dev fixtures", () => {
   it("classifies every row into exactly one of §5's four classes", async () => {
     const totals = sweep(await devReceipts());
     expect(totals.items + totals.continuations + totals.noiseHeader + totals.ambiguous).toBe(totals.rows);
-    expect(totals.items).toBe(713);
-    expect(totals.continuations).toBe(43);
-    // 3,517 is also the `noise_header` count of the classifier as it stood before rule 3's lettered
-    // test: the two ruled changes together move no row into the discard class, which is the guardrail
-    // DECISIONS/0008 P7 sets for any later rule touching the header zone. A rise here is rows going
-    // silently unrecoverable, not a rate improving.
-    expect(totals.noiseHeader).toBe(3517);
-    expect(totals.ambiguous).toBe(926);
+    // Re-measured at ticket 06's head against `20e4459` (05's shipped 713 / 43 / 3,517 / 926): pattern
+    // family 5 (tenders, DECISIONS/0010 Q7) discards 307 rows that are each individually attributable to
+    // the family predicate — 209 were being sold as items, 92 were preserved, 6 were continuations of
+    // phantom items. The revised P7 invariant is `3,517 + named-family rows`, and the attribution test in
+    // `quantityMoneyPins.test.ts` is what enforces it; a rise with no family behind it still fails.
+    expect(totals.items).toBe(504);
+    expect(totals.continuations).toBe(37);
+    expect(totals.noiseHeader).toBe(3517 + 307);
+    expect(totals.ambiguous).toBe(834);
   });
 
   it("infers the price column at the rate DECISIONS/0008 P6 publishes", async () => {
@@ -171,7 +172,8 @@ describe("parse() through the core seam", () => {
         result.unclassifiedRows.length
       );
     }
-    expect(preserved).toBe(926);
+    // 834 ambiguous rows minus the 14 ticket 06 promotes to items (DECISIONS/0010 Q6).
+    expect(preserved).toBe(820);
   });
 
   it("accounts for every CORD gold item name by the class of the row that carries it", async () => {
@@ -198,7 +200,11 @@ describe("parse() through the core seam", () => {
         }
       }
     }
-    expect(buckets).toEqual({ total: 254, reached: 156, dropped: 37, preserved: 45, absent: 16 });
+    // 06's head vs `20e4459` (156/37/45/16): four more names reached while 209 rows left the item class,
+    // because the rows that were discarded were phantom tenders and the ones that survived got their money
+    // parsed. `absent` is unchanged at 16 — that is the floor 09b reports, and 06's ticket file carries the
+    // investigation of why those names appear in no classified row at all.
+    expect(buckets).toEqual({ total: 254, reached: 164, dropped: 37, preserved: 37, absent: 16 });
   });
 
   it("produces no item with an empty name (DECISIONS/0008 P7 rule 3)", async () => {
@@ -247,13 +253,14 @@ describe("parse() through the core seam", () => {
       }
     }
     const total = [...causes.values()].reduce((sum, count) => sum + count, 0);
-    expect(total).toBe(198);
+    // CORD's preserved rows: 198 at `20e4459`, 162 here. The tender bucket empties completely (family 5
+    // classifies those rows at rule 1), and 14 bare-integer rows leave through Q6's zero-total promotion.
+    expect(total).toBe(162);
     expect(Object.fromEntries(causes)).toEqual({
       "priced row with no lettered name word": 64,
-      "money prints as a bare 1–2 digit integer": 52,
-      "other price-less content": 32,
-      "tender or payment line": 31,
-      "name row above an all-number row": 13,
+      "money prints as a bare 1–2 digit integer": 49,
+      "other price-less content": 31,
+      "name row above an all-number row": 12,
       "percent or modifier line": 4,
       "more than one price candidate": 2,
     });
@@ -269,18 +276,20 @@ describe("parse() through the core seam", () => {
     }
   });
 
-  it("parses a real receipt without inventing an item out of the header block", async () => {
-    // SROIE reference OCR: identity block, column labels, one item row, charges, footer notice.
+  it("parses the first real receipt end to end, and still invents no item out of the header block", async () => {
+    // SROIE reference OCR: identity block, column labels, one item row, charges, footer notice. This test
+    // was written while parse() returned every amount unresolved; ticket 06 fills them, so it now checks
+    // that the filling happens *and* that the header discipline 05 pinned still holds.
     const [fixture] = await devReceipts();
     const result = parse(fixture!.ocr as unknown as OcrResult);
-    expect(result.items.length).toBeGreaterThanOrEqual(0);
+    expect(result.items.length).toBeGreaterThan(0);
     for (const item of result.items) {
-      // Content parsing is ticket 06: nothing here may claim a number it did not read.
-      expect(item.qty).toBeNull();
-      expect(item.unitPrice).toBeNull();
-      expect(item.lineTotal).toBeNull();
-      expect(item.confidence).toBeNull();
       expect(item.name.trim().length).toBeGreaterThan(0);
+      // §7's three quantity states and only those; §4's two price states and only those.
+      expect(["explicit", "assumed", "unresolved"]).toContain(item.quantitySource);
+      expect(["detected", "unresolved"]).toContain(item.priceSource);
+      if (item.priceSource === "detected") expect(item.lineTotal).not.toBeNull();
     }
+    expect(result.items.some((item) => /document no|gstin|table\s+\d/i.test(item.name))).toBe(false);
   });
 });

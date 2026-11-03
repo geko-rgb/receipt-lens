@@ -26,3 +26,16 @@ export const CONTINUATION_LENGTH_MEDIAN_MULTIPLIER = 2;
 
 /** DECISIONS/0008 P2: an all-caps row longer than this stops reading as a standalone name. */
 export const ALL_CAPS_STANDALONE_MAX_LENGTH = 25;
+
+/**
+ * DECISIONS/0010 Q1: rows a band needs before its 60% majority is a measurement rather than the
+ * receipt's whole item count agreeing with itself. Cost published: 101 CORD item rows keep an
+ * unattributed integer and become `unresolved`.
+ */
+export const QUANTITY_BAND_MIN_ROWS = 5;
+
+/** §5's "at least 60% of its rows contain integers ≤ 20". */
+export const QUANTITY_QUALIFY_SHARE = 0.6;
+
+/** §5's integer bound. CORD gold annotates 196 of 198 quantities at ≤ 20; the outliers are 118 and 170. */
+export const QUANTITY_MAX_VALUE = 20;
