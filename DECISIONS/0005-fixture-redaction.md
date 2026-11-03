@@ -100,6 +100,9 @@ The remaining advisories are enumerated in `benchmarks/fixtures/PII-SCAN.md`.
 
 - Same input → same output: redaction is a pure function, so the byte-identical fixture
   regeneration check in DECISIONS/0003/0004 still holds.
+- Placeholder tokens are stripped before applying label anchors during scan. Any new rule
+  that tests adjacency or co-occurrence must strip placeholders first to preserve
+  idempotence. The 2018-18 regression test is the template.
 - If a rule changes later, the fixture diff shows it. That is the discipline — no
   silent rule drift.
 - **If a kept field looks like PII to the implementer, stop and report. Do not extend
