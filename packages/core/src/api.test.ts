@@ -40,8 +40,9 @@ describe("staged API surface", () => {
     expect(provider.recognize).toBeTypeOf("function");
   });
 
-  it("stubs refuse to fabricate behaviour until their tickets land", async () => {
-    await expect(ocr(new Blob(["x"]), { provider: { name: "f", version: "0", recognize: async () => blankOcrResult() } })).rejects.toThrow("not implemented");
+  it("ocr() delegates to the provider; later stages keep refusing until their tickets land", async () => {
+    const delegate: OcrProvider = { name: "f", version: "0", recognize: async () => blankOcrResult() };
+    await expect(ocr(new Blob(["x"]), { provider: delegate })).resolves.toEqual(blankOcrResult());
     expect(() => parse(blankOcrResult())).toThrow("not implemented");
     const emptyParse: ParseResult = {
       items: [],

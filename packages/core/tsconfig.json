@@ -2,7 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    // Only the OCR provider is browser-specific (PROJECT(1).md §3); parse(),
+    // validate() and the split math stay isomorphic and simply do not use these types.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": [
     "src"
