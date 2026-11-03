@@ -1,96 +1,47 @@
 /**
- * `parse()` — ticket 05's stage: normalized OCR in, classified rows out.
+ * `parse()` — ticket 06's stage: normalized OCR in, a complete `ParseResult` out.
  *
- * Rows are clustered and classified before any of their contents are read (§5). Quantities, money
- * and typed charges are ticket 06, so an item here carries the name text its rows produced and
- * nothing else, and every amount is honestly unresolved rather than guessed.
+ * Rows are still classified before any of their contents are read (§5); that is ticket 05's contract and
+ * it is unchanged. On top of it, item rows become named items with quantities, printed prices and a line
+ * total, each value carrying where it came from (§7); labelled rows that 05 preserved as `noise_header`
+ * become typed charges; and a labelled amount this parser cannot type keeps its text and its warning
+ * instead of becoming an item. `validate()` is still ticket 07's.
  */
 
 import type { OcrBox, OcrResult } from "../ocr/types.js";
-import type { ParsedItem, ParseResult, ParseWarning, UnclassifiedRow } from "../types.js";
+import type { ParseResult, ParseWarning, UnclassifiedRow } from "../types.js";
 import { classifyRows, type ClassifiedRow } from "./classify.js";
+import { readCharges } from "./charges.js";
+import { buildItems } from "./items.js";
+import { profileForRows } from "./money.js";
+import { detectQuantityColumn } from "./quantity.js";
 
 function copyBox(box: OcrBox): OcrBox {
   return { x: box.x, y: box.y, width: box.width, height: box.height };
 }
 
-/** For each item row index, the indices of the continuation rows that merged into it, in order. */
-function continuationsByItem(rows: readonly ClassifiedRow[]): Map<number, number[]> {
-  const merged = new Map<number, number[]>();
-  rows.forEach((entry, index) => {
-    if (entry.classification !== "continuation" || entry.mergedInto === null) return;
-    const bucket = merged.get(entry.mergedInto);
-    if (bucket) bucket.push(index);
-    else merged.set(entry.mergedInto, [index]);
-  });
-  return merged;
-}
-
-function itemsFromClassification(rows: readonly ClassifiedRow[]): ParsedItem[] {
-  const merged = continuationsByItem(rows);
-  const items: ParsedItem[] = [];
-  let ordinal = 0;
-
-  rows.forEach((entry, index) => {
-    if (entry.classification !== "item") return;
-    ordinal += 1;
-    const continuationIndices = merged.get(index) ?? [];
-    // The price-column word is dropped from the name text because P6 already identified it by
-    // geometry; turning it into a paise amount is ticket 06's content parsing.
-    const [priceCandidate] = entry.priceCandidates;
-    const nameWords = entry.row.words.filter((word) => word !== priceCandidate).map((word) => word.text);
-    const name = [...nameWords, ...continuationIndices.map((at) => rows[at]!.row.text)]
-      .join(" ")
-      .replace(/\s+/g, " ")
-      .trim();
-
-    const sourceLineIds = [...entry.row.sourceLineIds];
-    for (const at of continuationIndices) {
-      for (const lineId of rows[at]!.row.sourceLineIds) {
-        if (!sourceLineIds.includes(lineId)) sourceLineIds.push(lineId);
-      }
-    }
-
-    items.push({
-      id: `i${ordinal}`,
-      name,
-      // Content parsing — quantity, price and line total — is ticket 06. Nothing here is guessed.
-      qty: null,
-      quantitySource: "unresolved",
-      unitPrice: null,
-      priceSource: "unresolved",
-      lineTotal: null,
-      confidence: null,
-      sourceLineIds,
-      warnings: [],
-    });
-  });
-  return items;
-}
-
-function ambiguousRows(rows: readonly ClassifiedRow[]): UnclassifiedRow[] {
+/** Rows §5 says stay visible: `ambiguous`, minus the ones this ticket turned into items (Q6). */
+function preservedRows(rows: readonly ClassifiedRow[], promoted: ReadonlySet<number>): UnclassifiedRow[] {
   const unclassified: UnclassifiedRow[] = [];
-  let ordinal = 0;
-  for (const entry of rows) {
-    if (entry.classification !== "ambiguous") continue;
-    ordinal += 1;
+  rows.forEach((entry, index) => {
+    if (entry.classification !== "ambiguous" || promoted.has(index)) return;
     unclassified.push({
-      id: `u${ordinal}`,
+      id: `u${unclassified.length + 1}`,
       text: entry.row.text,
       box: copyBox(entry.row.box),
       sourceLineIds: [...entry.row.sourceLineIds],
       reason: "ambiguous",
       warningCode: "ambiguous_row",
     });
-  }
+  });
   return unclassified;
 }
 
-function rowWarnings(rows: readonly ClassifiedRow[]): ParseWarning[] {
+function rowWarnings(rows: readonly ClassifiedRow[], promoted: ReadonlySet<number>): ParseWarning[] {
   const warnings: ParseWarning[] = [];
   let ordinal = 0;
-  for (const entry of rows) {
-    if (entry.classification !== "ambiguous") continue;
+  for (const [index, entry] of rows.entries()) {
+    if (entry.classification !== "ambiguous" || promoted.has(index)) continue;
     ordinal += 1;
     const rowRef = `u${ordinal}`;
     const source = {
@@ -117,27 +68,35 @@ function rowWarnings(rows: readonly ClassifiedRow[]): ParseWarning[] {
 }
 
 /**
- * Pure and deterministic: the same `OcrResult` always produces a byte-identical `ParseResult`, the
- * input is never mutated, and no nested reference from it is shared into the output.
+ * Pure and deterministic: the same `OcrResult` always produces a byte-identical `ParseResult`, the input
+ * is never mutated, and no nested reference from it is shared into the output.
  */
 export function parse(ocrResult: OcrResult): ParseResult {
-  const { rows } = classifyRows(ocrResult);
+  const { rows, column } = classifyRows(ocrResult);
+  const parsed = rows.map((entry) => entry.row);
+  const profile = profileForRows(parsed);
+  const band = detectQuantityColumn(parsed, ocrResult.imageSize.width, column);
+
+  const { items, promotedRowIndexes, warnings: itemWarnings } = buildItems(rows, band, column, profile);
+  const unclassifiedRows = preservedRows(rows, promotedRowIndexes);
+  const charges = readCharges(rows, column, profile);
+
   return {
-    items: itemsFromClassification(rows),
-    unclassifiedRows: ambiguousRows(rows),
-    taxes: [],
-    serviceCharge: null,
-    tip: null,
-    discount: null,
-    roundOff: null,
-    otherCharges: [],
-    subtotal: null,
-    subtotalSource: "unresolved",
-    grandTotal: null,
-    grandTotalSource: "unresolved",
-    warnings: rowWarnings(rows),
+    items,
+    unclassifiedRows,
+    taxes: [...charges.taxes],
+    serviceCharge: charges.serviceCharge,
+    tip: charges.tip,
+    discount: charges.discount,
+    roundOff: charges.roundOff,
+    otherCharges: [...charges.otherCharges],
+    subtotal: charges.subtotal,
+    subtotalSource: charges.subtotalSource,
+    grandTotal: charges.grandTotal,
+    grandTotalSource: charges.grandTotalSource,
+    warnings: [...rowWarnings(rows, promotedRowIndexes), ...itemWarnings, ...charges.warnings],
   };
 }
 
 export { classifyRows, continuationLengthCap, meetsContinuationConditions } from "./classify.js";
-export type { ClassifiedRow, RowClassification, RowClassifyResult } from "./classify.js";
+export type { ClassifiedRow, ClassifyOptions, RowClassification, RowClassifyResult } from "./classify.js";

@@ -52,13 +52,25 @@ export {
 export {
   isGroupedDigitIdentifier,
   isIdentifierOnlyRow,
+  isRegistrationRow,
   matchesChargeLabel,
   matchesHeaderOrNoisePattern,
+  matchesTenderFamily,
 } from "./parse/patterns.js";
+// Ticket 06's content-parsing seams, exported for the same reason as the geometry ones above: the
+// numbers DECISIONS/0010 publishes have to be re-derived by CI from the shipped code. `parse()` stays
+// the only way to obtain a ParseResult.
+export { detectQuantityColumn, quantityPattern, readQuantity } from "./parse/quantity.js";
+export { inferProfile, profileForRows, readMoney, readRate } from "./parse/money.js";
+export { chargeAmountTokens, resolveChargeAmount, readCharges } from "./parse/charges.js";
+export { chooseCategory, hasInclusionCue, matchLabels, overlappingEqualLengthPairs, labelDictionary } from "./parse/labels.js";
 export {
   ALL_CAPS_STANDALONE_MAX_LENGTH,
   CONTINUATION_LENGTH_FLOOR,
   PRICE_COLUMN_WIDTH_RATIO,
+  QUANTITY_BAND_MIN_ROWS,
+  QUANTITY_MAX_VALUE,
+  QUANTITY_QUALIFY_SHARE,
   ROW_BAND_HEIGHT_RATIO,
 } from "./parse/constants.js";
 export { validate } from "./validate/index.js";
