@@ -422,7 +422,10 @@ no tender field. Tenders exist only in the internal `classifyRows()` output. Pub
 require a public-shape extension (an ADR change), not a classifier change.** The same reachability limit
 P7 already documents for split-layout name rows applies here, and it is why `classifyRows()` is exported.
 
-Shipped totals: 713 items, 43 continuations, 3,517 `noise_header`, 926 `ambiguous` of 5,199 rows.
+Shipped totals **at this head (`20e4459`)**: 713 items, 43 continuations, 3,517 `noise_header`, 926
+`ambiguous` of 5,199 rows. Ticket 06's pattern family 5 (tenders) moves 307 of them and republishes these
+figures as 504 / 37 / 3,824 / 834; the numbers in this record stay the base head's, they are what
+`classifyRows(ocr, { tenderFamily: false })` re-derives, and DECISIONS/0010 Q7 carries the transition.
 CORD is 305 / 26 / 259 / 198; SROIE is 408 / 17 / 3,258 / 728, i.e. 16.5% ambiguous from 14.8%. The
 `noise_header` total is identical to the pre-rule-3 classifier's — 259 CORD and 3,258 SROIE — which is
 what "no row was discarded that was previously preserved" means as a number, and it is pinned in

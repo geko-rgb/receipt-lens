@@ -267,23 +267,100 @@ zero-word result that parses to zero items.
 byte-identical ✓ fixtures 12.0 MB / 50 MB ✓
 `node scripts/model-manifest.mjs --check` ✓. Disk: 56 GB free; added ~34 KB of tracked source.
 
-## Next: ticket 06 — items, quantities, provenance and labelled charges
-After 05: 06 → 07 → 08 → 09a → 09b → 10a → 10 → …
-Read first for 06: its ticket file `.scratch/receipt-lens-v1/issues/06-items-quantities-and-charges.md`,
-`PROJECT(1).md` §5 (quantity rules, number-format contract, label dictionary), `docs/business.md` §11,
-then `packages/core/src/parse/`. What 05 hands over, unchanged and deliberately not done here:
+## CHECKPOINT — ticket 06 complete (2026-11-03, branch `ticket/06-items-quantities-and-charges`)
 
-- items arrive with `qty/unitPrice/lineTotal` null and `"unresolved"` sources. 06 owns §5's quantity
-  column rule (≥60% integers ≤20), the locale profiles (`id-ID`, `en`, `en-IN` with lakh grouping)
-  and the integer-paise boundary. Money parsing must not use binary float equality (§5 Safeguards).
-- `noise_header` rows include every charge-labelled row (`CGST 2.50`, `SUBTOTAL …`, `ROUND OFF`),
-  classified as noise so they never become items, and left in `classifyRows()` output for 06 to turn
-  into `ParsedTax`/`ParsedOtherCharge`. `parse()` currently returns empty charge fields; the shapes
-  are ticket 02's and must be consumed, not redefined.
-- 05 strips the single price-column word from an item's name (`parse/index.ts`); 06 decides which
-  remaining token is the quantity. `priceCandidatesForRow` and `isAmountShaped` are the seams.
-- the split name/price layout (name row price-less above a priced row) is 06's to reattach — recorded
-  as a limitation in DECISIONS/0008 P7, not solved in 05.
+**What landed:** the parser's second stage. `packages/core/src/parse/` gains `money.ts` (§5's three
+profiles as exact grammars, BigInt paise, Q4's document-level profile inference), `quantity.ts` (band
+qualification, the `N ×` pattern, §7's three provenance states), `labels.ts` (the §5 dictionary as typed
+data with longest-first span-consuming matching), `charges.ts` (labelled rows → the DQ-03 public shape)
+and `items.ts` (`ParsedItem` assembly, Q6's zero-total rescue). `parse()` now returns a filled
+`ParseResult`; `validate()` is still ticket 07's and was not touched.
+
+`DECISIONS/0010` pins the seven Tier-3 parameters (Q1 quantity column, Q2 money grammars, Q3 label
+tie-break, Q4 profile selection, Q5 charge typing, Q6 zero totals, Q7 tenders, plus the Q8 seam note),
+every figure re-derived by the committed `benchmarks/src/parser/quantityMoneyPins.test.ts`. The owner
+approved the pins at a checkpoint *before* the parser was written, and ruled on four of them — read 0010
+for the rulings, not this file.
+
+**Numbers at this head, against base `20e4459`:** 347 tests pass (core 134, pwa 27, benchmarks 186; base
+had 273). Class totals 713/43/3,517/926 → **504 items / 37 continuations / 3,824 noise_header / 834
+ambiguous**, the 307-row rise fully attributable to pattern family 5 (209 item→noise, 92 ambiguous→noise,
+6 continuation→noise, 0 unattributed). `parse()` emits **518 items** (14 of them Q6 promotions) and 820
+preserved rows; **empty-name items stay 0**, **tender-named items are 0**, gold↔item pairs **131 → 135**,
+CORD gold-name buckets 156/37/45/16 → **164/37/37/16**. Money: **372/372** gold bill-level amounts and
+**222/222** CORD gold item line totals reproduced under the inferred profile, equal to an oracle profile.
+
+**Four things a fresh session should not rediscover the hard way:**
+
+1. **A pattern family that fires at rule 1 also moves the header zone.** Family 5 initially discarded 38
+   rows that were not tender-shaped at all, because rule 1 runs before P7's priced-rows counter: a tender
+   that stops being an item stops *opening the item region*, and every price-less row under it falls back
+   into the zone. A tender prints at the end of the priced block, so its price-column entry still marks
+   item position; it is now counted, and the transition table's unattributed list is empty. Any new
+   family has to answer the same question, and `quantityMoneyPins.test.ts` is where the answer is checked.
+2. **Q6's rescue was refusing the rows it existed for.** "No other readable money on the row" read
+   `2 TUTUP SEAL 0`'s own quantity as another amount, so the demonstration cases failed and promotions
+   were 8 instead of 14. Small integers and rates are excluded there, exactly as Q1 and Q5 exclude them —
+   one rule for "a small integer that means an amount" across item rows and charge rows.
+3. **Numbers published from a throwaway script are a liability.** Six figures in 0010 did not re-derive
+   against the shipped code (the profile vote 97/3 → 40/5/55, gold amounts 370/372 → 372/372, tax+aggregate
+   199 → 207, in-band integers 34 → 49/44/5, promotions 17 → 14, tender rows 423 → 441). All six moved
+   because the measurement predicate was looser than the matcher, and the record now carries a correction
+   table naming each. Commit the re-derivation *with* the code, or the record is a story about a session.
+4. **`$` is not in §5's currency table and dev prints it.** 12 SROIE receipts print `TOTAL AMOUNT: $8.20`;
+   refusing it left those grand totals unreadable, so the strip list is the union across profiles and the
+   grammar still decides the value. §5's table stays as written (it is the spec, not this ticket's to
+   edit); the gap is recorded in 0010 Q2.
+
+**Also carried to 07:** the parser emits only `qty_assumed`, `qty_unresolved`, `unclassified_charge` and
+05's two ambiguous codes. §6's `price_not_resolved`, `name_length_outlier`, `items_may_be_missing`,
+`round_off_adjusted`, `missing_optional_field` and both confidence floors are the validator's, and 187
+dev items still carry `priceSource: "unresolved"` — 07's `item_without_price` and `price_not_resolved`
+triggers are now real. **Also carried to 09b:** the 16 absent CORD gold names are row geometry, not
+missing OCR (all 16 have every word present, none contiguous; the annotated line's own word spread runs
+0.3×–3.4× the band tolerance) and substring containment is the wrong metric shape for them in both
+directions — see 06's ticket file.
+
+**Housekeeping:** `classifyRows` gained a `tenderFamily` option that exists *only* so the P7 transition
+table re-derives the base head from shipped code (it reproduces 713/43/3,517/926 exactly before producing
+the "before" column); production never passes it. `detectQuantityColumn` gained `minRows`/`share`
+options for the same reason — the sensitivity table in Q1 is now CI-measured. Core exports the content
+seams the pin test needs, in the same spirit as 05's geometry seams; `parse()` is still the only way to
+get a `ParseResult`.
+
+**Verified locally:** `pnpm install --frozen-lockfile` was not needed (no dependency change) ✓
+`pnpm build` ✓ `pnpm typecheck` ✓ `pnpm -r test` **347 passing** ✓ `pnpm verify:results` byte-identical ✓
+`pnpm verify:fixtures` unchanged (fixtures are generated from datasets, not from the parser) ✓
+`pnpm scan:pii` idempotence clean, 51 advisories unchanged ✓ `node scripts/model-manifest.mjs --check`
+up to date ✓ `pnpm install --frozen-lockfile` green (no dependency change) ✓. Disk: 55 GB free on
+`/home`; ~2,100 lines of tracked source added, no new asset bytes.
+
+## Next: ticket 07 — validation findings and extract
+After 06: 07 → 08 → 09a → 09b → 10a → 10 → …
+Read first for 07: its ticket file, `PROJECT(1).md` §6 (all of it: the two confidence floors, critical
+findings, minor row/charge diagnostics, the arithmetic validator and `items_may_be_missing`),
+`docs/business.md` §12–13, `DECISIONS/0007` (the tolerance distinction — untouched), `DECISIONS/0008`
+(rule 3, and the revised P7 invariant) and `DECISIONS/0010` (Q5's typing rules, Q7's tender ruling, and
+the Q8 seam that says money semantics live in 06's layer, not in geometry). What 06 hands over:
+
+- `parse()` returns a full `ParseResult`. Items carry `qty`/`quantitySource`, `unitPrice`/`priceSource`,
+  `lineTotal`, `confidence` (the mean of the word scores the provider supplied, else null — never imputed)
+  and per-item warnings. 187 of 518 dev items arrive with `priceSource: "unresolved"` and 2 with no
+  `lineTotal` at all: those are the real triggers for `price_not_resolved` and `item_without_price`.
+- §6's codes are 07's to emit: `price_not_resolved`, `name_confidence_low`, `price_confidence_low`,
+  `ocr_confidence_low`, `confidence_unavailable`, `name_length_outlier` (needs ≥5 items and a population
+  standard deviation), `items_may_be_missing`, `round_off_adjusted`, `missing_optional_field`, and every
+  arithmetic finding. `validate()` is still the ticket-01 stub.
+- Charges arrive typed but `included` is never set: 06 reads an inclusion cue only as a *precedence*
+  signal (tax+aggregate rows), and business.md §6.6 makes `included` an explicit-cue decision, so the
+  field is left undefined and 07 must treat every tax as additive. If 07 wants to set it, that is a
+  documented behaviour, not a side effect of the arithmetic matching.
+- `serviceCharge`, `tip`, `discount` and `roundOff` sum across rows because the public shape has one
+  field each; `taxes[]` stays one entry per label, and a row naming two taxes with one printed amount
+  keeps the second entry `null` with `unclassified_charge` — 06 refused to split an amount.
+- `noise_header` rows still appear nowhere in `ParseResult`, and that now includes tenders: see
+  DECISIONS/0008 and 0010 Q7. Split-layout name reattachment (P7's last section) was **not** done in 06
+  and is still open; the channel is `classifyRows()`.
 `eval/` stays unread; tuning is dev-only (DECISIONS/0004). DECISIONS/0006 stays shut: the parser
 consumes no τ, and `benchmark.config` is locked unless a new record supersedes it. Blocked-by lines
 are authoritative; `Week:`/`Milestone:` labels are planning hints and several are wrong. Branch + PR,
