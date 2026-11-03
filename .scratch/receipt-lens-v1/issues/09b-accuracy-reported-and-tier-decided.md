@@ -46,3 +46,38 @@ reconstructs the 05 head through the `tenderFamily: false` seam — 713 items / 
 518 items / 135 pairs. The pairing delta is therefore matcher-derived and stands; the *reachability*
 number (164/254) is the one that is not, and 09b must replace it. Expect the matcher's figure to be lower;
 it is the honest one.
+
+## Comments
+
+**Carried by ticket 07 (2026-11-03).**
+
+**Confidence floor behavior is tested on authored fixtures only.** Dev corpus has 0/10,424 scored OCR
+words, so every dev receipt takes `confidence_unavailable` and every floor comparison is skipped. Do not
+cite dev as evidence for floor precision/recall. The README must state floors are tested on authored
+fixtures, not dev. Measurement: `benchmarks/src/parser/validationPins.test.ts` ("dev reference OCR
+supplies no confidence at all") — 10,424 words and 5,604 lines, 0 non-null scores, and 518/518 parsed
+items with `confidence: null`. Dev fixtures are dataset *reference OCR* (DECISIONS/0003); neither CORD
+nor SROIE annotates a recognition score. The only non-null source in the repo is ticket 04's real-receipt
+harness output, which is not a benchmark fixture.
+
+**Emission census on dev (250 receipts): 86/250 carry ≥1 non-advisory critical** — 42 `zero_items`,
+34 `arithmetic_total`, 27 `arithmetic_item_sum`, 2 `item_without_price`, 1 `invalid_result_schema` (a
+receipt can carry several). 1,781 findings total, 106 of them critical. Strict receipt-score floor is
+roughly 34% on dev. Report this with the breakdown, so "X% strict" reads as "X% strict with 86 receipts
+blocked by specific criticals". Also: `zero_items` fires on any zero-item `ParseResult`; `validate()`
+cannot distinguish "receipt wasn't itemized" from "parse failed". The 42 is mixed — 09b must state this
+limitation. The census is the shipped `validate()` run over dev, committed in
+`validationPins.test.ts` ("emission census") — not a restatement of the rules.
+
+**Unit-price provenance must be split before any `detected` accuracy is published.** Current dev corpus:
+**331 items with `priceSource: "detected"`, of which 230 are line totals promoted on an assumed qty 1**
+(ticket 06's rescue note). Pending 06's rescue-gate fix, **do not publish "detected unit price accuracy"**
+without distinguishing the two sources — the 230 are derivative, not direct. Gating the rescue on
+`explicit` moves `detected` from 331 to roughly 101, so any pre-fix number is measuring a different
+population than the post-fix one. Counts committed in `validationPins.test.ts` ("price provenance").
+
+**Confidence floors (0.50/0.70) are consumed from DECISIONS/0006 as pinned defaults.** Dev corpus has no
+scored OCR words (0 of 10,424), so floors are tested on authored fixtures only, not dev. M1-exit
+calibration is an open loop requiring a calibration-corpus decision — no such corpus exists today, and
+creating one is a dataset-selection decision, not a tuning parameter. **The README must state floors are
+defaults, not measured.**

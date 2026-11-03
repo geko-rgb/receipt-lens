@@ -560,6 +560,17 @@ Same principle ticket 03a applies to fixtures and 03b to results: **artifacts ar
 A report line that cannot be regenerated from a committed artifact is a claim about a session, and a
 session is not evidence.
 
+> **Paired-gold checks must state the matcher configuration explicitly: `matchItems(τ=0.70,
+> money_gate=on|off)`.** A paired-gold result that does not state the gate state is not a measurement —
+> it may silently exclude exactly the cases it is supposed to find. §8.2's money compatibility is a
+> *precondition* of pairing, so a conflicting field refuses its own pair and leaves the denominator: a
+> census over pairs can only ever report "0 wrong" for the field the gate tests. `matchItems` in
+> `benchmarks/src/matching/` is the artifact of record; session-side re-implementations of the matcher are
+> not, and a number measured with one is not this repo's number. The class — a measurement predicate that is
+> not the predicate under test — is what this file's empty-name substring inflation and DECISIONS/0010's
+> six-figure correction table were already about; ticket 07 is the same failure in gate-shaped form, and the
+> harder to see because the gate is doing something *correct* to the pairs it keeps.
+
 
 ## IDs, purity, determinism
 

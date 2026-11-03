@@ -140,3 +140,63 @@ At this ticket's head the buckets are 164 reached / 37 dropped / 37 preserved / 
 against `20e4459`'s 156 / 37 / 45 / 16. `absent` is unchanged, which is the point: nothing in 06's scope
 moved it, and four names moved from preserved to reached because removing the phantom tenders let real
 rows keep their names.
+
+## Comments
+
+**Carried by ticket 07 (2026-11-03).**
+
+**17 items with `priceSource: "unresolved"` have a printed-but-not-extracted `unitPrice` — a real 06
+defect, not a data limitation.** Example: `cord-v2/dev/14` `i1` is `@ 12.000 Kroket`, `qty 2`,
+`lineTotal 2,400,000`, `unitPrice null`. Two mechanisms: `@` markers only read when glued to the amount
+token (`parse/money.ts:65`), so a separately-OCR'd `@` is lost; and no `unit × qty === total` check
+exists. 07 emits `price_not_resolved` on these correctly; the defect is upstream. Bucket census
+(130 data-limited / 17 this / 38 unattributed / 2 no-lineTotal of 187) is committed in
+`benchmarks/src/parser/validationPins.test.ts` ("187 unresolved unit prices split into…").
+
+**1 item with `lineTotal: null` is OCR-split.** `cord-v2/dev/78` prints `18 000` as two words; 06 did not
+reassemble it, so the row has no line total at all. Real defect, not a receipt that printed nothing.
+Committed in `validationPins.test.ts` ("the two items with no line total").
+
+**§5 line 159 compliance gap: `parse/charges.ts:108` skips rows where `chooseCategory` returns `null`,**
+dropping *any* unrecognized charge label rather than preserving it as `otherCharges` +
+`unclassified_charge`. This affects ALL unrecognized labels, not just `Srv Ch` / `SR 6`. Filed as its own
+follow-up: **ticket 20**. Scope: any receipt with a charge label outside the dictionary silently loses
+that charge from `ParseResult`. 07's `unclassified_charge` finding cannot fire on dropped rows — verified
+from the shipped parser: the complete dev charge-label set is `gst, pajak, tax, total`.
+
+**Correction to what 06 published about its own prices, found while 07 verified the paired check.**
+06's report and ticket 07's brief both framed this as *"3 gold-annotated → 3 exact, 0/135 contradict
+lineTotal, so 06's extracted prices are wrong in zero known cases."* `lineTotal` does hold: 133/133
+comparable pairs agree, 0 contradictions. The `unitPrice` half is **wrong**, and the matcher is why:
+`matchItems` enforces money compatibility before a pair exists (§8.2, DECISIONS/0006 Option B), so a gold
+`unitPrice` that conflicts with 06's is refused as a pair and leaves the denominator. Measured by name
+similarity alone at τ 0.70, ignoring money: **49 dev gold items annotate `unitPrice`** (0006: null on
+205/254), 44 unreachable, **3 exact, 0 absent, 2 actively wrong** — `cord-v2/dev/8` TALAM UNGU returns
+1,950,000 against a gold 650,000, and `cord-v2/dev/68` Honey Mandarin returns 2,600,000 against a gold
+1,300,000. Both are the `parse/items.ts:132` rescue: an **assumed** `qty 1` promotes a printed line total
+to a `detected` `unitPrice`. **230 of 518 dev items carry that signature**, so the exposure is 225
+unmeasured cases, not 2. §7 defines `detected` as *"resolved price from OCR/receipt text"*; a price that
+exists only because the parser guessed qty 1 was not resolved from text. The rescue is sound when the 1
+is printed and §7-inconsistent when it is assumed. Committed in `validationPins.test.ts` ("the matcher's
+money gate hid 06's wrong unit prices").
+
+**One `invalid_result_schema` critical 07's census found in 06's output.** `sroie/dev/14` item `i10`
+("ZRL") carries `qty: 0` with `quantitySource: "explicit"` — the receipt printed `0` as the quantity and
+06 recorded it as an explicit value. §7 requires a finalized quantity to be finite and **positive**, "reject
+zero, negative, NaN, or infinity". 07 reports it as a critical and does not repair it. Two readings, both
+needing an owner call rather than an agent's guess: either an explicit zero is an illegal value 06 should
+have refused (→ `unresolved`), or it is a printed fact §7's positivity rule does not account for (→ the spec
+rule needs revisiting). It is 1 item in 518, so neither reading moves a headline number.
+
+**230 dev items carry `priceSource: "detected"` from a line total promoted to a unit price on an assumed
+qty 1** (`parse/items.ts:132`). §7's `detected` means the value was read off the receipt, not line total ÷
+assumed quantity. **Gate the rescue on `quantitySource: "explicit"`.** Consequence: **~230 items move from
+`detected` to `unresolved`** — dev currently reports 518 items / **331 `detected`** / 187 `unresolved`, so
+the gate takes `detected` to roughly 101 — which changes 09b's `unitPrice` detection accuracy materially.
+**Do not land until 09b's measurement plan accounts for the shift** (ticket 09b carries the matching note).
+
+Two known cases where the promotion is provably wrong against gold: `cord-v2/dev/8` `i1` TALAM UNGU returns
+`unitPrice 1,950,000` where gold prints 650,000 × qty 3 (the `3X @6500` row is on a separate line 05
+classified `noise_header`), and `cord-v2/dev/68` `i1` Honey Mandarin returns 2,600,000 against a gold
+1,300,000. Committed in `validationPins.test.ts` ("price provenance", "the matcher's money gate hid 06's
+wrong unit prices").
