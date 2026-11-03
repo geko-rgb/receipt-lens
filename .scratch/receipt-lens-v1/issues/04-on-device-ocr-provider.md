@@ -81,12 +81,14 @@ documents that otherwise it drops to one thread because `SharedArrayBuffer` is u
 isolation exists only because `serve.mjs` sends COOP/COEP. A Node-side session has no such server and
 could not have produced those headers or that thread count.
 
-This is what the browser-based claims need. §9 M1 step 1 says "Load a minimal harness page that invokes
-the core OCR/parser pipeline"; §3 pins cached `OcrResult` fixtures for per-commit Node parser
-benchmarks while "full OCR end-to-end runs are on-demand in a headless browser", and §8's
-"benchmark runtime and reproducibility" repeats it. §2/§3: "Only the OCR provider is
-browser-runtime-specific". The brief also cited §18, but §18 is *Owner Decisions — Resolved*
-(DQ-01–04) and carries no browser claim, so there is nothing there to satisfy.
+This is what the browser-based claims need. **§9** M1 step 1 says "Load a minimal harness page that
+invokes the core OCR/parser pipeline"; **§3** pins cached `OcrResult` fixtures for per-commit Node
+parser benchmarks while "full OCR end-to-end runs are on-demand in a headless browser" (line 117), and
+**§3** line 55 adds "Only the OCR provider is browser-runtime-specific" — §8's "benchmark runtime and
+reproducibility" repeats the headless-browser rule. The session brief cited §18 alongside §9 for this;
+that was an error in the brief. §18 is *Owner Decisions — Resolved* (DQ-01–04: sharing transport,
+unassigned units, charge schema, CORD language scope) and carries no browser claim, so there is nothing
+there for this ticket to satisfy.
 
 **Still open from §9 M1 (ticket 09a, not this gate).** Steps 3–4: precache assets, then block outbound
 network and assert inference still succeeds. The driver already records every request origin and today
