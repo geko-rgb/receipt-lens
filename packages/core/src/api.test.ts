@@ -26,6 +26,24 @@ const options: ValidateOptions = {
   strictArithmetic: true,
 };
 
+function emptyParse(): ParseResult {
+  return {
+    items: [],
+    unclassifiedRows: [],
+    taxes: [],
+    serviceCharge: null,
+    tip: null,
+    discount: null,
+    roundOff: null,
+    otherCharges: [],
+    subtotal: null,
+    subtotalSource: "unresolved",
+    grandTotal: null,
+    grandTotalSource: "unresolved",
+    warnings: [],
+  };
+}
+
 describe("staged API surface", () => {
   it("ocr(), parse(), validate() and extract() exist as typed entry points", () => {
     const provider: OcrProvider = {
@@ -40,26 +58,12 @@ describe("staged API surface", () => {
     expect(provider.recognize).toBeTypeOf("function");
   });
 
-  it("ocr() delegates to the provider; later stages keep refusing until their tickets land", async () => {
+  it("ocr() delegates to the provider; validate() and extract() keep refusing until ticket 07 lands", async () => {
     const delegate: OcrProvider = { name: "f", version: "0", recognize: async () => blankOcrResult() };
     await expect(ocr(new Blob(["x"]), { provider: delegate })).resolves.toEqual(blankOcrResult());
-    expect(() => parse(blankOcrResult())).toThrow("not implemented");
-    const emptyParse: ParseResult = {
-      items: [],
-      unclassifiedRows: [],
-      taxes: [],
-      serviceCharge: null,
-      tip: null,
-      discount: null,
-      roundOff: null,
-      otherCharges: [],
-      subtotal: null,
-      subtotalSource: "unresolved",
-      grandTotal: null,
-      grandTotalSource: "unresolved",
-      warnings: [],
-    };
-    expect(() => validate(emptyParse, options)).toThrow("not implemented");
+    // §4: blank OCR is a valid zero-word result — parse() answers it with zero items, not an error.
+    expect(parse(blankOcrResult())).toEqual(emptyParse());
+    expect(() => validate(emptyParse(), options)).toThrow("not implemented");
     await expect(
       extract(new Blob(["x"]), { ...options, provider: "pp-ocrv6" })
     ).rejects.toThrow("not implemented");
