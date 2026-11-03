@@ -416,7 +416,8 @@ data.** DECISIONS/0006 records `unitPrice` as null on 205 of 254 CORD gold items
 not 3. The census counted 3 because `matchItems` enforces money compatibility *before* a pair exists
 (§8.2, Option B: where both sides annotate an amount the integers must be equal), so a gold `unitPrice`
 that **conflicts** with 06's is refused as a pair and silently leaves the denominator. A check whose
-failing case removes itself from the sample cannot report "0 wrong".
+failing case removes itself from the sample cannot report "0 wrong". **Reporting rule added to DECISIONS/0008
+as a result: a paired-gold number must state `matchItems(τ, money_gate=on|off)` explicitly.**
 
 Measured by name similarity alone, with τ = 0.70 over normalized names and money ignored (`validationPins.test.ts`,
 *"the matcher's money gate hid 06's wrong unit prices"*):

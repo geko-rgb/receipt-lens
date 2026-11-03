@@ -332,6 +332,33 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
     });
   });
 
+  it("price provenance: 331 detected, and 230 of them are a promoted line total, not a printed price", async () => {
+    // The count behind ticket 06's rescue note. `priceSource: "detected"` is §7's claim that the value was
+    // read off the receipt, so a line total promoted under an *assumed* qty 1 is a different kind of number
+    // and 09b must not score the two together.
+    const all = await views();
+    let items = 0;
+    let detected = 0;
+    let unresolved = 0;
+    let rescue = 0;
+    let rescueFromExplicitQty = 0;
+    for (const view of all) {
+      for (const item of view.parsed.items) {
+        items += 1;
+        if (item.priceSource === "detected") detected += 1;
+        if (item.priceSource === "unresolved") unresolved += 1;
+        if (item.unitPrice === null || item.unitPrice !== item.lineTotal) continue;
+        if (item.quantitySource === "assumed") rescue += 1;
+        else rescueFromExplicitQty += 1;
+      }
+    }
+    expect({ items, detected, unresolved }).toEqual({ items: 518, detected: 331, unresolved: 187 });
+    expect({ promotedUnderAssumedQty: rescue, sameValueUnderExplicitOrUserQty: rescueFromExplicitQty }).toEqual({
+      promotedUnderAssumedQty: 230,
+      sameValueUnderExplicitOrUserQty: 101,
+    });
+  });
+
   it("the two items with no line total are individually identified, and neither is a receipt that printed nothing", async () => {
     const all = await views();
     const found: { receiptId: string; itemId: string; name: string; text: string }[] = [];
