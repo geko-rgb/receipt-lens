@@ -96,6 +96,39 @@ After this ruling: **zero** 13+ digit runs remain in the committed fixtures, unm
 entities fell from 18 receipts to 6, and redaction volume rose from 2,733 to 3,605 tokens.
 The remaining advisories are enumerated in `benchmarks/fixtures/PII-SCAN.md`.
 
+## Scope extension (2026-11-03, ticket 04)
+
+**The same PII redaction standard applies to prose in tickets and decision records, not only to
+fixtures. When evidence requires quoting a real receipt, either quote only the relevant lines or redact
+PII classes inline.**
+
+Nothing about the class list changes — what changes is which artifacts it governs. The rationale in the
+header applies identically to prose: "already published as research" reduces the rule's scope, it does
+not waive it, and if this repo becomes public (it is planned to) we become the redistributing party for
+whatever a ticket pastes. A ticket is a weaker container than a fixture — no scorer reads it, so there is
+no fidelity cost to pay for redaction.
+
+Two acceptable forms, in order of preference:
+
+1. **Quote only the lines that carry the argument.** Preferred. Ticket 04's OCR evidence quoted 29 lines
+   where the claim needed the misreads plus a few clean controls, so 19 are quoted and the 10 header
+   lines (customer name, merchant line, business registration, address, document number, transaction
+   date/time, cashier name) are dropped entirely.
+2. **Redact inline with the fixture placeholders** (`[NAME]`, `[ADDRESS]`, `[BUSINESS]`, `[TAX_REG]`,
+   `[INVOICE_NNN]`, …) when the context genuinely needs the whole receipt.
+
+**A redacted quote must never be presented as verbatim.** That is the one way this extension can do
+harm: option 2 turns the quoted text into something the model did not emit, and ticket 04's finding was
+precisely that a tidied rendering had been passed off as model output. Label it, and keep the unredacted
+text in a git-ignored artifact path so the claim stays re-checkable. The one-placeholder-per-word
+mechanism above exists to preserve token counts for scoring; prose has no such constraint, so prose
+redaction may collapse placeholders (`[ADDRESS] [ADDRESS] [ADDRESS]` → `[ADDRESS]`) where reading order
+is not the point.
+
+The **discipline** below still binds: if a kept token looks like PII to the implementer, stop and report
+rather than redacting on initiative — in prose that becomes "quote less", which carries no scoring risk
+at all.
+
 ## Discipline
 
 - Same input → same output: redaction is a pure function, so the byte-identical fixture

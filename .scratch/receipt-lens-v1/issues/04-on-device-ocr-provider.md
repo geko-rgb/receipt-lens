@@ -107,20 +107,21 @@ observes exactly one — same-origin `http://127.0.0.1:<ephemeral>` — which is
   confidences**; only wall-clock timings and the ephemeral server port differ. Aggregate stats
   reconfirmed: **29 lines / 75 words, mean line confidence 0.849, range 0.414–0.996, no nulls.**
 
-**Verbatim output**, copied out of `harness/out/ex.ocr.json` exactly as the model emitted it — missing
-spaces, stray `]` and all, one line per record prefixed with its confidence:
+**Quoted evidence — an excerpt, deliberately.** 19 of the 29 lines are reproduced verbatim below. The
+10 omitted lines are the header block: customer name, merchant name line, business registration, four
+address lines, document number, transaction date/time and cashier name. They decoded readably
+(0.906–0.996) and carry **no part of this argument**, so instead of pasting and redacting, this section
+quotes only the misread lines plus three clean controls. Under `DECISIONS/0005`'s standard — now
+extended to prose in tickets and decision records, not just fixtures — those omitted classes are
+`[NAME]` (customer and cashier), `[ADDRESS]`, `[BUSINESS]`, `[TAX_REG]` (the registration number) and
+`[INVOICE_NNN]` (the document number); the transaction date is not itself a 0005 class and is omitted
+only because it belongs to the same header block. The full 29 lines stay in the git-ignored
+`harness/out/ex.ocr.json`.
+
+Quoted lines are in reading order, keep the model's own spacing and stray `]`, and are prefixed with
+their confidence:
 
 ```text
-0.996  tan woon yann
-0.951  BOOK TA .K (TAMAN DAYA)SDN BHD
-0.908  789117-W
-0.917  NO.5: 55,57 & 59,JALAN SAGU18]
-0.921  TAMAN DAYA]
-0.906  81100JOHOR BAHRU]
-0.917  JOHOR]
-0.914  Document No：1D0116/104
-0.984  Date 25/12/20188:13.39 PM
-0.956  Cashier MANIS
 0.995  Member
 0.906  CASHBILL
 0.761  CODE/DES0 PNC日 DIsd AMCUN
@@ -142,43 +143,48 @@ spaces, stray `]` and all, one line per record prefixed with its confidence:
 0.798  PLEASECOIE AGAIN I
 ```
 
-**Correction to the previous version of this section.** It quoted a tidied rendering as if it were the
-model's own text — `Rounding Adjustment 0.00`, `95569040-40118 KP MODELLING CLAY KIDDY HSH`,
-`Rounded Total (RM): 9.00`, `GOODS SOLD ARE NOT RETURNABLE OR EXCHANGEABLE`,
-`Date 25/12/2018 8:13:39 PM` — and labelled the whole list "recognized correctly and legibly". None of
-those five strings is what the model produced. Only `tan woon yann`, `Document No：1D0116/104`,
-`Cashier MANIS`, `CASHBILL` and `THANK YOU` were verbatim. The gate still passes, but it must be
-recorded at its real strength, so the block above is the evidence and the prose below reads against it.
+**Correction to the previous version of this section — kept visible on purpose.** It quoted a tidied
+rendering as if it were the model's own text — `Rounding Adjustment 0.00` (actual:
+`Rour ing Adustment 0.00`), `95569040-40118 KP MODELLING CLAY KIDDY HSH` (actual:
+`95569390-40118 KF MODELLNGCLAY KIDDY HSH`), `Rounded Total (RM): 9.00` (actual:
+`Round d Total (RM): 9.00`), `GOODS SOLD ARE NOT RETURNABLE OR EXCHANGEABLE` (actual: two boxes,
+`GOODS SOLID ARE NOT REIURNABTEOK` / `FXCHANGEABLE`) — and labelled a 15-string list "recognized
+correctly and legibly". **Only 5 of those 15 were verbatim.** Three of the five are header/identity
+lines this section no longer quotes, leaving `CASHBILL` and `THANK YOU` as the verbatim ones visible
+above. The transaction-date line was quoted tidied too: the printed `8:13:39` decodes as `8:13.39` and
+the space before it drops. The gate still passes, but at its real strength — every example in the prose
+below is a line the block above actually contains.
 
-**What is right.** Header identity comes through cleanly and at the top of the confidence range:
-customer name, business registration `789117-W`, `Document No：1D0116/104` (full-width colon
-preserved), `Cashier MANIS`, `CASHBILL`, `Member`, `THANK YOU`. Address lines are readable
-notwithstanding dropped spaces and a stray `]`. The item row and its money are present —
-`95569390-40118 KF MODELLNGCLAY KIDDY HSH` and `PC 9.00 0.00 2.00` — and the rounded total carries an
-exact price: `Round d Total (RM): 9.00`. Recognizable item text and item prices, which is what this
-ticket gates on.
+**What is right.** The item row and its money are present — `95569390-40118 KF MODELLNGCLAY KIDDY HSH`
+and `PC 9.00 0.00 2.00` — and the rounded total carries an exact price: `Round d Total (RM): 9.00`.
+`Member` (0.995), `CASHBILL` (0.906) and `THANK YOU` (0.996) decode with no character error at all. The
+omitted header block likewise reads correctly at the top of the confidence range (0.906–0.996), with the
+same dropped-space pattern. **Recognizable** item text and item prices is what this ticket gates on and
+it is met — and "recognizable" is deliberately not claimed as "matches expected", which is precisely the
+distinction the previous version blurred.
 
 **What is wrong.** Three classes, all character-level:
 - *Right-hand amounts*: `Total : 9.00` → `Total 1.00`, `Cash 10.00` → `Cash 000`,
   `CHANGE 1.00` → `CHANGE 00`, plus a lone `2` at 0.414 and a stray `2.00` box. Money digits are the
   worst-hit field on the page.
-- *Word and label spacing*: `(TAMAN DAYA)SDN BHD`, `JALAN SAGU18]`, `MODELLNGCLAY`,
-  `PLEASECOIE AGAIN I`, `Date 25/12/20188:13.39 PM` (the seconds colon also degraded to a period),
-  `Rour ing Adustment`, `Round d Total`.
+- *Word and label spacing*: `MODELLNGCLAY` (the space between the two words goes, and a vowel with it),
+  `PLEASECOIE AGAIN I`, `Rour ing Adustment`, `Round d Total`, and the footer sentence split across two
+  boxes as `GOODS SOLID ARE NOT REIURNABTEOK` / `FXCHANGEABLE`.
 - *Non-Latin footer*: Thai/Chinese glyphs are garbage (`41HH453:9史脑`, `20自话，战情序说，`) and the
   `CODE/DES0 PNC日 DIsd AMCUN` / `QTY R17 四` header row scores 0.761 / 0.625 — expected from a
   6905-entry Latin-centric dictionary.
 
-**Why this is accuracy, not a pipeline defect.** Several lines decode with *zero* character errors at
-the top of the range (`tan woon yann` and `THANK YOU` at 0.996, `Document No：1D0116/104` at 0.914),
-and the glyphs that fail in the amount column decode correctly elsewhere: `9.00` and `Total (RM):` in
-the rounded total, `0.00` in `Rour ing Adustment 0.00`, `PC` on the item line. A wrong channel order,
-a wrong dictionary offset or a broken CTC decode would corrupt every line uniformly rather than
-selectively hitting faint glyphs — and both the vocabulary assertion (6906 = 6905 + 1) and the
-declared-activation guard pass before any text is produced. (The earlier draft argued this from
-`Rounding`/`Adjustment` decoding correctly; it does not, so that example is withdrawn — the argument
-above uses only lines quoted verbatim.) Quantifying and improving this is ticket 09b; ticket 05
-consumes `OcrResult` fixtures rather than live OCR.
+**Why this is accuracy, not a pipeline defect.** Three lines in the block decode with *zero* character
+errors, two of them at the very top of the range (`THANK YOU` 0.996, `Member` 0.995, `CASHBILL` 0.906),
+while the faint right-hand column fails; and the glyphs that fail there decode correctly elsewhere on
+the page — `9.00` and `Total (RM):` inside `Round d Total (RM): 9.00`, `0.00` inside
+`Rour ing Adustment 0.00`, `PC` inside `PC 9.00 0.00 2.00`. A wrong channel order, a wrong dictionary
+offset or a broken CTC decode would corrupt every line uniformly rather than selectively hitting faint
+glyphs — and both the vocabulary assertion (6906 = 6905 + 1) and the declared-activation guard pass
+before any text is produced. (The earlier draft argued this from `Rounding`/`Adjustment` decoding
+correctly; it does not, so that example is withdrawn — the argument above uses only lines reproduced in
+the block.) Quantifying and improving this is ticket 09b; ticket 05 consumes `OcrResult` fixtures rather
+than live OCR.
 
 **Amount-column forward note (for ticket 09b).** Measure **price-field accuracy separately from
 aggregate character accuracy**, per integer-paise equality (§8.4). Tiny on faded thermal misreads
@@ -189,10 +195,14 @@ magnitude. These misreads are direct evidence for spec §14 **ADR-002** (Tiny as
 not for `DECISIONS/0002`, which is the SROIE snapshot record. Improvement path: Small model, better
 thermal preprocessing, or a price-specific dictionary — owned by ticket 09b.
 
-**Review flag.** This section quotes a real receipt in full (customer name, address, document number,
-date). It is the SROIE sample already pinned and licensed CC-BY-4.0 per `DECISIONS/0002`, and the raw
-JSON stays git-ignored, but the ticket itself is committed — trim the header lines before merge if
-that is preferred. `DECISIONS/0005`'s pending proprietor-name ruling covers fixtures, not ticket prose.
+**PII handling — resolved, recorded in `DECISIONS/0005`.** An earlier revision of this section quoted
+the receipt's header block verbatim: customer name, merchant line, business registration, four address
+lines, document number and cashier name. That standard now covers prose in tickets and decision records,
+not fixtures only, and 0005's own rationale is what applies here: "already published as research"
+reduces the rule's scope, it does not waive it — if this repo becomes public, we are the redistributing
+party. Those lines are **dropped rather than redacted**, because the evidence is the misreads and a
+placeholder inside a block labelled verbatim would have made it not verbatim. The full 29 lines stay in
+the git-ignored `harness/out/ex.ocr.json` for anyone re-running the harness.
 
 ## Test coverage added
 
