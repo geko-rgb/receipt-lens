@@ -178,13 +178,15 @@ them over as classified rows with their label match recorded, which is why a lab
 `noise_header` here rather than simply discarded — §5's own bullet puts label matches in that
 class, and the row data still has to reach 06.
 
-**Tender rows are a known, accepted gap.** Rows like `CASH`, `Change:` and `Pay Cash Change :9,000`
-(31 of CORD's preserved rows on the shipped classifier, counted by the tender predicate committed in
-`rowClassification.test.ts`; 22 while the header zone was still keyed to rule 3's item) are classified
-`ambiguous` to keep them visible for review. A future tender family in
-P3 would move them to `noise_header`, but §5 doesn't name a tender class. Decision deferred to a
-follow-up, once 06's money parsing has enough context to determine whether tenders should be dropped
-(noise) or preserved (a new class).
+**Tender rows were a known, accepted gap; ticket 06 closed it as pattern family 5.** Rows like `CASH`,
+`Change:` and `Pay Cash Change :9,000` were classified `ambiguous` to keep them visible for review (31 of
+CORD's preserved rows on the shipped classifier, counted by the tender predicate committed in
+`rowClassification.test.ts`; 22 while the header zone was still keyed to rule 3's item). 06 measured the
+wider population and found the deferral's premise was wrong: 423 dev rows are tender-shaped and **204 of
+them are classified `item`**, i.e. tenders were not being preserved, they were becoming phantom products
+(0 of the 131 gold↔item pairs involves one). Family 5 (tenders) now matches at rule 1 and classifies them
+`noise_header`; see DECISIONS/0010 Q7 for the attribution table and the P7 invariant revision that comes
+with it.
 
 ### Reported, not implemented: the notice/footer family
 
@@ -399,6 +401,26 @@ split-layout case P7 reports below.
 > rule 3 → rule 5 interaction that dropped rows in this ticket is the template: any rule change that
 > affects "first item seen" or the header-zone boundary must be measured against pre-change output
 > before merge.
+>
+> **Invariant revised by ticket 06 (owner ruling, 2026-11-03).** The original form was an equality —
+> `noise_header == 3,517`, the base head's count — which is the cheapest way to catch a silent discard
+> but which a *named* pattern family is entitled to break. Restated:
+>
+>> `noise_header` equals base head (3,517) **plus** rows accounted for by a documented pattern family.
+>> Any increase must be traceable to a named family in the transition table. A rule change that
+>> increases `noise_header` without a corresponding named-family entry fails the test.
+>
+> The spirit — no silent discards — is preserved by explanation, not by a frozen count. Family 5
+> (tenders, DECISIONS/0010 Q7) is the first named family under the revised invariant, and its rows must be
+> individually attributable: the transition table reports the `item → noise_header` and
+> `ambiguous → noise_header` counts and every moved row matches the family predicate.
+
+**Tenders are `noise_header`, and therefore not reachable from `ParseResult`.** Recorded in both this
+record and ticket 06's file because it is the one class a reviewer cannot see in the output: **tenders are
+classified `noise_header` and not reachable from `ParseResult`. ADR-008 locked the public shape and it has
+no tender field. Tenders exist only in the internal `classifyRows()` output. Publishing tenders would
+require a public-shape extension (an ADR change), not a classifier change.** The same reachability limit
+P7 already documents for split-layout name rows applies here, and it is why `classifyRows()` is exported.
 
 Shipped totals: 713 items, 43 continuations, 3,517 `noise_header`, 926 `ambiguous` of 5,199 rows.
 CORD is 305 / 26 / 259 / 198; SROIE is 408 / 17 / 3,258 / 728, i.e. 16.5% ambiguous from 14.8%. The

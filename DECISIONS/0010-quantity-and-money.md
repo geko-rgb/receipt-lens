@@ -237,6 +237,13 @@ both profiles and 0 of them are read with different values**. A profile can ther
 ₹900. Combined with en-IN ⊇ en, the default cannot lose an amount that the other en-family profile would
 have read.
 
+**Owner ruling (2026-11-03): profile inference is bounded by exclusivity, not by accuracy.** The
+1,403-both / 0-divergent measurement *is* the guarantee — a wrong profile omits tokens, it never
+misparses them. The 97/3 and 0/150 vote counts are quality measures, not correctness measures: they say
+how often the inference agrees with the profile the dataset was generated with, and nothing downstream may
+read them as a bound on error. Default `en-IN` when a document carries no exclusive evidence. No
+`parse(locale)` option — §4's signature is the contract.
+
 Accuracy of the vote against the profile each dataset was generated with:
 
 | dataset | votes id-ID | votes en family | tie / no evidence |
@@ -319,6 +326,9 @@ text 06 cannot read as an inclusion cue will type as a tax and be reviewed as a 
 `validate()`'s arithmetic in ticket 07 is what surfaces it, and it is a named follow-up rather than a
 silent guess.
 
+**Owner ruling (2026-11-03): tax+aggregate row precedence — inclusion cue → aggregate; no inclusion cue →
+tax. 199 dev rows exercise this.**
+
 **Type mapping**, §5's dictionary to §4's public shape, with no reshaping of either:
 
 | label | lands in |
@@ -392,6 +402,13 @@ demonstration that quantity-0 and total-0 are different objects — plus `PB1: 0
 `PB1: 0` is a promo modifier this rule does promote, and `CHANGED 0` is the tender misspelling Q7 does not
 catch; both are reported as known false-positive classes rather than patched with a fourth special case.
 
+**Owner ruling (2026-11-03), recorded as accepted cost rather than a defect to fix:** `PB1: 0` (×3) and
+`CHANGED 0` (×3) are documented false positives. `CHANGED 0` resolves when family 5 lands (Q7's tender
+predicate is word-stem tolerant enough to catch it once the family exists — see Q7's near-miss note).
+`PB1: 0` is **retained** because narrowing the rule to exclude it would refuse 17 legitimate rescues
+(`Top Oreo 0`, `2 TUTUP SEAL 0` and the rest of the zero-priced item lines). Cost is 3 items per dev
+sample.
+
 **`unitPrice` is a separate claim from `lineTotal` and is not inferred from it.** A printed `0` in the
 column is the row total; §4's `unitPrice` is filled only where the receipt actually prints a unit price,
 and the one marker dev exhibits is `@` (`1X M-Caramel Black Tea @28,000 28,000`, `3X @6500`,
@@ -442,10 +459,57 @@ it ships with a pre/post transition table over all 250 dev fixtures, and the rep
 `item → noise_header` as the only movement for these rows, with the empty-name and gold-reachability
 assertions re-derived afterwards.
 
-Known near-miss, recorded rather than fixed: `CHANGED 0` (3 CORD rows) is an OCR misspelling of `CHANGE`
-and word-boundary matching does not catch it, so those rows go to Q6's zero-total promotion instead.
-Expanding the tender vocabulary with stems would catch them and risk `PAYMENT`-shaped false hits on
-genuine items; that trade belongs to the notice/footer family analysis P3 already defers, not here.
+**The P7 invariant changes with this family, per owner ruling.** DECISIONS/0008 P7's guardrail was stated
+as an equality (`noise_header` must stay 3,517) because a fixed count is the cheapest way to catch a
+silent discard. A named family breaks that equality by design, so the invariant is restated:
+
+> `noise_header` equals base head (3,517) **plus** rows accounted for by a documented pattern family. Any
+> increase must be traceable to a named family in the transition table. A rule change that increases
+> `noise_header` without a corresponding named-family entry fails the test.
+
+The *spirit* of P7 — no silent discards — is preserved by explanation rather than by a frozen number, and
+family 5 is the first named family under it: each of its rows must be individually attributable, i.e. the
+transition table lists `item → noise_header` and `ambiguous → noise_header` counts and every moved row
+matches the family-5 predicate. The two assertions that must **not** move stay enforced: empty-name items
+remain 0, and gold↔item pairs may not fall below the 131 base head scores (condition 3 adds a direct
+guard: `tender_named_items_in_ParseResult == 0` on dev fixtures, so a family-5 regression fails loudly
+rather than quietly re-inflating the item list).
+
+**`CHANGED 0` resolves when family 5 lands** (owner ruling on Q6's false-positive list). The observed OCR
+misspelling is carried as a data-table entry in the family rather than as a stem-tolerance rule: 0008's own
+predicate terms plus `changed`, measured at 3 CORD rows. A stem-tolerant matcher would also catch
+`PAYMENT`-shaped collisions against genuine items, which is the same trade P3's notice/footer family
+defers, not something this ticket invents.
+
+## Q8 — The classifier/parser seam: geometry reads position, money reads meaning
+
+05's `priceCandidates` is amount-shaped **only**: P6's candidate test strips `₹`/`Rs`/`INR`, requires
+`^\d[\d.,]*$` after that, and admits a token only on a separator or ≥ 3 digits. Two consequences are
+visible on the dev fixtures and are intentional, not defects:
+
+```text
+Rp 9,736      isAmountShaped → false  (Rp is id-ID's token, and the word carries an internal space)
+-7,800        isAmountShaped → false  (the leading sign is not in the candidate shape)
+```
+
+So `Srv Ch Rp 9,736` and `AMOUNT -7,800` reach 06 with **no price candidate**, and 06's money grammar
+(§5's profiles) reads them: strip the profile's currency token, honour a leading `-` or surrounding
+parentheses, then apply the grammar and land on integer paise.
+
+**Do not fix `Rp` or negative handling inside 05's classifier.** That would move money semantics into
+geometry, and the two are deliberately separated: the band answers *"is this the column position where a
+line total prints"* from word boxes alone, and it must stay profile-independent, because making it
+profile-aware would make the row classes — and therefore DECISIONS/0008's published buckets — a function
+of a locale decision that ticket 06 owns. `priceCandidates` remains the geometry predicate 05 pinned;
+`isAmountShaped` is not a money test and never was (P6 says so: "it never produces a paise value").
+
+Where the two layers disagree, the seam is the tie-break in one direction only: **06 never re-derives a
+row's class, and 05 never produces an amount.** The only place 06 overrides 05 is Q6's promotion, which
+adds a *total* to a row the classifier called `ambiguous` because the geometry had no candidate for a
+bare `0`; the row's class in `classifyRows()` output is unchanged and stays `ambiguous`, and the
+promotion is visible only in `ParseResult.items` (with the row then absent from `unclassifiedRows`, since
+§5 keeps those two lists disjoint). Split-layout name reattachment (§5 line 340, P7's last section) reads
+`classifyRows()` through the same channel and is reported separately.
 
 ## Re-derivation, and the head every 06 delta compares against
 
