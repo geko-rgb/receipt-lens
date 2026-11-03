@@ -1,8 +1,8 @@
 # HANDOFF — session log and next steps (2026-11-03)
 
 ## Where everything lives
-- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `bb787b9` (PR #6,
-  tickets 01/02/03a/03b merged). Fetch before reading `origin/main`: a stale local ref made a
+- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `9e482e9` (PR #7,
+  tickets 01/02/03a/03b/04 merged). Fetch before reading `origin/main`: a stale local ref made a
   fresh session think 03a was unmerged.
 - **GitHub remote (private, origin):** `https://github.com/geko-rgb/receipt-lens`. Branch
   protection on `main`: PR required, status check `unit` required, force-push/deletion denied,
@@ -181,18 +181,87 @@ Re-ran the harness this session: line text and confidences came back **byte-iden
 mean 0.849, range 0.414–0.996), so OCR output is deterministic across runs; wall-clock is not
 (327/503 ms → 582/952 ms here). `harness/out/` is git-ignored and was regenerated.
 
-## Next: ticket 05 — row geometry and classification
-After 04: 05 → 06 → 07 → 08 → 09a → 09b → 10a → 10 → … Ticket 05 measures row classes
-**through the 03b scorers**, and its τ/threshold work must not reopen DECISIONS/0006 —
-`benchmark.config` is locked unless a new decision record supersedes it.
-Read first for 05: its ticket file `.scratch/receipt-lens-v1/issues/05-row-geometry-and-classification.md`,
-`PROJECT(1).md` §5, `GLOSSARY.md`, then the parser seams. Ticket 05 consumes **cached `OcrResult`
-fixtures**, never live OCR — that separation is the point of 04. Useful shapes: `OcrResult.lines[]`
-already carries reading-order lines with word boxes and real confidences; the provider groups by
-y-centre within 0.5 × median word height (`manifest.readingOrder.toleranceRatio`), and the parser
-re-clusters itself per §5. Blocked-by lines are authoritative; `Week:`/`Milestone:` labels are
-planning hints and several are wrong (e.g. 02 was M1/week-2 despite W17/M3). Branch + PR, never
-direct-push `main`.
+## CHECKPOINT — ticket 05 complete (2026-11-03, branch `ticket/05-row-geometry-and-classification`)
+
+**What landed:** the parser's first stage. `packages/core/src/parse/` is now
+`constants.ts` (the pinned numbers), `geometry.ts` (weighted median, y-band clustering, price
+column), `patterns.ts` (the four header/noise families, the charge-label boolean, the all-caps
+test), `classify.ts` (§5's single forward pass and the continuation merge) and `index.ts`
+(`parse()`). `validate()` and `extract()` are still ticket-01 stubs — that is ticket 07.
+Fixtures shared with later tickets live in `parse/fixtures.ts`.
+
+**`DECISIONS/0008` pins the seven Tier-3 constants before the classifier was written**, and
+`benchmarks/src/parser/rowClassification.test.ts` re-derives every number in it from the committed
+dev fixtures — the same discipline as the committed τ-sweep, so the record cannot drift from the
+artifact that produced it. Headline: 5,604 provider lines → 5,199 parser rows; 848 items, 47
+continuations, 3,517 noise_header, 787 ambiguous; 1,364 priced rows (26.2%), 3 separator rows; 0
+byte-identity failures over 250 fixtures.
+
+**Three things a fresh session should not rediscover the hard way:**
+
+1. **The word-count-weighted median is count-weighted, not height-mass-weighted.** An earlier draft
+   of the implementation accumulated `sum(heights)` and crossed half the total *mass*; §5's phrase
+   is about word *count*, and the difference changes the tolerance and therefore the rows. Pinned in
+   P4 as the lower crossing of the cumulative count. The two statistics diverge on 38 of 250
+   receipts, which is how the mistake was caught.
+2. **P4 also corrects a claim in DECISIONS/0007.** That record separated the provider's banding from
+   the parser's by value (0.5 vs 0.4 — true) *and* by statistic (unweighted vs word-count-weighted
+   median). The second is narrower than it reads: the provider's `heights[floor(n/2)]` is the upper
+   middle, P4's crossing is the lower middle, so they agree on odd word counts and differ on 38 of
+   250 dev receipts. The *membership* rules are genuinely different (radius-against-band-mean vs
+   consecutive-centre chain). The provider was not touched and the tolerances were not aligned.
+3. **The identifier family fires per row, not per token, and the reason is visible rows rather than
+   rescued items.** 30 dev rows carry an identifier-shaped token; exactly 1 is identifier-only
+   (`09/03/2018 21:28 0001`), and that is the phantom suppressed. A token-anywhere rule would have
+   swept the other 29 into `noise_header` — 22 were already there, but **8 were `ambiguous`**, i.e.
+   preserved for review, and deleting them is the wrong direction. Two rows first looked like
+   casualties (`F/CASTELL 187057-75 TACK-IT 2 SR 12.00`, `2 HH ASAHI 1+1/2 SR 77.80`) and are not:
+   SROIE's reference OCR publishes those lines as a **single whole-line word**, and any token holding
+   letters fails the shape test before the row test is reached. No dev item carries a token today.
+   The money guard is separately load-bearing: without it the family fires on `1.234.567`, which is
+   2,276 dev words.
+
+**Owner rulings taken during this ticket:** telephone-shaped rows go into the pattern table (they
+did: family 4, with the measured finding that dev's population is dates, not phones); the footer
+`noise_header` clause is an explicit deviation recorded in P7 (post-item price-less rows are
+`ambiguous`, i.e. visible, rather than deleted); the split name/price layout was **verified not to
+merge** before being accepted — rows 14/15 on ticket 04's receipt are 26.4 px apart against an 8.60
+px band, so 05 classifies them separately (the name row is `noise_header`, the amount row is an item
+named `PC 9.00 0.00`) and the lost name is ticket 06's to reattach.
+
+**Housekeeping:** core tests are now typechecked in CI (`packages/core/tsconfig.test.json`, added to
+`packages/core`'s `typecheck` script) — pwa and benchmarks already did this, and it caught two
+broken test helpers on the first run. `parse()` is exported as before; `classifyRows` and the pattern
+predicates are exported as measurement seams for the benchmark gate, in the same spirit as ticket 04's
+provider seams. `api.test.ts` no longer expects `parse()` to throw: §4 makes blank OCR a valid
+zero-word result that parses to zero items.
+
+**Verified locally:** `pnpm install --frozen-lockfile` ✓ `pnpm build` ✓ `pnpm typecheck` ✓
+`pnpm test` **264 passing** (core 73, pwa 27, benchmarks 164) ✓ `pnpm scan:pii` idempotence clean,
+51 advisories unchanged ✓ `pnpm verify:results` byte-identical ✓ fixtures 12.0 MB / 50 MB ✓
+`node scripts/model-manifest.mjs --check` ✓. Disk: 56 GB free; added ~34 KB of tracked source.
+
+## Next: ticket 06 — items, quantities, provenance and labelled charges
+After 05: 06 → 07 → 08 → 09a → 09b → 10a → 10 → …
+Read first for 06: its ticket file `.scratch/receipt-lens-v1/issues/06-items-quantities-and-charges.md`,
+`PROJECT(1).md` §5 (quantity rules, number-format contract, label dictionary), `docs/business.md` §11,
+then `packages/core/src/parse/`. What 05 hands over, unchanged and deliberately not done here:
+
+- items arrive with `qty/unitPrice/lineTotal` null and `"unresolved"` sources. 06 owns §5's quantity
+  column rule (≥60% integers ≤20), the locale profiles (`id-ID`, `en`, `en-IN` with lakh grouping)
+  and the integer-paise boundary. Money parsing must not use binary float equality (§5 Safeguards).
+- `noise_header` rows include every charge-labelled row (`CGST 2.50`, `SUBTOTAL …`, `ROUND OFF`),
+  classified as noise so they never become items, and left in `classifyRows()` output for 06 to turn
+  into `ParsedTax`/`ParsedOtherCharge`. `parse()` currently returns empty charge fields; the shapes
+  are ticket 02's and must be consumed, not redefined.
+- 05 strips the single price-column word from an item's name (`parse/index.ts`); 06 decides which
+  remaining token is the quantity. `priceCandidatesForRow` and `isAmountShaped` are the seams.
+- the split name/price layout (name row price-less above a priced row) is 06's to reattach — recorded
+  as a limitation in DECISIONS/0008 P7, not solved in 05.
+`eval/` stays unread; tuning is dev-only (DECISIONS/0004). DECISIONS/0006 stays shut: the parser
+consumes no τ, and `benchmark.config` is locked unless a new record supersedes it. Blocked-by lines
+are authoritative; `Week:`/`Milestone:` labels are planning hints and several are wrong. Branch + PR,
+never direct-push `main`.
 
 ## Open items / owner decisions pending
 - Rename repo `Recipt-lens` → `receipt-lens` (`gh repo rename`) or keep.
