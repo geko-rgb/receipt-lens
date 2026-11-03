@@ -1,8 +1,8 @@
-# HANDOFF — session log and next steps (2026-11-02)
+# HANDOFF — session log and next steps (2026-11-03)
 
 ## Where everything lives
-- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `44678e7` (PR #5,
-  ticket 03a merged), clean tree. Fetch before reading `origin/main`: a stale local ref made a
+- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `bb787b9` (PR #6,
+  tickets 01/02/03a/03b merged). Fetch before reading `origin/main`: a stale local ref made a
   fresh session think 03a was unmerged.
 - **GitHub remote (private, origin):** `https://github.com/geko-rgb/receipt-lens`. Branch
   protection on `main`: PR required, status check `unit` required, force-push/deletion denied,
@@ -45,7 +45,8 @@ still regenerates 717 fixtures exactly, `pnpm scan:pii` idempotence clean, budge
   `dev-null-bootstrap.json` was regenerated (schema 1.1: adds `protocol`, `macro`, `items`,
   `excludedCells`/`goldCells`, `license`, provider + version).
 
-**Not pushed.** No PR yet. Owner decisions still open from 03a's second ruling are unchanged
+**Merged** 2026-11-03 via PR #6 (`bb787b9`) — this note previously read "not pushed". Owner decisions
+still open from 03a's second ruling are unchanged
 (`benchmarks/fixtures/PII-SCAN.md` advisories; the 51 `long-digit-run` advisory hits are
 reported, not redacted).
 
@@ -98,13 +99,100 @@ Code lived in `benchmarks/src/{fixtures,datasets,scoring}/*`, one test file per 
 S1 redact, S2 loaders, S3 serialize/generate, S4 bootstrap. (03b has since replaced the
 "throws rather than scoring items" placeholder with the real matcher and item scorers.)
 
-## Next: ticket 04 — on-device OCR provider (start fresh session, in the home repo)
-03b is the current ticket; after it: 04 → 05 → 06 → 07 → 08 → 09a → 09b → 10a → 10 → … Ticket 05 measures row classes **through the 03b scorers**, and its τ/threshold work must not reopen DECISIONS/0006 — `benchmark.config` is locked unless a new decision record supersedes it.
-Read first for 04: its own ticket file `.scratch/receipt-lens-v1/issues/04-on-device-ocr-provider.md`,
-`docs/model-assets.md`, `PROJECT(1).md` §3/§7 (OCR contract), `DECISIONS/0001`. Blocked-by lines are
-authoritative; `Week:`/`Milestone:` labels are planning hints and several are wrong (e.g. 02 was
-M1/week-2 despite W17/M3). Branch + PR, never direct-push `main`, and expect the onnxruntime-web
-postinstall question the standing rules already anticipate.
+## CHECKPOINT — ticket 04 complete (2026-11-03, branch `ticket/04-on-device-ocr-provider`)
+
+**What landed:** the browser OCR provider. `packages/core/src/ocr/pp-ocrv6.ts` (provider:
+load → det → rec → words → lines) over `ocr/pp-ocrv6/{detect,recognize,lines,image}.ts`, plus
+`ocr/model-manifest.ts`. `ocr()` in `provider.ts` now delegates to the provider; `parse()` and
+`validate()` are still ticket 01 stubs, which is exactly what ticket 05 needs.
+
+**Contract unchanged.** `OcrProvider`/`OcrResult` were not reshaped or extended. `version` is
+`1.0.0-tiny+sha256.<manifestHashPrefix>`; `PPOCRv6Provider.manifestHash`/`assetBytes`/
+`sessionInfo` are additive class members, not part of the interface.
+
+**Two upstream facts are wrong, and the manifest now records the measured truth.** Both were
+traps that produce plausible-but-wrong output rather than errors:
+- detection output is **full resolution** `[N,1,H,W]`, not `H/4` (probed at 96×160 and 480×640);
+- recognition output is **already softmax** (every row sums to 1.000), not `ctc_logits`. Applying
+  softmax again gave every word a confidence of ~0.0003 on the first real run.
+The provider reads channel order, mean/std, DB thresholds, recognition sizing and the decoder's
+`outputActivation` from `assets/models/manifest.json`, and `ctcGreedyDecode` rejects output whose
+rows contradict the declared activation, so this class of drift fails loudly next time.
+
+**Postinstall:** `onnxruntime-web` has none; the blocked hook was `protobufjs`'s (a version-scheme
+warning that no-ops in pnpm's virtual store). Denied in `pnpm-workspace.yaml` with the reason.
+`pnpm install --frozen-lockfile` verified green.
+
+**New workspace package:** `harness/` (esbuild bundle + COOP/COEP static server + acceptance
+driver). `pnpm build` builds it last; `pnpm -r typecheck` covers it; it has no `test` script so
+`pnpm -r test` skips it. Run `node harness/run-acceptance.mjs [image]`; output goes to
+`harness/out/` (git-ignored). Default image is the SROIE sample
+`benchmarks/datasets/raw/sroie/assets/ex.jpg`.
+
+**Verified locally:** `pnpm install --frozen-lockfile` ✓ `pnpm build` ✓ `pnpm typecheck` ✓
+`pnpm test` 198 passing (core 15, pwa 27, benchmarks 156) ✓ `pnpm scan:pii` idempotence clean ✓
+`pnpm verify:results` byte-identical ✓ fixture budget 12.0 MB / 50 MB ✓ `node
+scripts/model-manifest.mjs --check` clean ✓ real-receipt run: 29 lines / 75 words, 327 ms load,
+503 ms inference, 6,277,292 asset bytes, same-origin requests only.
+
+**Known gap:** OCR runs on the main thread; `PROJECT(1).md` §3 sketches `ocr/worker.ts`, which no
+ticket has needed yet. The pipeline is pure functions so a worker can wrap it (09a/10). Recorded as
+`DECISIONS/0007`, which also fixes a conflation: the provider's **0.5 × median word height**
+(`manifest.readingOrder.toleranceRatio` → `groupWordsIntoLines`) is the reading-order line view, **not**
+§5's **0.4 × median word height** parser y-band. Different values *and* different computations (the
+provider uses an unweighted median against a running band mean; §5 wants a word-count-weighted
+median). Ticket 05 tunes §5's constant and must not "align" the provider's.
+
+**Accuracy finding for 09b:** on the SROIE sample, item text and item prices read correctly, but
+the faint right-hand amount column misreads characters (`Total 9.00` → `Total 1.00`,
+`Cash 10.00` → `Cash 000`). Same glyphs decode correctly elsewhere on the page, so this is Tiny's
+accuracy on a 463 px thermal scan, not a decode/preprocessing defect. Do not "fix" it by tuning
+constants here. 09b must measure **price-field** accuracy per integer-paise equality, separately from
+aggregate character error — a tolerable CER can still carry a price wrong by an order of magnitude.
+
+**Pushed, not merged.** `origin/ticket/04-on-device-ocr-provider` — `1455363` plus the review
+close-out below. **No PR yet; the owner opens it after review.** Ticket file updated with the evidence
+and all boxes ticked.
+
+### Close-out (2026-11-03, second session) — the browser-vs-Node review item
+
+The one open item was whether `harness/run-acceptance.mjs` drives a **browser page** or runs ORT in
+**Node**. It is a browser: the driver imports `chromium` from `@playwright/test`, launches headless
+Chromium against `harness/serve.mjs`, sets the file on `#file`, waits for `window.__receiptLensHarness`,
+and captures `page.screenshot()` + JSON. Inference executes in the page (`executionProviders: ["wasm"]`,
+`onnxruntime-web/wasm`, `performance.now()` in `harness/src/main.ts`). **`onnxruntime-node` is not a
+dependency anywhere.** Recorded proof: `session.numThreads: 4`, reachable only under the COOP/COEP
+isolation that `serve.mjs` sends. So §9 M1.1, §3 line 117 and §8's runtime note are satisfied as
+written; §18 turned out to be *Owner Decisions — Resolved* and carries no browser claim. Still open
+from §9 M1, and belonging to **09a**: precache → block outbound network → assert inference still
+succeeds. The driver today records origins (one, same-origin) but asserts no blocking.
+
+**The previous session's evidence prose was overstated and has been corrected.** It quoted tidied
+strings (`Rounding Adjustment 0.00`, `95569040-40118 KP MODELLING CLAY KIDDY HSH`,
+`Rounded Total (RM): 9.00`, `GOODS SOLD ARE NOT RETURNABLE OR EXCHANGEABLE`) as verbatim OCR and
+labelled 15 of them "recognized correctly and legibly"; only 5 were verbatim. The actual output is
+`Rour ing Adustment 0.00`, `95569390-40118 KF MODELLNGCLAY KIDDY HSH`, `Round d Total (RM): 9.00`,
+`GOODS SOLID ARE NOT REIURNABTEOK` / `FXCHANGEABLE`. The ticket now carries the full 29-line verbatim
+block. **The gate still passes** — header identity is clean, item text is recognizable, item and
+rounded prices are present with `9.00` exact — but do not restore the tidied quoting; it was the error.
+Also withdrawn: the "same glyphs decode correctly elsewhere" proof used `Rounding`/`Adjustment`, which
+do **not** decode correctly; the corrected proof uses `0.00`/`9.00`/`Total (RM):` and the 0.996 lines.
+Re-ran the harness this session: line text and confidences came back **byte-identical** (29/75,
+mean 0.849, range 0.414–0.996), so OCR output is deterministic across runs; wall-clock is not
+(327/503 ms → 582/952 ms here). `harness/out/` is git-ignored and was regenerated.
+
+## Next: ticket 05 — row geometry and classification
+After 04: 05 → 06 → 07 → 08 → 09a → 09b → 10a → 10 → … Ticket 05 measures row classes
+**through the 03b scorers**, and its τ/threshold work must not reopen DECISIONS/0006 —
+`benchmark.config` is locked unless a new decision record supersedes it.
+Read first for 05: its ticket file `.scratch/receipt-lens-v1/issues/05-row-geometry-and-classification.md`,
+`PROJECT(1).md` §5, `GLOSSARY.md`, then the parser seams. Ticket 05 consumes **cached `OcrResult`
+fixtures**, never live OCR — that separation is the point of 04. Useful shapes: `OcrResult.lines[]`
+already carries reading-order lines with word boxes and real confidences; the provider groups by
+y-centre within 0.5 × median word height (`manifest.readingOrder.toleranceRatio`), and the parser
+re-clusters itself per §5. Blocked-by lines are authoritative; `Week:`/`Milestone:` labels are
+planning hints and several are wrong (e.g. 02 was M1/week-2 despite W17/M3). Branch + PR, never
+direct-push `main`.
 
 ## Open items / owner decisions pending
 - Rename repo `Recipt-lens` → `receipt-lens` (`gh repo rename`) or keep.

@@ -1,26 +1,115 @@
 {
-  "provider": "PP-OCRv6",
-  "version": "tiny",
-  "license": "Apache-2.0 (per upstream model repo; re-verified in ticket 08)",
-  "upstream": "https://github.com/PaddlePaddle/PaddleOCR",
+  "schemaVersion": 1,
+  "provider": "pp-ocrv6",
+  "providerVersion": "1.0.0",
+  "preset": "tiny",
+  "license": "Apache-2.0",
+  "upstream": {
+    "collection": "https://huggingface.co/collections/PaddlePaddle/pp-ocrv6",
+    "browserManifest": "https://huggingface.co/chenmohan/web-sdk-pp-ocrv6/blob/fcb55226431520f397cbc93a80119f5cf32f355a/manifest.json",
+    "revisions": {
+      "det": "PaddlePaddle/PP-OCRv6_tiny_det_onnx@2ba1506c0380b8f0b03dd142459aac66d4421f6c",
+      "rec": "PaddlePaddle/PP-OCRv6_tiny_rec_onnx@2612ab37152ae0a677521bae4e1e3d4fb4cf7c30",
+      "dict": "PaddlePaddle/PP-OCRv6_tiny_rec_onnx@2612ab37152ae0a677521bae4e1e3d4fb4cf7c30"
+    }
+  },
   "assets": [
     {
+      "role": "det",
       "file": "PP-OCRv6_tiny_det.onnx",
       "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
       "bytes": 1780590,
       "sha256": "193bab7a04fca699a6c82e6abb5b81bdb28177f0abd4062552b04908dafb19f8"
     },
     {
+      "role": "rec",
       "file": "PP-OCRv6_tiny_rec.onnx",
       "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
       "bytes": 4462639,
       "sha256": "9ef676d6ed3c88256a2d92c640c44f25b0c40947e111b14b8be8f594091563e6"
     },
     {
+      "role": "dict",
       "file": "PP-OCRv6_tiny_rec.txt",
       "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
       "bytes": 34063,
       "sha256": "65f694d6e8cd39efa1c5480bbfd2fe90e631a6b17bbb3190089f261eb5e6f043"
     }
-  ]
+  ],
+  "detection": {
+    "inputName": "x",
+    "outputName": "fetch_name_0",
+    "inputShape": [
+      "N",
+      3,
+      "H",
+      "W"
+    ],
+    "outputShape": [
+      "N",
+      1,
+      "H",
+      "W"
+    ],
+    "preprocessing": {
+      "colorOrder": "BGR",
+      "scale": 0.00392156862745098,
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
+      "limitSideLen": 960,
+      "sizeMultiple": 32
+    },
+    "postprocessing": {
+      "name": "DBPostProcess",
+      "threshold": 0.2,
+      "boxThreshold": 0.45,
+      "unclipRatio": 1.4,
+      "minSize": 3,
+      "maxCandidates": 3000
+    }
+  },
+  "recognition": {
+    "inputName": "x",
+    "outputName": "fetch_name_0",
+    "inputShape": [
+      "N",
+      3,
+      48,
+      "W"
+    ],
+    "preprocessing": {
+      "colorOrder": "BGR",
+      "scale": 0.00392156862745098,
+      "mean": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "std": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "height": 48,
+      "baseWidth": 320,
+      "maxWidth": 960
+    },
+    "decoder": {
+      "name": "CTCLabelDecode",
+      "blankIndex": 0,
+      "dictionaryEntries": 6905,
+      "outputActivation": "softmax"
+    }
+  },
+  "readingOrder": {
+    "toleranceRatio": 0.5
+  }
 }
