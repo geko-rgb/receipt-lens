@@ -36,8 +36,8 @@ scratch at 0.4× (DECISIONS/0007 honoured). DECISIONS/0006 not reopened; the par
 848 items, 47 continuations, 3,517 noise_header, 787 ambiguous. 1,364 rows (26.2%) carry a
 price-column candidate, 3 carry two → `ambiguous_price_separator`. 2,276 money-grouped words are
 protected from the identifier family by the guard in P3, and 30 rows carry an identifier token.
-(Post-rule-3 totals: 713 items, 43 continuations, 3,583 noise_header, 860 ambiguous; empty-name
-items 0.) Byte-identity: 0 failures across two
+(Post-rule-3 + price-keyed-zone totals: 713 items, 43 continuations, 3,517 noise_header, 926
+ambiguous; empty-name items 0.) Byte-identity: 0 failures across two
 `parse()` runs on all 250 fixtures, and 20 repeats on the authored full receipt.
 
 **Two things the review round changed in the rules, not just in prose:**
@@ -156,3 +156,43 @@ row with no name falls to `ambiguous`, so it keeps its money and stays visible.
   names only: **142 of 253 gold items, identical before and after the fix.** Rule 3 changed how the
   failures were labelled, not how many items are recovered.
 - Cause table for CORD's 167, and the tender/`0`-price deferrals, are in DECISIONS/0008 P6/P7.
+  (The 56.1% / 142-of-253 figure in the bullet above does not re-derive either and is superseded by
+  the shipped measurement — see the next section.)
+
+## Header zone keyed to the price column (2026-11-03, owner ruling after the rule-3 report)
+
+Rule 5's zone test is `pricedRowsSeen === 0`, not `itemsSeen === 0`: any row with an entry in the price
+column ends the header zone, whether or not rule 3 accepts it as an item. The trigger sits after rule 1,
+so a pattern-matched header row carrying an amount (`CGST 2.50`) does not open the item region.
+
+The transition table the ruling asked for, over all 250 dev fixtures, row identity = `receiptId` + row
+index (nothing entered or left the row set — 5,199 rows matched on both sides):
+
+| transition | CORD | SROIE |
+|---|---|---|
+| `item → ambiguous` (rule 3's lettered test) | 64 | 71 |
+| `continuation → ambiguous` (they had merged into a phantom item) | 1 | 3 |
+| `noise_header → ambiguous` (zone decoupling, on the intermediate head) | 31 | 35 |
+| `→ noise_header`, either change | **0** | **0** |
+
+- **The regression the fix closed:** rule 3 alone left 66 rows (31 + 35) *newly discarded*, because a
+  nameless priced row no longer opened an item and everything beneath it read as "still above the first
+  item". `Pepenero Pastel`, `kaya bred` and `chapsal twister donnut` are in that population — wrapped
+  name fragments, each directly above a row of bare numbers.
+- **Shipped:** CORD 305 / 26 / 259 / 198 → **25.1% ambiguous**; SROIE 408 / 17 / 3,258 / 728 → 16.5%.
+  Totals 713 / 43 / 3,517 / 926. `noise_header` is exactly the pre-rule-3 count, so no row that was
+  preserved before these two rulings is discarded now — pinned as an assertion in
+  `rowClassification.test.ts`.
+- **Empty-name items stay 0**, and gold names carried only by a `noise_header` row go 44 → **37**.
+- **Re-derivation of a number this file published: gold-name recovery is 156 of 254 CORD gold item
+  names (61.4%)**, case-folded whitespace-collapsed containment in `parse().items[].name`, pinned as a
+  test. The 70% first reported was inflated by empty names matching every substring; the 142/253 (56.1%)
+  that replaced it does not re-derive under any matcher its description fits, so it is withdrawn rather
+  than restated. The 98 unreached split as 37 dropped / 45 preserved-but-unreached / 16 absent from any
+  row (OCR or annotation gap, not a classification one).
+- **Ticket 04's receipt is unchanged by the decoupling**, re-measured locally against
+  `harness/out/ex.ocr.json`: the name row is still `noise_header` because all fourteen rows above it
+  carry no price-column entry. The row-14 reachability sentence in P7 still holds.
+- **Guardrail adopted** (verbatim in DECISIONS/0008 P7): rule changes ship with a pre/post transition
+  table, and any change that moves rows from a non-noise class into `noise_header` needs explicit
+  justification, because that class is a discard 06 cannot reach through `ParseResult`.

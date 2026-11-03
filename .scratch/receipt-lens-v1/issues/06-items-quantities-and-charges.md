@@ -20,11 +20,13 @@
 
 ## Regression carried to you by ticket 05 (2026-11-03)
 
-`MIKA KECIL 0` (CORD dev `cord-v2/dev/8` row 5) is currently classified **ambiguous** because P6
+`MIKA KECIL 0` (CORD dev `cord-v2/dev/8` row 5 — a 0-based index into `classifyRows()` output, so the
+sixth row) is currently classified **ambiguous** because P6
 excludes bare 1–2 digit integers from the price band. If 06's money parser can distinguish quantity-0
 from total-0, this row should parse correctly. If not, escalate.
 
-36 CORD rows sit in this bucket (see the cause table in DECISIONS/0008 P7), so it is not one row — it
+52 CORD rows sit in this bucket (see the cause table in DECISIONS/0008 P7 — the test that pins it
+counts a tender-shaped `CHANGE: 0` as tender first, so 52 is the remainder), so it is not one row — it
 is a class. The counter-example that keeps P6's exclusion honest: admitting those integers into the
 band measurement made SROIE's ambiguous rate worse, 14.8% → 18.0%.
 
@@ -32,3 +34,10 @@ Also yours, per DECISIONS/0008 P7: `noise_header` rows — including split-layou
 not in `ParseResult`. Reaching them requires `classifyRows()`. And the 64 CORD ambiguous rows that are
 "a price with no name" (e.g. `1,818` alone) are the amount half of exactly those split layouts: the
 name is in the row above, in `noise_header`.
+
+The preserved set is bigger than it looks, deliberately: the header zone is keyed to the price column
+rather than to rule 3's verdict, which returned 66 rows (31 CORD, 35 SROIE) that an intermediate head
+discarded. CORD now preserves 198 of 788 rows, of which 13 are name rows sitting directly above an
+all-number row — the split-layout reattachment, counted. `DECISIONS/0008` P7's guardrail applies to you
+as well as to 05: any rule change in 06 that could move a row into a discard class ships with a
+pre/post transition table over the dev fixtures.

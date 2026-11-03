@@ -193,11 +193,11 @@ Fixtures shared with later tickets live in `parse/fixtures.ts`.
 **`DECISIONS/0008` pins the seven Tier-3 constants before the classifier was written**, and
 `benchmarks/src/parser/rowClassification.test.ts` re-derives every number in it from the committed
 dev fixtures — the same discipline as the committed τ-sweep, so the record cannot drift from the
-artifact that produced it. Headline (post rule 3): 5,604 provider lines → 5,199 parser rows; 713
-items, 43 continuations, 3,583 noise_header, 860 ambiguous; 1,364 priced rows (26.2%), 3 separator
-rows, 0 empty-name items; 0 byte-identity failures over 250 fixtures.
+artifact that produced it. Headline (rule 3 plus the price-keyed header zone): 5,604 provider lines →
+5,199 parser rows; 713 items, 43 continuations, 3,517 noise_header, 926 ambiguous; 1,364 priced rows
+(26.2%), 3 separator rows, 0 empty-name items; 0 byte-identity failures over 250 fixtures.
 
-**Three things a fresh session should not rediscover the hard way:**
+**Four things a fresh session should not rediscover the hard way:**
 
 1. **The word-count-weighted median is count-weighted, not height-mass-weighted.** An earlier draft
    of the implementation accumulated `sum(heights)` and crossed half the total *mass*; §5's phrase
@@ -220,19 +220,34 @@ rows, 0 empty-name items; 0 byte-identity failures over 250 fixtures.
    letters fails the shape test before the row test is reached. No dev item carries a token today.
    The money guard is separately load-bearing: without it the family fires on `1.234.567`, which is
    2,276 dev words.
+4. **A rule change needs a pre/post transition table, or it can silently delete rows.** Rule 3's
+   lettered test and rule 5's header zone interacted: a nameless priced row no longer opened an item,
+   so every price-less row beneath it read as "still above the first item" and 66 of them (31 CORD, 35
+   SROIE) moved from preserved to `noise_header`, which ticket 06 cannot reach. The shipped classifier
+   keys the zone to the price column instead, and the two ruled changes together now move **zero** rows
+   into the discard class — `noiseHeader` 3,517 is exactly what the pre-rule-3 classifier discarded, and
+   that equality is the assertion to keep. Guardrail stated in `DECISIONS/0008` P7.
 
 **Rule 3, added after the pre-merge verification (owner ruling Q1=(a)):** an item row needs ≥1
 lettered non-price word as well as a price candidate, because a row that is only a number (`1,818`
-alone) was becoming an item with an empty name — 49 in CORD, 34 in SROIE, now 0. This raised CORD's
-ambiguous rate 16.9% → 21.2%, which is the right direction: those rows are preserved with their money
-instead of being silently dropped. It also corrected a published metric — gold-name recovery was
-**56.1% (142/253)**, not the 70% first reported: the earlier substring test let every empty name match
-every gold name. Recovery is identical before and after; only the labelling of the failures changed.
+alone) was becoming an item with an empty name — 49 in CORD, 34 in SROIE, now 0. With the header zone
+keyed to the price column (owner ruling on the follow-up), CORD's ambiguous rate is 16.9% → **25.1%
+(198 of 788 rows)** and SROIE's 14.8% → 16.5%, which is the honest rate: it counts everything the
+classifier cannot determine, and 09b's gold-class split is what decides whether that is a limitation or
+a bug. The intermediate 21.2% was deflated by the 66 silently discarded rows in item 4 above. It also
+corrected a published metric — gold-name recovery is **156 of 254 CORD gold item names (61.4%)**,
+pinned in `rowClassification.test.ts`; the 70% first reported was inflated by empty names matching
+every substring, and the 56.1% (142/253) this ticket then carried does not re-derive under any of the
+matchers it describes. Of the 98 unreached: 37 are carried only by a `noise_header` row (the zone fix
+took that from 44), 45 sit in preserved rows 06 can reattach, 16 appear in no row at all.
 
 **Owner rulings taken during this ticket:** telephone-shaped rows go into the pattern table (they
 did: family 4, with the measured finding that dev's population is dates, not phones); the footer
-`noise_header` clause is an explicit deviation recorded in P7 (post-item price-less rows are
-`ambiguous`, i.e. visible, rather than deleted); the split name/price layout was **verified not to
+`noise_header` clause is an explicit deviation recorded in P7 (price-less rows below the item region are
+`ambiguous`, i.e. visible, rather than deleted); rule 3 requires a lettered non-price word, and the
+header zone is keyed to the **price column** rather than to rule 3's verdict, because §5's "above the
+first item" is a statement about document position — recorded verbatim in P7 with its transition table;
+the split name/price layout was **verified not to
 merge** before being accepted — rows 14/15 on ticket 04's receipt are 26.4 px apart against an 8.60
 px band, so 05 classifies them separately (the name row is `noise_header`, the amount row is an item
 named `PC 9.00 0.00`) and the lost name is ticket 06's to reattach.
@@ -245,8 +260,9 @@ provider seams. `api.test.ts` no longer expects `parse()` to throw: §4 makes bl
 zero-word result that parses to zero items.
 
 **Verified locally:** `pnpm install --frozen-lockfile` ✓ `pnpm build` ✓ `pnpm typecheck` ✓
-`pnpm test` **264 passing** (core 73, pwa 27, benchmarks 164) ✓ `pnpm scan:pii` idempotence clean,
-51 advisories unchanged ✓ `pnpm verify:results` byte-identical ✓ fixtures 12.0 MB / 50 MB ✓
+`pnpm test` **273 passing** (core 79, pwa 27, benchmarks 167) ✓ `pnpm scan:pii` idempotence clean,
+51 advisories unchanged ✓ `pnpm verify:results` byte-identical ✓ `pnpm verify:fixtures` 715 files
+byte-identical ✓ fixtures 12.0 MB / 50 MB ✓
 `node scripts/model-manifest.mjs --check` ✓. Disk: 56 GB free; added ~34 KB of tracked source.
 
 ## Next: ticket 06 — items, quantities, provenance and labelled charges
