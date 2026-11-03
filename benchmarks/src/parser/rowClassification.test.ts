@@ -100,10 +100,10 @@ describe("row geometry over the committed dev fixtures", () => {
   it("classifies every row into exactly one of §5's four classes", async () => {
     const totals = sweep(await devReceipts());
     expect(totals.items + totals.continuations + totals.noiseHeader + totals.ambiguous).toBe(totals.rows);
-    expect(totals.items).toBe(848);
-    expect(totals.continuations).toBe(47);
-    expect(totals.noiseHeader).toBe(3517);
-    expect(totals.ambiguous).toBe(787);
+    expect(totals.items).toBe(713);
+    expect(totals.continuations).toBe(43);
+    expect(totals.noiseHeader).toBe(3583);
+    expect(totals.ambiguous).toBe(860);
   });
 
   it("infers the price column at the rate DECISIONS/0008 P6 publishes", async () => {
@@ -167,7 +167,21 @@ describe("parse() through the core seam", () => {
         result.unclassifiedRows.length
       );
     }
-    expect(preserved).toBe(787);
+    expect(preserved).toBe(860);
+  });
+
+  it("produces no item with an empty name (DECISIONS/0008 P7 rule 3)", async () => {
+    const receipts = await devReceipts();
+    const offenders: string[] = [];
+    for (const fixture of receipts) {
+      const ocr = fixture.ocr as unknown as OcrResult;
+      for (const item of parse(ocr).items) {
+        if (item.name.trim().length === 0) offenders.push(`${fixture.receiptId}: row for ${item.id} has no name`);
+      }
+    }
+    // A row whose only content is its price word is money, not a product: 49 such rows existed in
+    // CORD and 34 in SROIE before rule 3 required a lettered non-price word.
+    expect(offenders).toEqual([]);
   });
 
   it("never loses a word and never places one in two rows", async () => {

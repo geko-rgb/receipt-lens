@@ -17,3 +17,18 @@
 - [ ] Recognized labels populate the canonical public charge shape owned by 02 — tax entries, service charge, tip, discount, signed round-off and other charges, not a discriminated union — consuming it as defined and never redefining it
 - [ ] Each item's printed line total is retained separately from anything later computed
 - [ ] Fixtures cover wrapped names, a two-part tax pair, an included-tax receipt, an unlabelled money row, and a receipt with no quantity column
+
+## Regression carried to you by ticket 05 (2026-11-03)
+
+`MIKA KECIL 0` (CORD dev `cord-v2/dev/8` row 5) is currently classified **ambiguous** because P6
+excludes bare 1–2 digit integers from the price band. If 06's money parser can distinguish quantity-0
+from total-0, this row should parse correctly. If not, escalate.
+
+36 CORD rows sit in this bucket (see the cause table in DECISIONS/0008 P7), so it is not one row — it
+is a class. The counter-example that keeps P6's exclusion honest: admitting those integers into the
+band measurement made SROIE's ambiguous rate worse, 14.8% → 18.0%.
+
+Also yours, per DECISIONS/0008 P7: `noise_header` rows — including split-layout item **names** — are
+not in `ParseResult`. Reaching them requires `classifyRows()`. And the 64 CORD ambiguous rows that are
+"a price with no name" (e.g. `1,818` alone) are the amount half of exactly those split layouts: the
+name is in the row above, in `noise_header`.

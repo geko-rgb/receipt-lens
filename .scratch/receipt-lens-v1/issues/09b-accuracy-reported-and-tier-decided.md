@@ -18,7 +18,12 @@
 
 The row-classification bucket must report preserved (`ambiguous`) rows **split by gold class**:
 gold item (false-ambiguous, a recall miss), gold noise/header (correct-ambiguous — the price P7
-deliberately pays for visible review), gold charge (false-ambiguous). Ticket 05 measured 16.9%
-ambiguous on `dev/cord-v2` and 14.8% on `dev/sroie`; without this split the number is a rate, not a
-metric, and cannot be judged. CORD is the only split that can produce it — SROIE annotates `total`
-only (DECISIONS/0002), so it has no gold item or charge class to compare against.
+deliberately pays for visible review), gold charge (false-ambiguous). Ticket 05 measured **21.2%
+ambiguous on `dev/cord-v2` and 15.7% on `dev/sroie`** after rule 3's lettered-content condition;
+without this split the number is a rate, not a metric, and cannot be judged.
+
+**The row-classification precision/recall bucket is CORD-only; SROIE supports only total-level
+scoring. The README must state this beside the metric.** SROIE annotates `total` only
+(DECISIONS/0002), so it has no gold item or charge class to compare against, and its 693 ambiguous
+rows are unjudgable by construction — which is exactly why the split has to be reported rather than
+the headline rate.

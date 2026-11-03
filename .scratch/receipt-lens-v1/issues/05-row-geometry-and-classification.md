@@ -35,7 +35,9 @@ scratch at 0.4× (DECISIONS/0007 honoured). DECISIONS/0006 not reopened; the par
 **Measured on `dev/` (250 receipts, 5,199 clustered rows from 5,604 provider lines):**
 848 items, 47 continuations, 3,517 noise_header, 787 ambiguous. 1,364 rows (26.2%) carry a
 price-column candidate, 3 carry two → `ambiguous_price_separator`. 2,276 money-grouped words are
-protected from the identifier family by the guard in P3, and 30 rows carry an identifier token. Byte-identity: 0 failures across two
+protected from the identifier family by the guard in P3, and 30 rows carry an identifier token.
+(Post-rule-3 totals: 713 items, 43 continuations, 3,583 noise_header, 860 ambiguous; empty-name
+items 0.) Byte-identity: 0 failures across two
 `parse()` runs on all 250 fixtures, and 20 repeats on the authored full receipt.
 
 **Two things the review round changed in the rules, not just in prose:**
@@ -74,9 +76,11 @@ advisories unchanged at 51 ✓ `pnpm verify:results` byte-identical ✓ fixture 
 confidence floors (ticket 07). `01-143008` is a known family-4 miss (`.` is not a group separator,
 because treating it as one would fire the family on `1.234.567`).
 
-## Pre-merge verification (2026-11-03) — HELD, CORD is red
+## Pre-merge verification (2026-11-03) — CORD red, rule 3 fixed, re-measured below
 
-Three checks before merging. Result: **1 green, 2 red.** PR #8 not merged.
+Three checks. Verification 1 green (restored); verification 2 red at 16.9% on CORD → owner ruled
+Q1=(a), rule 3 now requires a lettered non-price word, re-measured at **21.2%** — it went UP, and
+that is the correct direction (see "Rule 3 shipped").
 
 **1. `.agents/skills/**` deletions — resolved by restore.** All 79 were *unstaged worktree*
 deletions (index intact, no stash, and only the initial commit had ever touched `.agents/`).
@@ -89,8 +93,10 @@ working tree is clean. They were never staged, so no commit on this branch conta
 
 | dataset | rows | item | continuation | noise_header | ambiguous |
 |---|---|---|---|---|---|
-| CORD `valid` (100) | 788 | 369 | 27 | 259 | **133 (16.9%)** |
-| SROIE `train` (150) | 4,411 | 479 | 20 | 3,258 | **654 (14.8%)** |
+| dataset | rows | item | cont | noise | ambiguous |
+|---|---|---|---|---|---|
+| CORD `valid` (100) | 788 | 305 | 26 | 290 | **167 (21.2%)** after rule 3; 133 (16.9%) before |
+| SROIE `train` (150) | 4,411 | 408 | 17 | 3,293 | **693 (15.7%)** after rule 3; 654 (14.8%) before |
 
 SROIE does not dominate — CORD is the *worse* of the two, and 16.9% is above the 10% hold line.
 Bucketing the 133 CORD rows by cause:
@@ -132,3 +138,21 @@ Without that split the 15% cannot be evaluated, and 09b's table can only honestl
 "15% of rows require review" rather than "15% require review, of which N% are gold items".
 Note that **SROIE cannot supply this split at all** — it annotates `total` only (DECISIONS/0002),
 so it has no gold item or charge class to compare against; the split is a CORD-only measurement.
+
+## Rule 3 shipped (2026-11-03, owner ruling Q1=(a))
+
+Rule 3 now reads: exactly 1 price candidate **and ≥1 other word carrying a letter** → `item`. A priced
+row with no name falls to `ambiguous`, so it keeps its money and stays visible.
+
+- **Empty-name items: 83 → 0** (49 CORD + 34 SROIE), gated across all 250 fixtures by
+  `rowClassification.test.ts`.
+- **CORD ambiguous 16.9% → 21.2%**, and the rate went up because the rows did. 64 nameless priced
+  rows moved from `item` to `ambiguous`. The alternative measurement quoted earlier in this file
+  (13.3%) came from a variant that let them fall through to rule 5 and sorted 39 into `noise_header`
+  — deleting money rows to improve a rate. Rejected and corrected in DECISIONS/0008 P7.
+- **A published number of mine was wrong and is fixed: gold-name recovery was 56.1%, not 70%.** The
+  measurement substring-matched gold names against item name text, and an empty name is a substring of
+  everything, so each of the 49 empty-name items counted as a recovery. Re-measured against non-empty
+  names only: **142 of 253 gold items, identical before and after the fix.** Rule 3 changed how the
+  failures were labelled, not how many items are recovered.
+- Cause table for CORD's 167, and the tender/`0`-price deferrals, are in DECISIONS/0008 P6/P7.

@@ -114,6 +114,16 @@ function itemNameLength(row: ParsedRow, priceCandidates: readonly RowWord[]): nu
 }
 
 /**
+ * Does the row carry a name? A row whose only content is its price word — `1,818` on its own — is
+ * not a product. §5's item is a named thing with a price, and DECISIONS/0008 P7's rule 3 was
+ * promoting these number-only rows into items with an empty name: 49 in CORD, 34 in SROIE.
+ */
+function hasNameContent(row: ParsedRow, candidates: readonly RowWord[]): boolean {
+  const [candidate] = candidates;
+  return row.words.some((word) => word !== candidate && /[A-Za-z]/.test(word.text));
+}
+
+/**
  * Clusters an `OcrResult` into rows and classifies each one. Deterministic: the pass reads only
  * geometry, text and rows already classified, so output never depends on object or map ordering.
  */
@@ -151,13 +161,22 @@ export function classifyRows(ocrResult: OcrResult): RowClassifyResult {
       continue;
     }
 
-    // 3. exactly one candidate makes the row an item and opens it for continuations.
-    if (candidates.length === 1) {
+    // 3. exactly one candidate, plus something other than the price to be the item's name. A row
+    // that is nothing but a number is real money but not a product, so it is preserved rather than
+    // promoted — see DECISIONS/0008 P7's rule 3.
+    if (candidates.length === 1 && hasNameContent(row, candidates)) {
       itemsSeen += 1;
       itemNameLengths.push(itemNameLength(row, candidates));
       openItem = { index: classified.length, nameColumnLeft: row.left };
       previousWasItemOrContinuation = true;
       push("item", null, row.left);
+      continue;
+    }
+
+    // 3b. a price with no name: visible for review, never a phantom item with an empty name.
+    if (candidates.length === 1) {
+      previousWasItemOrContinuation = false;
+      push("ambiguous", null, null);
       continue;
     }
 

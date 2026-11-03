@@ -176,6 +176,12 @@ them over as classified rows with their label match recorded, which is why a lab
 `noise_header` here rather than simply discarded — §5's own bullet puts label matches in that
 class, and the row data still has to reach 06.
 
+**Tender rows are a known, accepted gap.** Rows like `CASH`, `Change:` and `Pay Cash Change :9,000`
+(22 in CORD) are classified `ambiguous` to keep them visible for review. A future tender family in
+P3 would move them to `noise_header`, but §5 doesn't name a tender class. Decision deferred to a
+follow-up, once 06's money parsing has enough context to determine whether tenders should be dropped
+(noise) or preserved (a new class).
+
 ### Reported, not implemented: the notice/footer family
 
 Footer notices and greetings (`THANK YOU`, `PLEASE COME AGAIN`, `GOODS SOLD ARE NOT RETURNABLE`)
@@ -270,16 +276,17 @@ deterministic), 16 give none, and 2 carry too few numeric words to infer anythin
 coverage of it is fixture-authored rather than dataset-authored.
 
 **Measured cost of excluding bare 1–2 digit integers, stated because it is not free.** Split by
-dataset, `dev/`: CORD `valid` is 788 rows → 369 items, 27 continuations, 259 `noise_header`, **133
-ambiguous (16.9%)**; SROIE `train` is 4,411 rows → 479 items, 20 continuations, 3,258
-`noise_header`, **654 ambiguous (14.8%)**. CORD — the split where every row is an annotated
-financial category — is the *worse* of the two, which is what §5's "initial heuristic" warning is
-for. Of CORD's 133, **54** are rows whose only number is a bare 1–2 digit integer that the quantity
-argument excludes: `CHANGE: 0`, `PB1: 0`, and `MIKA KECIL 0` — where `MIKA KECIL` is a gold item
-whose line total really is 0. So the exclusion that keeps the quantity column out of the price band
-also costs a gold item with a zero line total. 21 more are tender rows (`CASH`, `Change:`, `Pay Cash
-Change :9,000`) that §5's label dictionary does not name at all, 35 are percent/modifier rows
-(`70%`, `Less Ice`), and 23 are the split name/price layout of P7.
+dataset after rule 3's lettered-content condition, `dev/`: CORD `valid` is 788 rows → 305 items, 26
+continuations, 290 `noise_header`, **167 ambiguous (21.2%)**; SROIE `train` is 4,411 rows → 408
+items, 17 continuations, 3,293 `noise_header`, **693 ambiguous (15.7%)**. CORD — the split where
+every row is an annotated financial category — is the worse of the two, which is what §5's "initial
+heuristic" warning is for. Of CORD's 167, the causes are itemised in P7's table; the ones belonging
+to this rule are **36 rows whose only number is a bare 1–2 digit integer** that the quantity argument
+excludes — `CHANGE: 0` and `PB1: 0` are fine to lose, but `MIKA KECIL 0` is a **gold item whose line
+total really is 0**, so the exclusion that keeps the quantity column out of the price band also costs
+a real item. Carried to ticket 06 as a named regression, with the counter-measurement that
+admitting those integers into the band pushes SROIE the wrong way (14.8% → 18.0% before rule 3
+landed), so the fix has to come from money parsing, not from the band.
 
 **Fallback, for the 16 qualified-cluster-free receipts.** A priced receipt with a single line item
 would otherwise have no column and therefore no items at all. When no cluster reaches 2 members, a
@@ -319,19 +326,48 @@ clauses put it in `noise_header` ("no price-column entry and no plausible contin
 1. a column-label / tax-identifier / table-furniture / grouped-digit-identifier pattern (P3
    families 1–4), **or** a §5 charge-label term → `noise_header`
 2. ≥ 2 price candidates → `ambiguous`, emit `ambiguous_price_separator`
-3. exactly 1 price candidate → `item` (first item found ends the header zone)
-
-   **Rule 3 has a measured defect, reported and not unilaterally fixed.** A row whose entire content
-   is the price word passes rule 3 and becomes an item with an **empty name** — 49 such items in
-   CORD and 34 in SROIE, e.g. `cord-v2/dev/2` row 3, whose whole text is `1,818`. A nameless row is a
-   phantom item by §5's own definition, so the rule needs a lettered-content condition. Prototyped
-   and measured: requiring at least one non-price word carrying letters removes all 83 empty names and
-   takes CORD's ambiguous rate from 16.9% to 13.3%. It is a reinterpretation of §5's class list, so it
-   is held for an owner ruling rather than committed on a held PR.
+3. exactly 1 price candidate **and at least one other word carrying a letter** → `item`
+   (first item found ends the header zone)
 4. 0 candidates, all four continuation conditions hold → `continuation`, merged into the previous item
 5. 0 candidates, no previous item yet (still above the first item) → `noise_header`
-6. 0 candidates, not merged → `ambiguous`
+6. otherwise → `ambiguous`
 
+**Rule 3's lettered-content condition is pinned, per owner ruling.** The first cut of this rule
+promoted any row with one price candidate to an item, so a row whose entire content *is* the price —
+`1,818` alone in `cord-v2/dev/2` row 3 — became an item with an **empty name**: 49 of them in CORD, 34
+in SROIE. A nameless row is a phantom item by §5's own definition, so rule 3 now additionally
+requires a non-price word containing a letter, and a priced row with no name falls to `ambiguous`
+(rule 6): **preserved in `unclassifiedRows`, visible, and still carrying its money.**
+
+**The honest consequence for the ambiguous rate, stated because it went the other way from the
+number this record first carried.** CORD's ambiguous share is **167 of 788 rows (21.2%)**, up from
+133 (16.9%) — fixing the phantom items moved 64 nameless priced rows from `item` into `ambiguous`.
+An earlier measurement in this ticket reported 13.3%; that figure was produced by a variant that let
+those rows fall through rule 5 instead, which sorted 39 of them into `noise_header` — i.e. it
+*deleted money rows* to make the rate look better. That variant is rejected: §5 line 343's rule is
+that unrecognised content is set aside visibly, and a discarded price is unrecoverable by ticket 06
+while a preserved one is reattachable. Post-fix distribution over CORD's 167, in the order the pass
+decides them:
+
+| cause | rows | example |
+|---|---|---|
+| priced row with no name (new, rule 3's cast-off) | 64 | `1,818`, `20,000` |
+| split name/price layout (P7's known limitation) | 23 | `1 TAHU` above `15,000` |
+| tender row, unnamed by §5's dictionary | 22 | `PB1: 0`, `CHANGE: 0` |
+| price prints as a bare 1–2 digit integer (P6 excludes it) | 36 | `MIKA KECIL 0` |
+| percentage / modifier row | 3 | `70%`, `100%` |
+| other preserved content | 19 | `Less Ice` |
+
+SROIE is 693 of 4,411 (15.7%, from 14.8%). Empty-name items across all 250 dev receipts: **0**, gated
+by `rowClassification.test.ts`.
+
+**One correction to a number this record published earlier: gold-name recovery was overstated at 70%.**
+The measurement compared gold names against item name text with a substring test, and an empty name
+matches every substring (`"mika kecil".includes("")` is true), so the 49 empty-name items each counted
+as a recovery. Measured against non-empty names only, recovery is **142 of 253 gold items (56.1%) —
+both before and after this fix**. Fixing rule 3 did not change how many gold items are recovered; it
+changed whether the failures were disguised as items. The remaining 111 are the split-layout and
+bare-integer causes in the table above, and they are ticket 06's to recover.
 Both contested clauses are §5 bullets, so the ordering is the reinterpretation, and it is stated
 rather than buried. **This is a deliberate, recorded deviation from §5, not an oversight:** §5's
 fourth `noise_header` clause ("rows with no price-column entry and no plausible continuation
@@ -390,6 +426,10 @@ charge-labelled `noise_header` rows into typed charges (P3), so it is a real pat
 theoretical one, but it is an internal one and it has to be taken deliberately. Reattaching a name
 row to the priced row beneath it is a content-parsing decision, not a reclassification, and belongs
 to 06 for the reason §5 line 340 gives: rows are classified before their contents are parsed.
+
+**Split-layout name reattachment (row 14, the `PC` case) requires 06 to access `classifyRows()`
+output, not just `ParseResult`. `ParseResult` drops `noise_header` rows. The 06 implementer must read
+DECISIONS/0008 P7 and use the internal channel, or split-layout names are unrecoverable.**
 
 
 ## IDs, purity, determinism

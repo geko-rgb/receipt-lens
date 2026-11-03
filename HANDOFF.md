@@ -193,9 +193,9 @@ Fixtures shared with later tickets live in `parse/fixtures.ts`.
 **`DECISIONS/0008` pins the seven Tier-3 constants before the classifier was written**, and
 `benchmarks/src/parser/rowClassification.test.ts` re-derives every number in it from the committed
 dev fixtures — the same discipline as the committed τ-sweep, so the record cannot drift from the
-artifact that produced it. Headline: 5,604 provider lines → 5,199 parser rows; 848 items, 47
-continuations, 3,517 noise_header, 787 ambiguous; 1,364 priced rows (26.2%), 3 separator rows; 0
-byte-identity failures over 250 fixtures.
+artifact that produced it. Headline (post rule 3): 5,604 provider lines → 5,199 parser rows; 713
+items, 43 continuations, 3,583 noise_header, 860 ambiguous; 1,364 priced rows (26.2%), 3 separator
+rows, 0 empty-name items; 0 byte-identity failures over 250 fixtures.
 
 **Three things a fresh session should not rediscover the hard way:**
 
@@ -220,6 +220,14 @@ byte-identity failures over 250 fixtures.
    letters fails the shape test before the row test is reached. No dev item carries a token today.
    The money guard is separately load-bearing: without it the family fires on `1.234.567`, which is
    2,276 dev words.
+
+**Rule 3, added after the pre-merge verification (owner ruling Q1=(a)):** an item row needs ≥1
+lettered non-price word as well as a price candidate, because a row that is only a number (`1,818`
+alone) was becoming an item with an empty name — 49 in CORD, 34 in SROIE, now 0. This raised CORD's
+ambiguous rate 16.9% → 21.2%, which is the right direction: those rows are preserved with their money
+instead of being silently dropped. It also corrected a published metric — gold-name recovery was
+**56.1% (142/253)**, not the 70% first reported: the earlier substring test let every empty name match
+every gold name. Recovery is identical before and after; only the labelling of the failures changed.
 
 **Owner rulings taken during this ticket:** telephone-shaped rows go into the pattern table (they
 did: family 4, with the measured finding that dev's population is dates, not phones); the footer
@@ -264,6 +272,14 @@ are authoritative; `Week:`/`Milestone:` labels are planning hints and several ar
 never direct-push `main`.
 
 ## Open items / owner decisions pending
+- **`.agents/skills/` tracking is undecided — TODO.** Write `DECISIONS/0009-skills-tracking.md`
+  choosing one: (a) tracked, with a `pnpm check:skills` that verifies each `SKILL.md` against
+  `skills-lock.json`'s computed hashes, or (b) gitignored, with `skills-lock.json` as the
+  verification artifact. Today they are tracked and keep getting deleted in the worktree by
+  something outside the ticket flow — a prior session's 79 unstaged deletions sat in the tree through
+  ticket 04 and had to be investigated and restored during ticket 05's pre-merge verification.
+  **Tracked-and-frequently-deleted is the worst of both worlds; verify the state, don't track the
+  content.** Standing rule until 0009 lands: no `.agents/` worktree changes without explicit approval.
 - Rename repo `Recipt-lens` → `receipt-lens` (`gh repo rename`) or keep.
 - Rotate the fine-grained PAT (its first ~26 chars leaked into a session transcript; value still live).
 - Ticket 13: map `otherSign:"unknown"` charges + `hasNegativeShare` + unacknowledged-unit throw to real `LockBlockerCode`s (no §13 code exists for unknown-sign today — do not invent silently).
