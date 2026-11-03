@@ -14,7 +14,7 @@ import type { ClassifiedRow } from "./classify.js";
 import type { PriceColumn, RowWord } from "./geometry.js";
 import type { NumberProfile } from "./money.js";
 import { readMoney } from "./money.js";
-import { readQuantity, type QuantityColumn } from "./quantity.js";
+import { consumedQuantityWords, readQuantity, type QuantityColumn } from "./quantity.js";
 
 const BARE_INTEGER = /^\d{1,2}$/;
 
@@ -35,11 +35,22 @@ function inPriceBand(word: RowWord, column: PriceColumn | null): boolean {
   return Math.abs(word.box.x + word.box.width - column.center) <= column.tolerance;
 }
 
+/** A small integer or a printed rate is not "another amount on the row" — Q1 and Q5 already own it. */
+function isOtherAmount(word: RowWord, profile: NumberProfile): boolean {
+  const text = word.text.trim();
+  if (/%/.test(text)) return false;
+  if (BARE_INTEGER.test(text)) return false;
+  return readMoney(text, profile).paise !== null;
+}
+
 /**
  * Q6: `MIKA KECIL 0`. A row the geometry gave no price for can still print a line total — as a bare `0`
  * in the price column, which P6 excludes from the candidate band to keep quantity edges out of it.
  * Position distinguishes quantity-0 from total-0, and three preconditions keep the rescue honest: no
- * candidate, no other readable money on the row, and the value `0`.
+ * candidate, no other amount on the row, and the value `0`.
+ *
+ * "No other amount" excludes the row's own quantity — `2 TUTUP SEAL 0` prints a count and a total, and
+ * refusing small integers here would throw away exactly the rows that demonstrate the distinction.
  */
 export function zeroTotalWord(row: ClassifiedRow, column: PriceColumn | null, profile: NumberProfile): RowWord | null {
   if (row.priceCandidates.length !== 0) return null;
@@ -47,12 +58,14 @@ export function zeroTotalWord(row: ClassifiedRow, column: PriceColumn | null, pr
     (word) => BARE_INTEGER.test(word.text.trim()) && Number(word.text.trim()) === 0 && inPriceBand(word, column)
   );
   if (!zero) return null;
-  const otherMoney = row.row.words.some(
-    (word) => word !== zero && readMoney(word.text, profile).paise !== null
-  );
-  return otherMoney ? null : zero;
+  return row.row.words.some((word) => word !== zero && isOtherAmount(word, profile)) ? null : zero;
 }
 
+/**
+ * The name is the row minus what the parser consumed: the price-column word (05), and — only when the
+ * quantity was actually *read* — the quantity words. An assumed or unresolved quantity consumes nothing,
+ * because removing a word the parser could not attribute would hide the evidence a reviewer needs.
+ */
 function nameOf(row: ClassifiedRow, drop: readonly RowWord[], continuations: readonly string[]): string {
   const words = row.row.words.filter((word) => !drop.includes(word)).map((word) => word.text);
   return [...words, ...continuations].join(" ").replace(/\s+/g, " ").trim();
@@ -106,9 +119,9 @@ export function buildItems(
     const continuationIndices = row.classification === "item" ? merged.get(candidate.index) ?? [] : [];
     const continuationText = continuationIndices.map((at) => rows[at]!.row.text);
     const drop = candidate.totalWord ? [candidate.totalWord] : [];
-    const name = nameOf(row, drop, continuationText);
-
     const reading = readQuantity(row.row, band, column, drop);
+    const nameDrop = [...drop, ...consumedQuantityWords(row.row, band, column, drop)];
+    const name = nameOf(row, nameDrop, continuationText);
     const total = candidate.totalWord ? readMoney(candidate.totalWord.text, profile).paise : null;
 
     const printed = row.row.words

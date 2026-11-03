@@ -89,12 +89,13 @@ export function meetsContinuationConditions(
   row: ParsedRow,
   nameColumnLeft: number,
   itemNameLengths: readonly number[],
-  bandTolerance: number
+  bandTolerance: number,
+  tenderFamily = true
 ): boolean {
   const words = row.words.map((word) => word.text);
   return (
     Math.abs(row.left - nameColumnLeft) <= bandTolerance &&
-    !isHeaderOrLabelledRow(row, true) &&
+    !isHeaderOrLabelledRow(row, tenderFamily) &&
     row.text.trim().length <= continuationLengthCap(itemNameLengths) &&
     !isAllCapsStandalone(words)
   );
@@ -165,6 +166,11 @@ export function classifyRows(ocrResult: OcrResult, options: ClassifyOptions = {}
 
     // 1. header/noise patterns and charge labels win before any numeric row is read as a product.
     if (isHeaderOrLabelledRow(row, tenderFamily)) {
+      // Family 5 is the one pattern family whose price-column entry still marks item position. A tender
+      // prints at the end of the priced block, so excluding its entry would reopen P7's header zone over
+      // the rows below it and silently discard 38 dev rows that are not tender-shaped at all — the
+      // opposite of what the family is for. Families 1–4 and the charge labels keep 0008's rule.
+      if (tenderFamily && matchesTenderFamily(row.text) && candidates.length >= 1) pricedRowsSeen += 1;
       previousWasItemOrContinuation = false;
       push("noise_header", null, null);
       continue;
@@ -204,7 +210,7 @@ export function classifyRows(ocrResult: OcrResult, options: ClassifyOptions = {}
     if (
       openItem &&
       previousWasItemOrContinuation &&
-      meetsContinuationConditions(row, openItem.nameColumnLeft, itemNameLengths, bandTolerance)
+      meetsContinuationConditions(row, openItem.nameColumnLeft, itemNameLengths, bandTolerance, tenderFamily)
     ) {
       // The merged row does not widen the item's measured length: growth would let each accepted
       // continuation raise the cap for the next one, and a run of them could swallow a header row.

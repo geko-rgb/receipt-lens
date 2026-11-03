@@ -143,11 +143,11 @@ export function isRegistrationRow(words: readonly string[]): boolean {
  * 06 found 423 dev rows matching this shape and 204 of them classified as `item`: `CASH 50,000` and
  * `CHANGE 4,500` were being sold as products, none of them a gold item. §5's dictionary has no tender
  * term and `ParseResult` has no tender field (ADR-008 locked), so the family is a discard, and it is
- * attributable per row: the vocabulary is 0008's measured predicate with `changed` added (the OCR
- * misspelling on 3 CORD rows) and without `round off`/`diskon`, which are §5 charge labels and must not
- * be counted as tenders.
+ * attributable per row: the vocabulary is 0008's measured predicate plus `changed` (an OCR misspelling on
+ * 3 CORD rows) and `kembalian` (Indonesian "change due", 2 CORD rows), and minus `round off`/`diskon`,
+ * which are §5 charge labels — counting those as tenders would misattribute rows the charge path owns.
  */
-const TENDER_TERMS = "(?:cash|change|changed|tender|balance|payment|pay|paid|kembali)";
+const TENDER_TERMS = "(?:cash|change|changed|tender|balance|payment|pay|paid|kembali|kembalian)";
 const TENDER_WORD = new RegExp(`(^|\\W)${TENDER_TERMS}(\\W|$)`, "i");
 
 export function matchesTenderFamily(text: string): boolean {
