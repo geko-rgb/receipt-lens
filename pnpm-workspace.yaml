@@ -1,6 +1,7 @@
 packages:
   - packages/*
   - benchmarks
+  - harness
 
 # esbuild ships its binary through platform optionalDependencies (@esbuild/linux-x64);
 # its postinstall only re-downloads a fallback. Denying the build script keeps
@@ -12,3 +13,11 @@ allowBuilds:
   # explicitly so a future republish with an install hook cannot slip past the
   # script-free frozen-install check in CI.
   hyparquet: false
+  # protobufjs is the only package in onnxruntime-web's dependency tree with an
+  # install hook. Its `postinstall` (scripts/postinstall.js) reads the consuming
+  # package.json two levels up only to print a version-scheme WARN to stderr; in
+  # pnpm's virtual store that file is absent, so it returns in its catch block. It
+  # generates no artifacts and patches nothing the browser bundle or WASM assets
+  # need. onnxruntime-web itself ships prebuilt dist/ + .wasm files and has no
+  # install hook, so WASM setup does not depend on this script.
+  protobufjs: false

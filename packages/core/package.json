@@ -18,5 +18,8 @@
     "build": "tsc -p .",
     "typecheck": "tsc -p . --noEmit",
     "test": "vitest run"
+  },
+  "dependencies": {
+    "onnxruntime-web": "^1.31.1"
   }
 }

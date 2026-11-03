@@ -98,13 +98,65 @@ Code lived in `benchmarks/src/{fixtures,datasets,scoring}/*`, one test file per 
 S1 redact, S2 loaders, S3 serialize/generate, S4 bootstrap. (03b has since replaced the
 "throws rather than scoring items" placeholder with the real matcher and item scorers.)
 
-## Next: ticket 04 — on-device OCR provider (start fresh session, in the home repo)
-03b is the current ticket; after it: 04 → 05 → 06 → 07 → 08 → 09a → 09b → 10a → 10 → … Ticket 05 measures row classes **through the 03b scorers**, and its τ/threshold work must not reopen DECISIONS/0006 — `benchmark.config` is locked unless a new decision record supersedes it.
-Read first for 04: its own ticket file `.scratch/receipt-lens-v1/issues/04-on-device-ocr-provider.md`,
-`docs/model-assets.md`, `PROJECT(1).md` §3/§7 (OCR contract), `DECISIONS/0001`. Blocked-by lines are
-authoritative; `Week:`/`Milestone:` labels are planning hints and several are wrong (e.g. 02 was
-M1/week-2 despite W17/M3). Branch + PR, never direct-push `main`, and expect the onnxruntime-web
-postinstall question the standing rules already anticipate.
+## CHECKPOINT — ticket 04 complete (2026-11-03, branch `ticket/04-on-device-ocr-provider`)
+
+**What landed:** the browser OCR provider. `packages/core/src/ocr/pp-ocrv6.ts` (provider:
+load → det → rec → words → lines) over `ocr/pp-ocrv6/{detect,recognize,lines,image}.ts`, plus
+`ocr/model-manifest.ts`. `ocr()` in `provider.ts` now delegates to the provider; `parse()` and
+`validate()` are still ticket 01 stubs, which is exactly what ticket 05 needs.
+
+**Contract unchanged.** `OcrProvider`/`OcrResult` were not reshaped or extended. `version` is
+`1.0.0-tiny+sha256.<manifestHashPrefix>`; `PPOCRv6Provider.manifestHash`/`assetBytes`/
+`sessionInfo` are additive class members, not part of the interface.
+
+**Two upstream facts are wrong, and the manifest now records the measured truth.** Both were
+traps that produce plausible-but-wrong output rather than errors:
+- detection output is **full resolution** `[N,1,H,W]`, not `H/4` (probed at 96×160 and 480×640);
+- recognition output is **already softmax** (every row sums to 1.000), not `ctc_logits`. Applying
+  softmax again gave every word a confidence of ~0.0003 on the first real run.
+The provider reads channel order, mean/std, DB thresholds, recognition sizing and the decoder's
+`outputActivation` from `assets/models/manifest.json`, and `ctcGreedyDecode` rejects output whose
+rows contradict the declared activation, so this class of drift fails loudly next time.
+
+**Postinstall:** `onnxruntime-web` has none; the blocked hook was `protobufjs`'s (a version-scheme
+warning that no-ops in pnpm's virtual store). Denied in `pnpm-workspace.yaml` with the reason.
+`pnpm install --frozen-lockfile` verified green.
+
+**New workspace package:** `harness/` (esbuild bundle + COOP/COEP static server + acceptance
+driver). `pnpm build` builds it last; `pnpm -r typecheck` covers it; it has no `test` script so
+`pnpm -r test` skips it. Run `node harness/run-acceptance.mjs [image]`; output goes to
+`harness/out/` (git-ignored). Default image is the SROIE sample
+`benchmarks/datasets/raw/sroie/assets/ex.jpg`.
+
+**Verified locally:** `pnpm install --frozen-lockfile` ✓ `pnpm build` ✓ `pnpm typecheck` ✓
+`pnpm test` 198 passing (core 15, pwa 27, benchmarks 156) ✓ `pnpm scan:pii` idempotence clean ✓
+`pnpm verify:results` byte-identical ✓ fixture budget 12.0 MB / 50 MB ✓ `node
+scripts/model-manifest.mjs --check` clean ✓ real-receipt run: 29 lines / 75 words, 327 ms load,
+503 ms inference, 6,277,292 asset bytes, same-origin requests only.
+
+**Known gap:** OCR runs on the main thread; `PROJECT(1).md` §3 sketches `ocr/worker.ts`, which no
+ticket has needed yet. The pipeline is pure functions so a worker can wrap it (09a/10).
+
+**Accuracy finding for 09b:** on the SROIE sample, item text and item prices read correctly, but
+the faint right-hand amount column misreads characters (`Total 9.00` → `Total 1.00`,
+`Cash 10.00` → `Cash 000`). Same glyphs decode correctly elsewhere on the page, so this is Tiny's
+accuracy on a 463 px thermal scan, not a decode/preprocessing defect. Do not "fix" it by tuning
+constants here.
+
+**Not pushed.** No PR yet. Ticket file updated with the evidence and all boxes ticked.
+
+## Next: ticket 05 — row geometry and classification
+After 04: 05 → 06 → 07 → 08 → 09a → 09b → 10a → 10 → … Ticket 05 measures row classes
+**through the 03b scorers**, and its τ/threshold work must not reopen DECISIONS/0006 —
+`benchmark.config` is locked unless a new decision record supersedes it.
+Read first for 05: its ticket file `.scratch/receipt-lens-v1/issues/05-row-geometry-and-classification.md`,
+`PROJECT(1).md` §5, `GLOSSARY.md`, then the parser seams. Ticket 05 consumes **cached `OcrResult`
+fixtures**, never live OCR — that separation is the point of 04. Useful shapes: `OcrResult.lines[]`
+already carries reading-order lines with word boxes and real confidences; the provider groups by
+y-centre within 0.5 × median word height (`manifest.readingOrder.toleranceRatio`), and the parser
+re-clusters itself per §5. Blocked-by lines are authoritative; `Week:`/`Milestone:` labels are
+planning hints and several are wrong (e.g. 02 was M1/week-2 despite W17/M3). Branch + PR, never
+direct-push `main`.
 
 ## Open items / owner decisions pending
 - Rename repo `Recipt-lens` → `receipt-lens` (`gh repo rename`) or keep.

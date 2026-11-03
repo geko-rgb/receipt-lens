@@ -1,0 +1,16 @@
+{
+  "name": "@receipt-lens/harness",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal OCR harness (PROJECT(1).md §9 M1): file in, normalized OcrResult JSON plus timings out. Not shipped.",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -p . --noEmit",
+    "serve": "node serve.mjs",
+    "accept": "node run-acceptance.mjs"
+  },
+  "dependencies": {
+    "@receipt-lens/core": "workspace:*"
+  }
+}
