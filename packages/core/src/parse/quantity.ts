@@ -90,11 +90,21 @@ function smallInteger(word: string): number | null {
  * touching a band mostly hold small integers or mostly hold money. Building the band from integers ≤ 20
  * instead would make the rule unfailable — 100% of its own rows qualify by construction.
  */
+export interface QuantityColumnOptions {
+  /** Row floor and majority share; the defaults are the pinned constants. A seam for the sensitivity
+   *  table DECISIONS/0010 Q1 publishes, so the alternatives are measured by CI, not asserted by prose. */
+  readonly minRows?: number;
+  readonly share?: number;
+}
+
 export function detectQuantityColumn(
   rows: readonly ParsedRow[],
   imageWidth: number,
-  column: PriceColumn | null
+  column: PriceColumn | null,
+  options: QuantityColumnOptions = {}
 ): QuantityColumn | null {
+  const minRows = options.minRows ?? QUANTITY_BAND_MIN_ROWS;
+  const requiredShare = options.share ?? QUANTITY_QUALIFY_SHARE;
   const tolerance = imageWidth * PRICE_COLUMN_WIDTH_RATIO;
   const numeric: NumericWord[] = [];
   rows.forEach((row, rowIndex) => {
@@ -105,7 +115,7 @@ export function detectQuantityColumn(
       numeric.push({ left: word.box.x, right: word.box.x + word.box.width, row: rowIndex, small });
     });
   });
-  if (numeric.length < QUANTITY_BAND_MIN_ROWS) return null;
+  if (numeric.length < minRows) return null;
 
   const qualified: QuantityColumn[] = [];
   for (const side of ["left", "right"] as const) {
@@ -113,10 +123,10 @@ export function detectQuantityColumn(
     for (const group of cluster(edges, tolerance)) {
       const anchor = group[0]!.edge;
       const bandRows = new Set(group.map((e) => e.row));
-      if (bandRows.size < QUANTITY_BAND_MIN_ROWS) continue;
+      if (bandRows.size < minRows) continue;
       const smallRows = new Set(group.filter((e) => e.small).map((e) => e.row));
       const share = smallRows.size / bandRows.size;
-      if (share < QUANTITY_QUALIFY_SHARE) continue;
+      if (share < requiredShare) continue;
       if (column && Math.abs(anchor - column.center) <= column.tolerance) continue;
       qualified.push({ side, anchor, tolerance, rows: bandRows.size, share });
     }

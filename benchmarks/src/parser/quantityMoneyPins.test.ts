@@ -2,6 +2,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   chargeAmountTokens,
+  quantityPattern,
   chooseCategory,
   classifyRows,
   detectQuantityColumn,
@@ -75,6 +76,19 @@ describe("Q1 — quantity column qualification and read states", () => {
     expect(nearest).toBeGreaterThanOrEqual(0.1);
   });
 
+  it("shows the row floor is load-bearing and §5's 60% majority is not", async () => {
+    const receipts = await dev();
+    const withColumn = (options: { minRows?: number; share?: number }) =>
+      receipts.filter((fixture) => {
+        const { column } = classifyRows(fixture.ocr as unknown as OcrResult);
+        return detectQuantityColumn(rowsOf(fixture).map((entry) => entry.row), fixture.ocr.imageSize.width, column, options) !== null;
+      }).length;
+    expect([withColumn({ minRows: 3 }), withColumn({}), withColumn({ minRows: 8 })]).toEqual([90, 34, 13]);
+    // Every band dev produces is either all small integers or all money, so the majority threshold has
+    // nothing to decide here. The floor is the parameter that does the work, which is why 0010 pins it.
+    expect([withColumn({ share: 0.5 }), withColumn({ share: 0.6 }), withColumn({ share: 0.75 })]).toEqual([34, 34, 34]);
+  });
+
   it("publishes the item-row read states the floor of 5 costs", async () => {
     const receipts = await dev();
     const states: Record<string, number> = {};
@@ -95,6 +109,24 @@ describe("Q1 — quantity column qualification and read states", () => {
       absent: 225,
       conflicting: 1,
     });
+  });
+
+  it("counts the two printed forms of §5's quantity pattern over dev", async () => {
+    const receipts = await dev();
+    let glued = 0;
+    let twoWord = 0;
+    for (const fixture of receipts) {
+      for (const entry of rowsOf(fixture)) {
+        const words = entry.row.words.map((word) => word.text.trim());
+        for (let i = 0; i < words.length; i += 1) {
+          if (/^\d{1,2}\s*[x×]$/i.test(words[i]!)) glued += 1;
+          else if (/^\d{1,2}$/.test(words[i]!) && /^[x×*]$/i.test(words[i + 1] ?? "")) twoWord += 1;
+        }
+      }
+    }
+    // The two-word form is half as common as the one the spec shows, so the pattern has to cover both.
+    expect({ glued, twoWord }).toEqual({ glued: 63, twoWord: 33 });
+    expect(quantityPattern([])).toBeNull();
   });
 
   it("never reads a percentage, an item code or a name token as a quantity from an unconfirmed band", async () => {
@@ -174,6 +206,44 @@ describe("Q2 and Q4 — money grammars and profile inference", () => {
     });
     // Equal to what an oracle profile would have read: inference costs nothing measurable on dev.
     expect({ billHit, billTotal, lineHit, lineTotal }).toEqual({ billHit: 372, billTotal: 372, lineHit: 222, lineTotal: 222 });
+
+    // The stronger claim: inference is not merely good, it is equal to knowing the answer. Reading every
+    // receipt with the profile its dataset was *generated* with reproduces exactly the same amounts.
+    let oracleBill = 0;
+    let oracleLine = 0;
+    for (const fixture of receipts) {
+      const profile = fixture.dataset === "cord-v2" ? "id-ID" : "en-IN";
+      const tokens = rowsOf(fixture).flatMap(numericWords);
+      const values = new Set(tokens.map((token) => readMoney(token, profile).paise).filter((value) => value !== null));
+      for (const [field, value] of Object.entries(fixture.gold)) {
+        if (field === "items" || value === null || value === undefined) continue;
+        if (values.has(value)) oracleBill += 1;
+      }
+      if (fixture.dataset === "cord-v2") for (const item of fixture.gold.items) if (item.lineTotal !== null && values.has(item.lineTotal)) oracleLine += 1;
+    }
+    expect({ oracleBill, oracleLine }).toEqual({ oracleBill: billHit, oracleLine: lineHit });
+  });
+});
+
+describe("Q5 — the tax-and-aggregate row that makes precedence load-bearing", () => {
+  it("counts the dev rows carrying a tax label together with an aggregate label", async () => {
+    const receipts = await dev();
+    let mixed = 0;
+    let taxOnly = 0;
+    for (const fixture of receipts) {
+      for (const entry of rowsOf(fixture)) {
+        if (entry.classification !== "noise_header") continue;
+        const categories = new Set(matchLabels(entry.row.text).map((match) => match.category));
+        if (!categories.has("tax")) continue;
+        taxOnly += 1;
+        if (categories.has("grandTotal") || categories.has("subtotal")) mixed += 1;
+      }
+    }
+    // 207 of dev's 836 tax-labelled rows name an aggregate too, so "which field does this amount go in"
+    // is a decision with a real population, not a corner case. (The owner's ruling cited 199, measured
+    // with a looser substring predicate than the matcher that shipped; 207 is what the shipped matcher
+    // produces, and DECISIONS/0010 is corrected to it.)
+    expect({ taxOnly, mixed }).toEqual({ taxOnly: 836, mixed: 207 });
   });
 });
 
@@ -243,6 +313,27 @@ describe("Q5 — charge typing over dev's labelled rows", () => {
 });
 
 describe("Q6 — zero totals promote, and counts do not", async () => {
+  it("measures CORD's integers inside the price band: 44 of 49 are the value 0", async () => {
+    const receipts = await devCord();
+    let rows = 0;
+    let zero = 0;
+    let nonZero = 0;
+    for (const fixture of receipts) {
+      const { column } = classifyRows(fixture.ocr as unknown as OcrResult);
+      if (!column) continue;
+      for (const entry of rowsOf(fixture)) {
+        const ints = entry.row.words.filter(
+          (word) => /^\d{1,2}$/.test(word.text.trim()) && Math.abs(word.box.x + word.box.width - column.center) <= column.tolerance
+        );
+        if (ints.length === 0) continue;
+        rows += 1;
+        for (const word of ints) if (Number(word.text.trim()) === 0) zero += 1;
+        else nonZero += 1;
+      }
+    }
+    expect({ rows, zero, nonZero }).toEqual({ rows: 49, zero: 44, nonZero: 5 });
+  });
+
   const receipts = await devCord();
   it("promotes the CORD rows whose printed line total really is 0", () => {
     let promoted = 0;

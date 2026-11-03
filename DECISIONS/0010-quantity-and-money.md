@@ -38,12 +38,9 @@ column's population".
 **"Aligned left or right" reuses P6's language, not a new constant:** a word is in the band when its
 **left edge or its right edge** is within `0.05 × image width` of the band anchor — the same
 `PRICE_COLUMN_WIDTH_RATIO` that defines the price column, so the parser speaks one geometry language
-and the two columns are compared in the same units. The choice is measured, not assumed. Over dev the
-qualified bands are essentially insensitive to it: CORD yields 31 receipts with a qualified band at
-1%, 2.5%, 5% and 7.5% tolerance within ±1 receipt of each other (26/30/31/31 at floor 3; 9/11/11/11 at
-floor 5) because a 1–2 digit word is narrow — its left and right edges are 15–20 px apart on a 576–2304
-px page, so both alignments find the same column. The tolerance is the *least* load-bearing part of this
-pin and the floor is the most.
+and the two columns are compared in the same units. It is not the load-bearing half of this pin: a 1–2
+digit word is narrow — its left and right edges are 15–20 px apart on a 576–2304 px page — so the left
+and right alignments find the same column, and the floor is what decides.
 
 **Floor: a band needs ≥ 5 rows before it can qualify.** Below that the majority statistic is not a
 measurement, it is the receipt's whole item count agreeing with itself. The cost of the floor is the
@@ -51,25 +48,31 @@ number the brief asked for, and it is large and one-sided:
 
 | floor | receipts with a qualified quantity column (dev 250) | CORD /100 | SROIE /150 |
 |---|---|---|---|
-| 3 | 89 | 31 | 58 |
+| 3 | 90 | 31 | 59 |
 | **5** | **34** | **11** | **23** |
 | 8 | 13 | 4 | 9 |
 
-5 is pinned as recommended. What it costs, itemised over CORD's 305 item rows at floor 5:
+**§5's 60% majority does no work on dev, and that is worth saying out loud.** At the floor of 5,
+qualification returns 34 receipts at a 50% share, 34 at 60% and 34 at 75%: every band dev forms is
+either all small integers or all money, so there is no middle case for the threshold to adjudicate. The
+rule is still pinned as §5 states it — it is the *floor* that decides, and the majority is what makes the
+floor meaningful on a receipt where the two interleave.
+
+5 is pinned as recommended. What it costs, itemised over all 504 dev item rows at floor 5:
 
 | read state on a CORD item row | rows |
 |---|---|
-| explicit — integer inside a qualified column | 36 |
-| explicit — leading `N ×` / `N x` pattern (§5's first clause, no column needed) | 12 |
-| a bare integer ≤ 20 present, attributable to nothing → `unresolved` | 101 |
-| no quantity-shaped token at all → `assumed` 1 | 155 |
-| the only small integer sits in the price band → total, not quantity (Q6) | 1 |
+| explicit — integer inside a qualified column | 87 |
+| explicit — leading `N ×` / `N x` pattern (§5's first clause, no column needed) | 54 |
+| a bare integer ≤ 20 present, attributable to nothing → `unresolved` | 137 |
+| no quantity-shaped token at all → `assumed` 1 | 225 |
+| two different integers inside one qualified band → `unresolved` by disagreement | 1 |
 
-(These five states partition all 305 CORD item rows. Two different integers inside one qualified band is
-the sixth state, `unresolved` by disagreement, and dev contains **0** such rows at floor 5 — it exists
-at floor 3, where 1 row shows it.)
+(These five states partition all 504 dev item rows at this head. **137 rows is the honest price of the
+floor** — 27% of the item list, where CORD alone contributes 94 unattributed rows against 36 column
+reads.)
 
-**101 rows is the honest price of the floor, and it lands in `unresolved`, not in `assumed`.** That is
+**137 rows is the honest price of the floor, and it lands in `unresolved`, not in `assumed`.** That is
 a deliberate choice with a reason attached. §5's assumed branch fires when quantity is *confidently
 absent*; a row printing `1 OREO GREEN TEA SPREAD 52,000` does not have an absent quantity, it has a
 number the parser cannot attribute, which is §5's definition of ambiguous. Calling it `assumed` would be
@@ -78,7 +81,9 @@ a provenance lie that happens to be value-right — on CORD gold, 166 of 198 ann
 blocks unit creation and lock (§7), which is the outcome §5 line 343's asymmetry wants: visible,
 reviewable, recoverable.
 
-**Measured precision of the column rule, which is what justifies keeping §5's gate at all.** It is not
+**Measured precision of the column rule, which is what justifies keeping §5's gate at all.** Over the
+paired CORD items, a qualified column produced **0 wrong quantities** (37 reads agreed with the annotated
+value, 0 disagreed), and the misses are the unattributed rows above. It is not
 paranoia — dev contains bare integers that are emphatically not quantities:
 
 ```text
@@ -91,9 +96,10 @@ P.Rest 10 % 5,592             CORD:  10 is a percentage
 With the column gate these rows never yield a quantity from the stray integer (they lack a qualified
 band, or the integer is excluded by the percent guard below). Without it, all four become explicit
 quantities — `SR 6` alone appears on dozens of SROIE receipts. Against CORD gold, a qualified column
-produced **0 wrong quantities** (every read that could be compared equalled the annotated value; 9 right
-/ 0 wrong at floor 3, and the floor-5 reads land on receipts whose gold quantity is unannotated), while
-the same-gated misses are the 101 rows above.
+produced **0 wrong quantities**: of the CORD items `matchItems` pairs with a gold quantity annotated, 37
+agree exactly and 0 disagree. (The paired set is small because CORD annotates quantity on 198 of 254
+items while the matcher pairs on name similarity; the disagreement count is the number that matters here,
+and it is zero.) The gated misses are the 137 rows above.
 
 **Percent and code guards, pinned as exclusions from the integer population:**
 - a token containing `%`, or an integer immediately followed by a `%`-bearing word, is a **rate** and is
@@ -107,9 +113,9 @@ without it at floor 5). It is kept because it is free, because it is the guard t
 `P.Rest 10 %` provably not-quantities rather than accidentally-not-quantities, and because 3 CORD item
 rows consist entirely of percent-attached integers today.
 
-**§5's quantity *pattern* is pinned to cover the two-word form, which is more common than the spec's
-example suggests.** Across dev the `N x`/`N×` pattern appears **63 times as one word** (`1X`, `2 x`,
-`3X`) and **33 times as two** (`1` then a separate `X`/`x`/`*` word):
+**§5's quantity *pattern* is pinned to cover the two-word form, which is common enough to matter.**
+Across dev the pattern appears **63 times as one word** (`1X`, `2 x`, `3X`) and **33 times as two** (`1`
+then a separate `X`/`x`/`*` word) — counted over the row set by the committed test:
 
 ```text
 8970669 1 X 19.00 19.00     [ACCOUNT] 1 X 4.62 4.62     [ACCOUNT] 2 * 12.00 24.00
@@ -231,34 +237,43 @@ are not needed to decide, and cannot be: `Rp` appears on just **7 of 100** CORD 
 currency-driven selection would have nothing to work with on the other 93), and `₹`/`Rs`/`INR` appear on
 **0 of 250** dev receipts — the app's own profile is the one the corpus never spells out.
 
-Why the vote is safe rather than clever, in one measured number: over dev, **1,403 tokens are readable by
-both profiles and 0 of them are read with different values**. A profile can therefore only ever be
-*wrong by omission* — choosing the wrong one makes some amounts unreadable, never turns ₹9.00 into
-₹900. Combined with en-IN ⊇ en, the default cannot lose an amount that the other en-family profile would
-have read.
+Why the vote is safe rather than clever, in one measured number: over dev's 3,259 words that carry a
+digit and could plausibly be read as a number, **1,338 are readable by both profiles and 0 of them are
+read to different values** (194 id-only, 1,900 en-family-only, 1,402 readable by neither — dates, item
+codes, and the 4-digit decimals §5 refuses to guess). A profile can therefore only ever be *wrong by
+omission*: choosing the wrong one makes some amounts unreadable, never turns ₹9.00 into ₹900. Combined
+with en-IN ⊇ en, the default cannot lose an amount that the other en-family profile would have read.
 
 **Owner ruling (2026-11-03): profile inference is bounded by exclusivity, not by accuracy.** The
-1,403-both / 0-divergent measurement *is* the guarantee — a wrong profile omits tokens, it never
-misparses them. The 97/3 and 0/150 vote counts are quality measures, not correctness measures: they say
-how often the inference agrees with the profile the dataset was generated with, and nothing downstream may
-read them as a bound on error. Default `en-IN` when a document carries no exclusive evidence. No
+1,338-both / 0-divergent measurement *is* the guarantee — a wrong profile omits tokens, it never
+misparses them. The 40/5/55 and 0/150/0 vote counts below are quality measures, not correctness
+measures: they say how often the inference agrees with the profile the dataset was generated with, and
+nothing downstream may read them as a bound on error. Default `en-IN` when a document carries no exclusive evidence. No
 `parse(locale)` option — §4's signature is the contract.
 
 Accuracy of the vote against the profile each dataset was generated with:
 
-| dataset | votes id-ID | votes en family | tie / no evidence |
+| dataset | votes id-ID | votes en family | no exclusive evidence |
 |---|---|---|---|
-| CORD (generated with id-ID) | 97 | 3 | 0 |
+| CORD (generated with id-ID) | 40 | 5 | 55 |
 | SROIE (generated with en) | 0 | 150 | 0 |
 
-The 3 CORD misvotes have **zero** id-exclusive evidence (`cord-v2/dev/29`, `/77`, `/90`: id=0, en=5 each),
-so choosing the en family there loses no amount — which is exactly the property that makes a misvote
-tolerable. Every dev receipt resolves decisively; nothing reached the default. End-to-end effect of the
-selected profile, measured by parsing every numeric word and asking whether the gold integers appear:
-**370 of 372 annotated bill-level gold amounts (99.5%)** and **221 of 222 CORD gold item line totals
-(99.5%)**. The two bill-level misses are `cord-v2/dev/7` (gold −954,500) and `/96` (gold −204,500): the
-digits are on the page and read correctly, the *minus* is not printed on the same token — which is a
-charge-sign question (Q5), not a grammar failure.
+55 CORD receipts show no exclusive evidence either way and take the `en-IN` default, and they are exactly
+the harmless case: no evidence means every amount on the receipt is readable by both profiles, and both
+give the same integer. The 5 that vote for the en family against CORD's id-ID generation profile likewise
+carry little or no id-exclusive evidence — the vote is decided by what is actually on the page, not by
+which dataset the fixture came from.
+
+End-to-end, measured by parsing every word and asking whether the gold integers appear:
+**372 of 372 annotated bill-level gold amounts** and **221 → 222 of 222 CORD gold item line totals** —
+**100% on both**, once the money grammar strips `$` (12 dev receipts print `TOTAL AMOUNT: $8.20`, a
+currency token §5's table does not list) and reads a printed minus sign (`-Rp 34,363`, the two amounts
+this record first counted as misses). And the claim that matters is not that the inference is accurate
+but that it is **free**: reading the same corpus with an oracle profile — `id-ID` for every CORD receipt,
+`en-IN` for every SROIE one, i.e. knowing the answer — reproduces exactly the same set of amounts,
+asserted against the inferred run. Inference costs zero measurable amounts on dev. For scale, a fixed
+`en-IN` parser would have read 316 of 372 and a fixed `id-ID` one 225 of 372, so the profile question is
+real and the vote resolves it.
 
 ## Q5 — Charge typing, and how many amounts a charge row carries
 
@@ -268,45 +283,48 @@ label**, and what they contain decides the typing rule:
 
 | labelled row | rows | what 06 does |
 |---|---|---|
-| registration-shaped (`GST NO: …`, matched by P3 family 2) | 106 | **never a charge** — a label match on a tax *identifier* row is not a tax amount |
-| label, no readable amount | 509 | ignored (`TOTAL QTY 3`, a bare `SUBTOTAL` heading) |
-| label, exactly one readable amount | 636 | typed charge |
-| label, two or more readable amounts | 123 | resolved by geometry, else `unclassified_charge` |
+| registration-shaped (`GST NO: …`, matched by P3 family 2) | 108 | **never a charge** — a label match on a tax *identifier* row is not a tax amount |
+| label, no readable amount | 568 | ignored (`TOTAL QTY 3`, a bare `SUBTOTAL` heading); 21 of these hold only a non-zero count and are ignored *because* of the rule below |
+| label, exactly one readable amount | 616 | typed charge |
+| label, two or more amounts, one of which is in the price column | 66 | typed charge from the band member |
+| label, two or more amounts, none resolvable by the band | 16 | `otherCharges` + `unclassified_charge`, never a guess |
 
-(The typing those 636 rows get is in the precedence paragraph below, with its own counts.)
+(616 + 66 = 682 rows get typed; the typing rule is in the precedence paragraph below.)
 
 **"How many amounts" is counted over money tokens, not over digits.** A `%` token is a printed rate
 (§4's `ParsedTax.rate` is display-only), and a row-leading bare integer ≤ 20 is a quantity — both are
 already spoken for, and counting them as amounts would turn `PAJAK 10% 18,182` into an ambiguous row and
-lose a real tax. With those two exclusions the 184 raw multi-amount rows become 123, and the multi-amount
-rows that survive are genuinely messy (`Subtotal 154 000` — OCR split one amount in two; `Total. 50.000
-41,000`).
+lose a real tax. With those two exclusions the raw multi-amount population drops to the 82 rows above
+(66 resolved + 16 not), and the ones that survive are genuinely messy (`Subtotal 154 000` — OCR split one
+amount in two; `Total. 50.000 41,000`).
 
-**A third exclusion, and the number that forces it: 22 single-amount rows carry a bare integer ≤ 20 as
-their only number — 19 item counts and 3 printed zero charges.**
+**A third exclusion, and the number that forces it: 24 labelled rows carry a bare integer ≤ 20 as their
+only number — 21 non-zero item counts and 3 printed zero charges.**
 
 ```text
 Total Item 7      Total Qty 7      Jumlah Item 1      TOTAL ITEMS 2      SUB TOTAL 0      Discount 0
 ```
 
 `Total Item 7` must not become a 7-paise grand total, and `SUB TOTAL 0` must not be dropped. **The value
-discriminates; the geometry does not** — 8 of the 22 sit inside the price band, so "in the column" cannot
-tell the count from the charge, while `0` vs non-zero does. So a bare integer ≤ 20 is money on a charge
-row only when it is `0`: keeps the 3, drops the 19 to the no-amount class. It is the same predicate Q6
+discriminates; the geometry does not** — most of these integers are right-aligned into the price band
+precisely because their *rows* are right-aligned, so "in the column" cannot tell a count from a charge,
+while `0` vs non-zero does. A bare 1–2 digit integer is therefore money on a charge row only when it is
+`0`: keeps the 3, drops the 21 to the no-amount class. It is the same predicate Q6
 uses for `MIKA KECIL 0`, which is the point — one rule for "a small integer that means an amount",
 applied to item rows and charge rows alike, rather than a special case per dataset.
 
 **A multi-amount charge row is resolved by the price column, not by picking.** If exactly one of its
-money tokens lies in the price band (P6's geometry), that token is the amount: measured **84 of 123**.
+money tokens lies in the price band (P6's geometry), that token is the amount: measured **66 of 82**.
 This is not an arbitrary price choice — it is the same pinned alignment rule that identifies an item's
-price, applied to a row the classifier already decided is a charge. 38 rows have no band member and 1 has
-two, and those become `unclassified_charge` with their label text and amount preserved, not a guess. For
-single-amount rows the band is not required (488 of the 631 that sit on a receipt where a price column
-could be inferred agree with it anyway, so the band stays a tie-breaker rather than a gate).
+price, applied to a row the classifier already decided is a charge. The 16 rows where no band member
+disambiguates become `unclassified_charge` with their label text preserved and the amount left `null`,
+because an amount this parser cannot establish is not an amount it may choose. For single-amount rows the
+band is not required at all: 616 of them have one money token and there is nothing to choose between.
 
-**Type precedence on a row carrying labels of two different kinds is load-bearing, not cosmetic: 199
-dev rows carry a tax label and an aggregate label together** (8 more carry tax+subtotal; 4 more are
-round_off/service/discount mixes). Longest-first then leftmost decides which *string* matched; it does
+**Type precedence on a row carrying labels of two different kinds is load-bearing, not cosmetic: of
+dev's 836 tax-labelled rows, **207 also carry an aggregate label** (measured with the shipped matcher —
+this record first said 199 against a looser substring predicate, and the test's number is the one that
+stands). Longest-first then leftmost decides which *string* matched; it does
 not decide which *field* the amount belongs to, and dev shows both orders are wrong about half the time:
 
 ```text
@@ -319,15 +337,17 @@ cue. **Pinned rule: an inclusion/exclusion cue (`incl`, `inclusive`, `excl`, `ex
 total`) on the row makes the amount an aggregate (and is the explicit cue §4's `included` field may be
 set from); otherwise, on a row carrying both a tax-type label and an aggregate label, the tax type wins,
 because a tax total is still a tax and a `TOTAL` that happens to name a tax is the rarer reading.** With
-that precedence the single-amount population types as: grand total 408, subtotal 86, tax 80, discount 41,
-service charge 19, round-off 2 (636 rows total). Recorded honestly: the cue list is 59 distinct label
-shapes deep in dev and the rule above is a two-branch simplification of it, so any row whose aggregate
-text 06 cannot read as an inclusion cue will type as a tax and be reviewed as a charge mismatch —
-`validate()`'s arithmetic in ticket 07 is what surfaces it, and it is a named follow-up rather than a
-silent guess.
+that precedence the 682 typed rows land as: grand total 393, tax 138, subtotal 82, discount 45, service
+charge 21, round-off 3. Across the 250 receipts that fills `taxes` on 117, `grandTotal` on 213,
+`subtotal` on 82, `discount` on 43, `serviceCharge` on 19, `roundOff` on 3 and `otherCharges` on 14 —
+and **`tip` on 0**: no dev receipt prints a tip, so that branch is covered by an authored fixture, not by
+the corpus. Recorded honestly: the cue list is 59 distinct label shapes deep in dev and the rule above is
+a two-branch simplification of it, so any row whose aggregate text 06 cannot read as an inclusion cue
+will type as a tax and be reviewed as a charge mismatch — `validate()`'s arithmetic in ticket 07 is what
+surfaces it, and it is a named follow-up rather than a silent guess.
 
 **Owner ruling (2026-11-03): tax+aggregate row precedence — inclusion cue → aggregate; no inclusion cue →
-tax. 199 dev rows exercise this.**
+tax. 207 dev rows exercise this.**
 
 **Type mapping**, §5's dictionary to §4's public shape, with no reshaping of either:
 
@@ -358,11 +378,12 @@ Ticket 05's named regression. P6 excludes bare 1–2 digit integers from the pri
 quantity column out of the alignment test, so a row whose line total *is* a bare integer loses its price
 and lands in `ambiguous`.
 
-**The distinguishing signal is geometry, and it is unambiguous on dev.** Over CORD's rows, **34 rows carry
-a bare 1–2 digit integer whose right edge lies inside the price band — and all 34 of them are the value
-`0`.** Quantity integers, by contrast, never sit in the price band: the 103 gold-matching quantity tokens
-found in item rows are at median left edge 0.170 of the page width, and the closest qualified quantity
-band is 0.239 of the width from the price centre (Q1). So:
+**The distinguishing signal is geometry, and it is clean on dev.** Over CORD's rows, **49 rows carry a
+bare 1–2 digit integer whose right edge lies inside the price band, and 44 of those integers are the value
+`0`.** Quantity integers by contrast do not sit in the price band at all: the gold-matching quantity
+tokens found in item rows cluster at a median left edge of 0.170 of the page width (Q1), and the five
+non-zero in-band integers are exactly the rows that must not be money — `Total Item 7`, `Total Qty 7`,
+`TOTAL ITEMS 2`, `Total item 3 Total Qty 3` and `Free Kembalian 50`. So:
 
 > A bare 1–2 digit integer inside the price band, on a row that has no price candidate at all and passes
 > rule 3's name test, is the row's **line total**. Anywhere else in the row it is a **quantity** (Q1), or
@@ -379,35 +400,28 @@ the value `0`.
 - (a) without it, `1 BBQ Sedang Chicken 41,000 0` gains a second in-band number and fires
   `ambiguous_price_separator` — the rescue would *destroy* a real item to record a redundant zero.
 - (b) without it, `OS= 0% 0.00 0` (SROIE) is promoted while `0.00` still sits unread on the same row.
-- (c) without it, the promotion list gains SROIE's right-aligned item-count rows, whose integers land in
-  the band because the *rows* are right-aligned and are not money at all.
+- (c) without it, the promotion list gains the right-aligned item-count rows, whose integers land in the
+  band because the *rows* are right-aligned and are not money at all.
 
-The population for and against those conditions, over dev's `ambiguous` rows carrying a bare integer
-inside the price band:
+The result at this head: **14 CORD rows promoted to items, and every one of them has `lineTotal` exactly
+0** — asserted over the fixture set, so a promotion that invents a non-zero total fails. They are
+`MIKA KECIL 0` (the named regression), `Top Oreo 0`, `Top Banana 0`, `2 TUTUP SEAL 0`, `2 CUP 14 OZ 0`,
+`1 Seaweed Chicken 0`, `U SAM GYEOP 1 0`, `ICE COFFE MIX 3 0`, `ICE BLACK COFFE 1 0`, `0 x1 0`, `Kembalian 0`
+(×2), and `PB1: 0` (×3). Several print their quantity to the *left* of the band, which is the clean
+demonstration that quantity-0 and total-0 are different objects — and the reason condition (b) had to
+exclude small integers: an earlier version read `2 TUTUP SEAL 0`'s own quantity as "another amount on the
+row" and refused the very rows this rule exists for, taking promotions from 14 down to 8.
 
-| | rows |
-|---|---|
-| `ambiguous` rows with a bare 1–2 digit integer inside the price band | 45 |
-| → tender-shaped, removed by Q7 instead | 9 |
-| → no lettered non-price word, so rule 3 still refuses them (they stay preserved) | 8 |
-| → **promoted: the integer is `0`** | **17** |
-| → not promoted: a non-zero integer (`ITEM COUNT 7`, `NO. OF ITEMS 2`, `MAIN ITEM COUNT 1`, …) | 11 |
+`PB1: 0` is a promo modifier this rule does promote. `CHANGED 0` (3 CORD rows) no longer appears here at
+all: family 5 catches it first, which is the resolution the owner's ruling predicted.
 
-All 17 promotions are CORD rows, and CORD contains **no** non-zero integer inside a price band at all (the
-34 in-band rows are all `0`), so condition (c) costs nothing in this corpus while excluding 11
-fabrications. The 17: `MIKA KECIL 0`, `Top Oreo 0`, `Top Banana 0`, `2 TUTUP SEAL 0`, `2 CUP 14 OZ 0`,
-`1 Seaweed Chicken 0`, `U SAM GYEOP 1 0`, `ICE COFFE MIX 3 0`, `ICE BLACK COFFE 1 0`, `0 x1 0` (×2) —
-ordinary zero-priced lines, several printing their quantity to the *left* of the band, which is the clean
-demonstration that quantity-0 and total-0 are different objects — plus `PB1: 0` (×3) and `CHANGED 0` (×3).
-`PB1: 0` is a promo modifier this rule does promote, and `CHANGED 0` is the tender misspelling Q7 does not
-catch; both are reported as known false-positive classes rather than patched with a fourth special case.
-
-**Owner ruling (2026-11-03), recorded as accepted cost rather than a defect to fix:** `PB1: 0` (×3) and
-`CHANGED 0` (×3) are documented false positives. `CHANGED 0` resolves when family 5 lands (Q7's tender
-predicate is word-stem tolerant enough to catch it once the family exists — see Q7's near-miss note).
-`PB1: 0` is **retained** because narrowing the rule to exclude it would refuse 17 legitimate rescues
-(`Top Oreo 0`, `2 TUTUP SEAL 0` and the rest of the zero-priced item lines). Cost is 3 items per dev
-sample.
+**Owner ruling (2026-11-03), recorded as accepted cost rather than a defect to fix:** `PB1: 0` and
+`CHANGED 0` are documented false positives. `CHANGED 0` resolved when family 5 landed (the vocabulary
+carries the misspelling as data). `PB1: 0` is **retained** because narrowing the rule to exclude it would
+refuse the legitimate rescues (`Top Oreo 0`, `2 TUTUP SEAL 0` and the rest). Cost is 3 items per dev
+sample. `Kembalian 0` (×2) was added to the tender vocabulary on the same reasoning once 06 saw it being
+promoted: it is Indonesian for "change due", and a rescue that promotes a payment line is the exact
+failure mode condition (c) exists to prevent.
 
 **`unitPrice` is a separate claim from `lineTotal` and is not inferred from it.** A printed `0` in the
 column is the row total; §4's `unitPrice` is filled only where the receipt actually prints a unit price,
@@ -426,12 +440,12 @@ provenance tables forbid, and it is ticket 12's normalized-unit arithmetic, not 
 different class: **tenders are not being preserved, they are being sold as items.** Over dev, using 0008's
 own predicate (`cash|change|tender|balance|payment|pay|mode pay|round off|diskon|kembali`, word-bounded):
 
-| class of the 423 tender-shaped rows | rows |
+| class of the 441 tender-shaped rows at the base head (20e4459) | rows |
 |---|---|
-| `item` | **204** |
-| `noise_header` | 130 |
-| `ambiguous` | 86 |
-| `continuation` | 3 |
+| `item` | **209** |
+| `noise_header` (rule 1 already caught them via a charge label or another family) | 134 |
+| `ambiguous` | 92 |
+| `continuation` | 6 |
 
 ```text
 CASH 50,000      CHANGE 4,500     Kembali 27.000     Cash: 28,000     CARD 123,000
@@ -452,12 +466,22 @@ reasons, and the second is the one §5 cares about:
    `base_computed_total`.
 2. `ambiguous` is defined by §5 as "a line that cannot reliably be classified". A tender row is reliably
    classified; parking it in `ambiguous` to keep it visible would be a false statement about the
-   classifier's knowledge, and would add 204 `ambiguous_row` warnings to a set that already carries 926.
+   classifier's knowledge, and would add 209 `ambiguous_row` warnings to a set that already carries 926.
 
 `noise_header` is nonetheless a **discard**, so P7's guardrail applies to this change as much as to rule 3:
-it ships with a pre/post transition table over all 250 dev fixtures, and the reported classes must show
-`item → noise_header` as the only movement for these rows, with the empty-name and gold-reachability
-assertions re-derived afterwards.
+it ships with a pre/post transition table over all 250 dev fixtures, measured through a
+`tenderFamily: false` seam that first re-derives 0008's own published totals exactly (713 / 43 / 3,517 /
+926) before anyone trusts it to produce the "before" column.
+
+**A second-order effect the owner's conditions forced into the open.** Rule 1 runs before P7's priced-rows
+counter, so a tender row that stops being an item also stops *opening the item region* — and every
+price-less row beneath it falls back into the header zone and gets discarded. Taken literally that moved
+38 dev rows into `noise_header` which are not tender-shaped at all. Excluding family 5 from that
+interaction is the deliberate call: **a tender prints at the end of the priced block, so its price-column
+entry still marks item position**, which is what P7's counter is documented to measure. Families 1–4 keep
+0008's behaviour unchanged, which is why `CGST 2.50` still does not open the region. With that, the
+family's movement is attributable row by row and the unattributed list is empty — the check
+`quantityMoneyPins.test.ts` runs.
 
 **The P7 invariant changes with this family, per owner ruling.** DECISIONS/0008 P7's guardrail was stated
 as an equality (`noise_header` must stay 3,517) because a fixed count is the cheapest way to catch a
@@ -513,51 +537,69 @@ promotion is visible only in `ParseResult.items` (with the row then absent from 
 
 ## Re-derivation, and the head every 06 delta compares against
 
-**Status of these numbers: session-measured, not yet committed.** DECISIONS/0008's discipline says an
-artifact is checked, not claimed, and it is honest to say plainly that this record currently carries
-numbers re-derivable only from throwaway scripts. They become evidence when the parser lands, because
-pinning the predicates in a test *is* the parser — committing them a commit earlier would put the
-implementation ahead of the checkpoint this record was written for. Until then, treat every figure below
-as the target the test must reproduce, and treat a mismatch as a correction to this record rather than to
-the test.
+Every number in this record is committed as an assertion in
+`benchmarks/src/parser/quantityMoneyPins.test.ts`, measured over `benchmarks/fixtures/dev/` by the
+shipped parser itself — the band builder, the three money grammars, the profile vote, the label matcher
+with its exclusions, and the tender predicate. DECISIONS/0008's discipline is that an artifact is checked,
+not claimed, and a session's arithmetic is not evidence; this file is the artifact.
 
-Every number above is measured over `benchmarks/fixtures/dev/` by the predicates that will be committed
-as `benchmarks/src/parser/quantityMoneyPins.test.ts` alongside the parser: the quantity-band builder, the
-three money grammars, the profile vote, the label matcher with its three exclusions, and the tender
-predicate. The assertions that must hold there, so this record cannot drift from its evidence:
+Three of the record's original figures were measured with throwaway predicates that the shipped code does
+not reproduce, and the test's numbers are now the record's. They are listed here because a silent
+correction is not a correction:
+
+| the record said | the shipped parser measures | why it moved |
+|---|---|---|
+| 1,403 tokens readable by both profiles | 1,338 (0 divergent either way) | the voting population is now every word carrying a digit, so currency-prefixed and signed words are counted |
+| profile vote CORD 97/3, SROIE 0/150, 0 ties | CORD 40/5/**55 no-evidence**, SROIE 0/150/0 | the old predicate treated ungrouped integers (`2018`) as id-only evidence; they are readable by both and abstain |
+| gold amounts 370/372, line totals 221/222 | **372/372 and 222/222** | `$` joined the currency strip list and printed minus signs are read, which is what the two "sign misses" turned out to need |
+| tax+aggregate co-occurrence 199 rows | 207 of 836 tax-labelled rows | the old count used a substring test, the shipped matcher requires whole words |
+| 34 CORD in-band integers, all zero | 49 rows, 44 zero, 5 non-zero counts | measured over all classes at this head, not only over preserved rows |
+| 17 zero-total promotions | **14** | `CHANGED 0` is caught by family 5 first, `Kembalian 0` was added to the family, and one defect was fixed: the rescue had been refusing rows that print a quantity |
+| labelled-row split 106/509/636/123 | 108 registration / 568 no amount / 616 single / 66 band-resolved / 16 unresolvable | the exclusions in Q5 are applied by the shipped token filter, not by the measurement script |
+| quantity read states over CORD's 305 items | over dev's 504 items: 87 column, 54 pattern, 137 unattributed, 225 absent, 1 conflicting | restated over the whole corpus at this head |
+| floor sensitivity 89/34/13 | 90/34/13 | one SROIE receipt qualifies at floor 3 that the shipped builder had not counted |
+| tender rows 423, items 204 | **441 rows, 209 items, 92 ambiguous, 134 already noise, 6 continuations** | the shipped vocabulary carries `changed`, `paid` and `kembalian` |
+
+The assertions, as committed:
 
 | assertion | value |
 |---|---|
-| qualified quantity columns at floor 5, tol 5% (dev) | 34 receipts — CORD 11, SROIE 23 |
-| qualified columns at floor 3 / floor 8 | 89 / 13 receipts |
-| CORD item-row read states at floor 5 | 36 column, 12 pattern, 101 unresolved, 155 assumed, 1 price-band |
-| gold-matching CORD quantity tokens with no equal gold quantity elsewhere | 0 rows |
-| tokens readable by both profiles, and readable by both with different values | 1,403 / **0** |
-| document profile vote | CORD 97 id / 3 en, SROIE 0 id / 150 en, 0 ties |
-| gold bill-level amounts reproduced / annotated | 370 / 372 |
-| CORD gold item line totals reproduced / annotated | 221 / 222 |
-| `ambiguous` rows with a bare integer in the price band, and the promotion split | 45 → 9 tender, 8 nameless, 17 promoted, 11 refused |
-| labelled `noise_header` rows, and their typing split | 1,374 → 106 registration, 509 no amount, 636 single, 123 multi |
-| tax+aggregate label co-occurrence rows | 199 (8 subtotal+tax, 4 other mixes) |
-| tender-shaped rows, and gold pairs lost by dropping them | 423 rows / **0** of 131 pairs |
-| equal-length overlapping label pairs in the shipped dictionary | 0 (invariant, not measurement) |
+| qualified quantity columns, floor 3 / 5 / 8 | 90 / **34** / 13 receipts (CORD 31/11/4, SROIE 59/23/9) |
+| §5's 60% majority at 50% / 60% / 75%, floor 5 | 34 / 34 / 34 — the threshold is inert on dev, the floor is not |
+| dev item-row read states | 87 column, 54 pattern, 137 unattributed, 225 absent, 1 conflicting (504 rows) |
+| quantity pattern words, glued vs two-word | 63 / 33 |
+| CORD paired quantities: agreed / disagreed | 37 / **0** |
+| numeric words: both profiles / divergent / id-only / en-only / neither | 1,338 / **0** / 194 / 1,900 / 1,402 |
+| profile vote | CORD 40 id / 5 en / 55 none; SROIE 0 / 150 / 0 |
+| gold amounts reproduced, inferred vs oracle profile | 372/372 and 222/222 — **equal** |
+| labelled rows → registration / no amount / single / band-resolved / unresolvable | 1,374 → 108 / 568 / 616 / 66 / 16 |
+| typed charges by category | grandTotal 393, tax 138, subtotal 82, discount 45, service 21, roundOff 3 |
+| receipts where each public charge field fills | taxes 117, grandTotal 213, subtotal 82, discount 43, service 19, roundOff 3, other 14, **tip 0** |
+| tax-labelled rows also carrying an aggregate label | 207 of 836 |
+| CORD integers inside the price band: rows / zero / non-zero | 49 / 44 / 5 |
+| zero-total promotions, all with `lineTotal === 0` | **14** |
+| equal-length overlapping label pairs | 0 (invariant, checked against the matcher, not the data) |
+| base head re-derived with family 5 off | 713 / 43 / 3,517 / 926 — DECISIONS/0008's own numbers |
+| family-5 transitions | item→noise 209, ambiguous→noise 92, continuation→noise 6, unattributed **0** |
+| `noise_header` at this head | 3,517 + 307 = **3,824** |
+| tender-shaped items in `ParseResult` | **0** (owner condition 3) |
+| empty-name items | **0** (0008 P7's rule 3 guard, unchanged) |
+| items / gold pairs / gold-name buckets at this head | 518 items, **135** pairs, reached 164 / dropped 37 / preserved 37 / **absent 16** |
 
-**Base head for every ticket-06 pre/post comparison is `20e4459`** (the ticket-05 merge, `main`). Per
-DECISIONS/0008's reporting discipline, a delta without both heads named is not a number: the tender
-change (Q7) and the zero-total promotion (Q6) each move rows between classes, so both ship with a
-`20e4459 → <shipped head>` transition table over all 250 dev fixtures, in the P7 form — row identity is
-`receiptId` + row index, and Q7's `item → noise_header` movement is the case that guardrail explicitly
-requires justification for. `noise_header` rising by 204 is expected and is the point; the assertions that
-must *not* move are the two 05 pins: empty-name items stay 0, and gold↔item pairs must not fall below the
-131 it scores today (05's own `rowClassification.test.ts` gold-reachability buckets will move, and 06's
-report must state the new numbers against `20e4459` rather than silently re-pin them).
+**Base head for every ticket-06 pre/post comparison is `20e4459`** (the ticket-05 merge, `main`); the
+shipped head of this ticket is the commit that lands the parser. Row identity is `receiptId` + row index,
+so every moved row is matched, and Q7's `item → noise_header` movement is the case P7's guardrail
+explicitly requires justification for. `noise_header` rising by 307 is the point of the change, not an
+accident of it; the assertions that must not move are 0008's own — empty-name items stay 0, gold↔item
+pairs do not fall below the 131 the base head scored (they rise to 135), and `rowClassification.test.ts`
+is re-pinned in the same commit that changes them, with both heads named in its comment.
 
 ## What this record does not decide
 
 - **Whether the floor of 5 is right for real receipts.** It is right for the app's asymmetry (an
   unattributed integer must not become an explicit quantity), and it is the number the brief asked to
-  pin. The 101-row CORD cost is published, and 09b's per-field quantity score is the signal that would
-  justify revisiting it — with `eval/` unread until then.
+  pin. The 137-row dev cost is published (94 of them CORD), and 09b's per-field quantity score is the
+  signal that would justify revisiting it — with `eval/` unread until then.
 - **Split-layout name reattachment** (the `PC 9.00 0.00` / name-row case, DECISIONS/0008 P7's last
   section). 06 reaches `noise_header` through `classifyRows()` and must decide what a name row deserves;
   that is content parsing but it is not one of these seven pins, and its transition table ships with it.
@@ -574,7 +616,13 @@ report must state the new numbers against `20e4459` rather than silently re-pin 
   for now, which means ticket 07's arithmetic treats every tax as additive — the safe direction, and the
   one that surfaces a wrong guess as a finding instead of hiding it in a total.
 - **Confidence floors, `item_without_price`, `zero_items`, arithmetic.** Ticket 07.
-- **The 16 CORD gold names absent from every classified row.** A diagnostic carried to 06, blocking 09b's
-  number quality and not this ticket's; its findings are reported separately and pin nothing here.
+- **The 16 CORD gold names absent from every classified row.** Carried to 06 as a diagnostic; 06
+  investigated it and the findings are in the ticket file. Summary: all 16 have every word present in the
+  row set, and none has its words contiguous in any row — CORD's own word boxes are slanted (the
+  annotated line's word centres span 0.3× to 3.4× the parser's y-band tolerance), so single-linkage
+  clustering interleaves two printed lines into one row and orders the mix by x. Not reachable by
+  reattachment (the words are already in a row, just scrambled with a neighbour's), and not a fixture
+  quirk in the sense of text missing from OCR. It is P5's clustering, which 0008 pinned and which only
+  03b's row-classification bucket can argue a change to. Pin nothing here; 09b states 16 as a floor.
 - Nothing here consumes or amends `DECISIONS/0006` (`τ_name = 0.70` stays the matcher's, unread by the
   parser), and the provider's 0.5 banding stays untouched per `DECISIONS/0007`.
