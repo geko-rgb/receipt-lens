@@ -73,3 +73,62 @@ advisories unchanged at 51 ✓ `pnpm verify:results` byte-identical ✓ fixture 
 (ticket 06) — items carry `qty: null`, `unitPrice: null` and `"unresolved"` sources; validation and
 confidence floors (ticket 07). `01-143008` is a known family-4 miss (`.` is not a group separator,
 because treating it as one would fire the family on `1.234.567`).
+
+## Pre-merge verification (2026-11-03) — HELD, CORD is red
+
+Three checks before merging. Result: **1 green, 2 red.** PR #8 not merged.
+
+**1. `.agents/skills/**` deletions — resolved by restore.** All 79 were *unstaged worktree*
+deletions (index intact, no stash, and only the initial commit had ever touched `.agents/`).
+Nothing was moved — no `SKILL.md` exists elsewhere in the repo — while `skills-lock.json` still
+lists all 27 skills with computed hashes, which a deliberate removal would have updated.
+`git checkout -- .agents/skills/` restored them; `git diff HEAD -- .agents/` is empty and the
+working tree is clean. They were never staged, so no commit on this branch contains them.
+
+**2. CORD vs SROIE ambiguous split — RED, and the split is not the story.**
+
+| dataset | rows | item | continuation | noise_header | ambiguous |
+|---|---|---|---|---|---|
+| CORD `valid` (100) | 788 | 369 | 27 | 259 | **133 (16.9%)** |
+| SROIE `train` (150) | 4,411 | 479 | 20 | 3,258 | **654 (14.8%)** |
+
+SROIE does not dominate — CORD is the *worse* of the two, and 16.9% is above the 10% hold line.
+Bucketing the 133 CORD rows by cause:
+
+- **54** — the row's only number is a bare 1–2 digit integer (`CHANGE: 0`, `PB1: 0`, `MIKA KECIL 0`),
+  which P6's candidate shape deliberately excludes. `MIKA KECIL` is a **gold item** whose line total
+  is genuinely 0.
+- **35** — percent/modifier rows (`70%`, `Less Ice`) and stray numerics (`1.00`).
+- **21** — tender rows (`CASH`, `Change:`, `Pay Cash Change :9,000`). §5's label dictionary names no
+  tender words, so nothing claims them.
+- **23** — the split name/price layout: a name row sitting directly above a row that is nothing but
+  numbers (11 of these are gold item names).
+
+**A second, sharper defect fell out of this:** 49 CORD items (34 SROIE) have an **empty name** —
+rule 3 promotes a row that is only a price, e.g. `cord-v2/dev/2` r3 `1,818`, to an item whose name is
+`""`. That is a phantom item by §5's own definition, and it is independent of the ambiguous rate.
+Measured prototype: requiring at least one lettered non-price word on an item row removes all 83
+empty names and brings CORD to 13.3%; admitting bare integers into the *band* (not into column
+inference) alone makes SROIE worse (14.8% → 18.0%), so the two are not interchangeable. Neither is
+committed — this needs a ruling, not a unilateral rule change on a held PR.
+
+**3. Row 14's class — answered, and it is the third option.** On ticket 04's receipt row 14
+(`95569390-40118 KF MODELLNGCLAY KIDDY HSH`) is **`noise_header`, and `noise_header` appears nowhere
+in `ParseResult`** — 17 of that receipt's 29 rows are dropped this way. It is reachable only through
+`classifyRows()`, which `parse()` consumes in the same call (and which 06 must already use to turn
+charge-labelled noise rows into typed charges). Reattaching it is a content decision, so 06 has a
+path; but the path is internal and must be taken deliberately. Stated explicitly in DECISIONS/0008
+P7 rather than left implicit.
+
+## Follow-up requirement accepted from the owner (applies to 09b's row-classification bucket)
+
+`ambiguous rows = 15%` is a rate, not a metric. The bucket must split preserved rows by gold class:
+
+- ambiguous whose gold class is **item** → false-ambiguous (recall miss)
+- ambiguous whose gold class is **noise/header** → correct-ambiguous (expected cost of P7)
+- ambiguous whose gold class is **charge** → false-ambiguous
+
+Without that split the 15% cannot be evaluated, and 09b's table can only honestly say
+"15% of rows require review" rather than "15% require review, of which N% are gold items".
+Note that **SROIE cannot supply this split at all** — it annotates `total` only (DECISIONS/0002),
+so it has no gold item or charge class to compare against; the split is a CORD-only measurement.

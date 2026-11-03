@@ -269,6 +269,18 @@ deterministic), 16 give none, and 2 carry too few numeric words to infer anythin
 (26.2%) get a candidate and only 3 rows have two — the separator case is real but rare, so 05's
 coverage of it is fixture-authored rather than dataset-authored.
 
+**Measured cost of excluding bare 1–2 digit integers, stated because it is not free.** Split by
+dataset, `dev/`: CORD `valid` is 788 rows → 369 items, 27 continuations, 259 `noise_header`, **133
+ambiguous (16.9%)**; SROIE `train` is 4,411 rows → 479 items, 20 continuations, 3,258
+`noise_header`, **654 ambiguous (14.8%)**. CORD — the split where every row is an annotated
+financial category — is the *worse* of the two, which is what §5's "initial heuristic" warning is
+for. Of CORD's 133, **54** are rows whose only number is a bare 1–2 digit integer that the quantity
+argument excludes: `CHANGE: 0`, `PB1: 0`, and `MIKA KECIL 0` — where `MIKA KECIL` is a gold item
+whose line total really is 0. So the exclusion that keeps the quantity column out of the price band
+also costs a gold item with a zero line total. 21 more are tender rows (`CASH`, `Change:`, `Pay Cash
+Change :9,000`) that §5's label dictionary does not name at all, 35 are percent/modifier rows
+(`70%`, `Less Ice`), and 23 are the split name/price layout of P7.
+
 **Fallback, for the 16 qualified-cluster-free receipts.** A priced receipt with a single line item
 would otherwise have no column and therefore no items at all. When no cluster reaches 2 members, a
 row's price candidate is its own rightmost candidate word. The state is recorded on the internal
@@ -308,6 +320,14 @@ clauses put it in `noise_header` ("no price-column entry and no plausible contin
    families 1–4), **or** a §5 charge-label term → `noise_header`
 2. ≥ 2 price candidates → `ambiguous`, emit `ambiguous_price_separator`
 3. exactly 1 price candidate → `item` (first item found ends the header zone)
+
+   **Rule 3 has a measured defect, reported and not unilaterally fixed.** A row whose entire content
+   is the price word passes rule 3 and becomes an item with an **empty name** — 49 such items in
+   CORD and 34 in SROIE, e.g. `cord-v2/dev/2` row 3, whose whole text is `1,818`. A nameless row is a
+   phantom item by §5's own definition, so the rule needs a lettered-content condition. Prototyped
+   and measured: requiring at least one non-price word carrying letters removes all 83 empty names and
+   takes CORD's ambiguous rate from 16.9% to 13.3%. It is a reinterpretation of §5's class list, so it
+   is held for an owner ruling rather than committed on a held PR.
 4. 0 candidates, all four continuation conditions hold → `continuation`, merged into the previous item
 5. 0 candidates, no previous item yet (still above the first item) → `noise_header`
 6. 0 candidates, not merged → `ambiguous`
@@ -359,6 +379,17 @@ attached one row too low, and the name row is discarded as header. No §5 class 
 row", which is why it is reported rather than fixed by inventing a fifth class in a ticket whose
 whole contract is the four in §5. It is the first thing the row-classification bucket in 03b's
 scorers should surface when a real parser runs the benchmark.
+
+**Stating the reachability limit explicitly, because it is not obvious from the code.** Row 14 is
+`noise_header`, and `noise_header` rows appear **nowhere in `ParseResult`** — not in `items`, not in
+`unclassifiedRows`, not in `warnings`. They exist only in the `ClassifiedRow[]` that `classifyRows()`
+returns, which `parse()` consumes inside the same call. So ticket 06 has a path to that name row only
+if it goes through `classifyRows()` — which is exported from `@receipt-lens/core` for exactly this
+reason — and not through the parse result. This is the same channel 06 must already use to turn
+charge-labelled `noise_header` rows into typed charges (P3), so it is a real path rather than a
+theoretical one, but it is an internal one and it has to be taken deliberately. Reattaching a name
+row to the priced row beneath it is a content-parsing decision, not a reclassification, and belongs
+to 06 for the reason §5 line 340 gives: rows are classified before their contents are parsed.
 
 
 ## IDs, purity, determinism

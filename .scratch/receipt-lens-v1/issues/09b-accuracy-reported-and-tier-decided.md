@@ -13,3 +13,12 @@
 - [ ] Published accuracy tables are generated from committed machine-readable results, with per-dataset labelling coverage and the language mismatch disclosed beside them
 - [ ] The declared headline evaluation mode is stated where the numbers are published
 - [ ] Threshold and tolerance defaults exercised by this ticket (τ, confidence floors, round-off band — gate G8t) are pinned in benchmark configuration and documented as such
+
+## Required from 09b, added by ticket 05 (2026-11-03)
+
+The row-classification bucket must report preserved (`ambiguous`) rows **split by gold class**:
+gold item (false-ambiguous, a recall miss), gold noise/header (correct-ambiguous — the price P7
+deliberately pays for visible review), gold charge (false-ambiguous). Ticket 05 measured 16.9%
+ambiguous on `dev/cord-v2` and 14.8% on `dev/sroie`; without this split the number is a rate, not a
+metric, and cannot be judged. CORD is the only split that can produce it — SROIE annotates `total`
+only (DECISIONS/0002), so it has no gold item or charge class to compare against.
