@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>receipt-lens OCR harness</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body { font: 14px/1.5 ui-monospace, monospace; margin: 2rem; max-width: 60rem; }
+      h1 { font-size: 1.1rem; }
+      pre { background: #8881; padding: 1rem; overflow: auto; max-height: 28rem; }
+      #status { font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <h1>receipt-lens OCR harness</h1>
+    <p>
+      PP-OCRv6 Tiny detection + recognition, running locally through onnxruntime-web (WASM).
+      Models are served from this origin; nothing is uploaded.
+    </p>
+    <input id="file" type="file" accept="image/*" />
+    <p id="status">idle</p>
+
+    <h2>Run</h2>
+    <pre id="metrics"></pre>
+
+    <h2>OcrResult</h2>
+    <pre id="result"></pre>
+
+    <script type="module" src="/dist/main.js"></script>
+  </body>
+</html>
