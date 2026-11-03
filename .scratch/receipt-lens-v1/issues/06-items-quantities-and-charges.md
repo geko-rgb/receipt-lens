@@ -42,6 +42,29 @@ all-number row — the split-layout reattachment, counted. `DECISIONS/0008` P7's
 as well as to 05: any rule change in 06 that could move a row into a discard class ships with a
 pre/post transition table over the dev fixtures.
 
+## Resolved by this ticket (2026-11-03)
+
+**Tender rows: dropped as pattern family 5, and documented as unreachable from `ParseResult`.** 06
+measured 423 dev rows as tender-shaped, of which **204 were classified `item`** — so the carry-forward's
+premise (that tenders sat in the preserved set) was wrong: they were manufacturing 28.6% of the dev item
+list as phantom product, and 0 of the 131 gold↔item pairs involved one. Family 5 joins P3's data tables,
+matches at rule 1 and classifies these rows `noise_header`.
+
+> Tenders are classified `noise_header` and not reachable from `ParseResult`. ADR-008 locked the public
+> shape and it has no tender field. Tenders exist only in the internal `classifyRows()` output. Publishing
+> tenders would require a public-shape extension (an ADR change), not a classifier change.
+
+The P7 invariant was revised to carry named families (`noise_header` == base 3,517 + rows attributable to
+a documented family); see DECISIONS/0008 and DECISIONS/0010 Q7. Guard added per condition 3:
+`tender_named_items_in_ParseResult == 0` over dev fixtures.
+
+**`MIKA KECIL 0` parses.** All 34 CORD rows carrying a bare 1–2 digit integer inside the price band are
+the value `0`, and gold quantity tokens never reach that band (nearest qualified quantity band is 0.239 of
+image width from the price centre), so position distinguishes quantity-0 from total-0. 17 promotions;
+`PB1: 0` (×3) and `CHANGED 0` (×3) accepted as documented false positives — `CHANGED 0` is caught by
+family 5's vocabulary, `PB1: 0` is retained because excluding it would refuse 17 legitimate rescues.
+Full rule and numbers: DECISIONS/0010 Q6.
+
 ## Investigate before 09b publishes a gold-recovery number (carried by 05; not blocking 06)
 
 Investigate the **16 CORD gold names not appearing in any classified row** (`rowClassification.test.ts`
