@@ -28,6 +28,17 @@ test 100; SROIE train 626, test 361.
   field is scored from SROIE at all, so no itemized field is being tuned on it.
 - The null-parser bootstrap (03a) runs against `dev/` only.
 
+## Macro averaging and fields with no scored cells (added 2026-11-03, ticket 03b)
+
+A field the dataset labels but which has zero scored cells in the sample is excluded from the
+macro mean and reported in `macro.listed` beside `macro.fields`. Averaging the 0/0 convention as
+0 would misrepresent the parser; the field's absence is visible in the report.
+
+This is distinct from the dataset-level exclusion above: a field the dataset never labels is
+never scored at all and never appears in `fields`, while a labeled field with no annotated cells
+appears with its counts and stays out of the mean. A field is in the mean exactly when it
+produced at least one scored cell (`tp + fp + fn > 0`).
+
 ## Regeneration gate: where it runs, and what that costs
 
 The byte-identical regeneration check (`pnpm verify:fixtures`) is **scheduled (Mondays
