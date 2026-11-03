@@ -4,7 +4,10 @@
 
 **Blocked by:** 01 (walking skeleton)
 
-**Status:** done — implemented, verified, real-receipt evidence below. Not yet merged.
+**Status:** done — implemented, verified, real-receipt evidence below. Pushed to
+`origin/ticket/04-on-device-ocr-provider`, **no PR yet** (owner opens it after review). The one open
+review item — whether acceptance runs in a browser or in Node — is closed in "Where acceptance runs"
+below: it is Playwright-driven headless Chromium, and the OCR executes in the page.
 
 **Effort:** ~30 h · **Roadmap:** workstream 1A (tasks 1A.1–1A.5) · **Week:** W3 · **Milestone:** M1
 **Verify:** `pnpm -r test` passes the provider contract tests; the harness page renders an `OcrResult` and prints load/inference time and asset bytes; real-receipt evidence is attached to this ticket
@@ -54,12 +57,41 @@ it returns in its catch block. Denied in `pnpm-workspace.yaml` with that reasoni
 `pnpm install --frozen-lockfile` stays script-free.
 
 **Performance context.** WASM execution provider, 4 threads (COOP/COEP set by the harness server):
-327 ms load, 503 ms inference for a 463×1013 receipt. Indicative only — ticket 08 measures
-footprint, ticket 09b compares Tiny vs Small.
+327 ms load / 503 ms inference for a 463×1013 receipt on the first run, 582 ms / 952 ms on this
+session's re-run — cold/warm variance, so treat both as indicative. Ticket 08 measures footprint,
+ticket 09b compares Tiny vs Small.
 
 **Known gap, not fixed here.** OCR runs on the main thread. `PROJECT(1).md` §3 sketches
 `ocr/worker.ts`; nothing in this ticket needs it and it needs bundler plumbing, so the pipeline
 is written as pure functions a worker can wrap later. Left for 09a/10 (offline proof / capture).
+Recorded as `DECISIONS/0007`.
+
+**Where acceptance runs: the browser, not Node.** `harness/run-acceptance.mjs` imports `chromium`
+from `@playwright/test` (line 13) and launches headless Chromium (line 26) against the page
+`harness/serve.mjs` serves, feeds the photo through `page.setInputFiles("#file", …)`, waits on
+`window.__receiptLensHarness`, then writes `page.screenshot()` and the JSON. Inference itself executes
+**inside the page**: `harness/src/main.ts` builds the provider with `assetBaseUrl: "/assets/models/"`
+and `wasmPaths: "/ort/"` and times with `performance.now()`; `packages/core/src/ocr/pp-ocrv6.ts` asks
+for `executionProviders: ["wasm"]` and imports `onnxruntime-web/wasm`. **`onnxruntime-node` is not a
+dependency anywhere** — the only ORT package in any manifest is `onnxruntime-web`
+(`packages/core/package.json`). Node is a driver plus a static server and never opens a session. The
+evidence corroborates it: a fresh run records `executionProvider: wasm` with `session.numThreads: 4`.
+`numThreads: "auto"` only reaches 4 when the page is cross-origin isolated — `pp-ocrv6.ts:55-59`
+documents that otherwise it drops to one thread because `SharedArrayBuffer` is unavailable — and
+isolation exists only because `serve.mjs` sends COOP/COEP. A Node-side session has no such server and
+could not have produced those headers or that thread count.
+
+This is what the browser-based claims need. §9 M1 step 1 says "Load a minimal harness page that invokes
+the core OCR/parser pipeline"; §3 pins cached `OcrResult` fixtures for per-commit Node parser
+benchmarks while "full OCR end-to-end runs are on-demand in a headless browser", and §8's
+"benchmark runtime and reproducibility" repeats it. §2/§3: "Only the OCR provider is
+browser-runtime-specific". The brief also cited §18, but §18 is *Owner Decisions — Resolved*
+(DQ-01–04) and carries no browser claim, so there is nothing there to satisfy.
+
+**Still open from §9 M1 (ticket 09a, not this gate).** Steps 3–4: precache assets, then block outbound
+network and assert inference still succeeds. The driver already records every request origin and today
+observes exactly one — same-origin `http://127.0.0.1:<ephemeral>` — which is half of step 4
+("record attempted requests"), but no blocking assertion runs yet.
 
 ## Real-receipt evidence
 
@@ -67,25 +99,98 @@ is written as pure functions a worker can wrap later. Left for 09a/10 (offline p
   (463×1013, faded dot-matrix print), from the SROIE snapshot already pinned and license-cleared
   (CC-BY-4.0 as declared by the mirror, `DECISIONS/0002`). Not committed: raw datasets are git-ignored.
 - **Raw output:** `harness/out/ex.ocr.json` (git-ignored) + `harness/out/ex.png` (harness screenshot).
-- **Reproduce:** `pnpm build && node harness/run-acceptance.mjs`
+- **Reproduce:** `pnpm build && node harness/run-acceptance.mjs` (headless Chromium — see "Where
+  acceptance runs" above).
+- **Determinism:** after this session's rebuild the run produced **byte-identical line text and
+  confidences**; only wall-clock timings and the ephemeral server port differ. Aggregate stats
+  reconfirmed: **29 lines / 75 words, mean line confidence 0.849, range 0.414–0.996, no nulls.**
 
-**What I saw.** 29 lines / 75 words, mean line confidence 0.849 (range 0.414–0.996, no nulls).
-Recognized correctly and legibly: `tan woon yann`, `BOOK TA .K (TAMAN DAYA) SDN BHD`,
-`NO.5: 55,57 & 59,JALAN SAGU 18,`, `81100 JOHOR BAHRU`, `Document No：1D0116/104`,
-`Date 25/12/2018 8:13:39 PM`, `Cashier MANIS`, `CASHBILL`,
-`95569040-40118 KP MODELLING CLAY KIDDY HSH`, `PC 9.00 0.00`, `Rounding Adjustment 0.00`,
-`Rounded Total (RM): 9.00`, `GOODS SOLD ARE NOT RETURNABLE OR EXCHANGEABLE`, `THANK YOU`,
-`PLEASE COME AGAIN !`. Item text and item prices are present and readable, which is what this
+**Verbatim output**, copied out of `harness/out/ex.ocr.json` exactly as the model emitted it — missing
+spaces, stray `]` and all, one line per record prefixed with its confidence:
+
+```text
+0.996  tan woon yann
+0.951  BOOK TA .K (TAMAN DAYA)SDN BHD
+0.908  789117-W
+0.917  NO.5: 55,57 & 59,JALAN SAGU18]
+0.921  TAMAN DAYA]
+0.906  81100JOHOR BAHRU]
+0.917  JOHOR]
+0.914  Document No：1D0116/104
+0.984  Date 25/12/20188:13.39 PM
+0.956  Cashier MANIS
+0.995  Member
+0.906  CASHBILL
+0.761  CODE/DES0 PNC日 DIsd AMCUN
+0.625  QTY R17 四
+0.858  95569390-40118 KF MODELLNGCLAY KIDDY HSH
+0.854  PC 9.00 0.00 2.00
+0.859  Total 1.00
+0.879  Rour ing Adustment 0.00
+0.974  Round d Total (RM): 9.00
+0.414  2
+0.900  Cash 000
+0.880  CHANGE 00
+0.831  2.00
+0.904  GOODS SOLID ARE NOT REIURNABTEOK
+0.964  FXCHANGEABLE
+0.421  41HH453:9史脑
+0.441  20自话，战情序说，
+0.996  THANK YOU
+0.798  PLEASECOIE AGAIN I
+```
+
+**Correction to the previous version of this section.** It quoted a tidied rendering as if it were the
+model's own text — `Rounding Adjustment 0.00`, `95569040-40118 KP MODELLING CLAY KIDDY HSH`,
+`Rounded Total (RM): 9.00`, `GOODS SOLD ARE NOT RETURNABLE OR EXCHANGEABLE`,
+`Date 25/12/2018 8:13:39 PM` — and labelled the whole list "recognized correctly and legibly". None of
+those five strings is what the model produced. Only `tan woon yann`, `Document No：1D0116/104`,
+`Cashier MANIS`, `CASHBILL` and `THANK YOU` were verbatim. The gate still passes, but it must be
+recorded at its real strength, so the block above is the evidence and the prose below reads against it.
+
+**What is right.** Header identity comes through cleanly and at the top of the confidence range:
+customer name, business registration `789117-W`, `Document No：1D0116/104` (full-width colon
+preserved), `Cashier MANIS`, `CASHBILL`, `Member`, `THANK YOU`. Address lines are readable
+notwithstanding dropped spaces and a stray `]`. The item row and its money are present —
+`95569390-40118 KF MODELLNGCLAY KIDDY HSH` and `PC 9.00 0.00 2.00` — and the rounded total carries an
+exact price: `Round d Total (RM): 9.00`. Recognizable item text and item prices, which is what this
 ticket gates on.
 
-Character errors are concentrated in the faint right-hand amount column: `Total : 9.00` read as
-`Total 1.00`, the item amount `9.00` as `2.00`, `Cash 10.00` as `Cash 000`, `CHANGE 1.00` as
-`CHANGE 00` (plus a stray `2.00` fragment on its own box). Thai/Chinese footer glyphs are
-garbage, as expected from a 6905-entry Latin-centric dictionary. These are **accuracy** limits of
-Tiny on a 463 px-wide thermal scan, not pipeline defects: the same glyphs decode correctly
-elsewhere on the page (`9.00` in the rounded total, `Rounding`/`Adjustment`), which rules out
-wrong channel order, wrong dictionary offset and wrong CTC decode. Quantifying and improving this
-is ticket 09b (Tiny vs Small), and ticket 05 consumes `OcrResult` fixtures rather than live OCR.
+**What is wrong.** Three classes, all character-level:
+- *Right-hand amounts*: `Total : 9.00` → `Total 1.00`, `Cash 10.00` → `Cash 000`,
+  `CHANGE 1.00` → `CHANGE 00`, plus a lone `2` at 0.414 and a stray `2.00` box. Money digits are the
+  worst-hit field on the page.
+- *Word and label spacing*: `(TAMAN DAYA)SDN BHD`, `JALAN SAGU18]`, `MODELLNGCLAY`,
+  `PLEASECOIE AGAIN I`, `Date 25/12/20188:13.39 PM` (the seconds colon also degraded to a period),
+  `Rour ing Adustment`, `Round d Total`.
+- *Non-Latin footer*: Thai/Chinese glyphs are garbage (`41HH453:9史脑`, `20自话，战情序说，`) and the
+  `CODE/DES0 PNC日 DIsd AMCUN` / `QTY R17 四` header row scores 0.761 / 0.625 — expected from a
+  6905-entry Latin-centric dictionary.
+
+**Why this is accuracy, not a pipeline defect.** Several lines decode with *zero* character errors at
+the top of the range (`tan woon yann` and `THANK YOU` at 0.996, `Document No：1D0116/104` at 0.914),
+and the glyphs that fail in the amount column decode correctly elsewhere: `9.00` and `Total (RM):` in
+the rounded total, `0.00` in `Rour ing Adustment 0.00`, `PC` on the item line. A wrong channel order,
+a wrong dictionary offset or a broken CTC decode would corrupt every line uniformly rather than
+selectively hitting faint glyphs — and both the vocabulary assertion (6906 = 6905 + 1) and the
+declared-activation guard pass before any text is produced. (The earlier draft argued this from
+`Rounding`/`Adjustment` decoding correctly; it does not, so that example is withdrawn — the argument
+above uses only lines quoted verbatim.) Quantifying and improving this is ticket 09b; ticket 05
+consumes `OcrResult` fixtures rather than live OCR.
+
+**Amount-column forward note (for ticket 09b).** Measure **price-field accuracy separately from
+aggregate character accuracy**, per integer-paise equality (§8.4). Tiny on faded thermal misreads
+right-hand amount glyphs — `9.00 → 1.00`, `10.00 → 000`, `CHANGE 1.00 → CHANGE 00` — and a
+character-error rate that looks acceptable can still carry a price that is wrong by an order of
+magnitude. These misreads are direct evidence for spec §14 **ADR-002** (Tiny as the default,
+"published Tiny recognition accuracy … is not a promise of accuracy on price-critical receipts"), and
+not for `DECISIONS/0002`, which is the SROIE snapshot record. Improvement path: Small model, better
+thermal preprocessing, or a price-specific dictionary — owned by ticket 09b.
+
+**Review flag.** This section quotes a real receipt in full (customer name, address, document number,
+date). It is the SROIE sample already pinned and licensed CC-BY-4.0 per `DECISIONS/0002`, and the raw
+JSON stays git-ignored, but the ticket itself is committed — trim the header lines before merge if
+that is preferred. `DECISIONS/0005`'s pending proprietor-name ruling covers fixtures, not ticket prose.
 
 ## Test coverage added
 
