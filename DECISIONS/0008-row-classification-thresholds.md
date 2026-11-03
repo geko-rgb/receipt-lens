@@ -532,6 +532,13 @@ DECISIONS/0008 P7 and use the internal channel, or split-layout names are unreco
 
 ## Reporting discipline
 
+> Report numbers that do not come from a committed test or artifact must be marked
+> "(session-measured, not committed)" or omitted. Session arithmetic is a working aid, not a source of
+> truth; if a number is worth putting in a report, it is worth putting in a test first. Ticket 06 is the
+> case: six of its checkpoint figures did not re-derive against the shipped parser because the measurement
+> scripts were looser than the code, and the correction table DECISIONS/0010 carries is the cost of
+> publishing before committing. The fix is not care in the prose — it is that the artifact exists first.
+
 > Pre/post deltas in reports must name the two heads being compared (e.g. "base head `528c989` →
 > shipped head `e00394e`"). Deltas that don't name both heads are ambiguous and must be re-derived
 > against an explicit pair before publication. Every published number in a report should be reproducible

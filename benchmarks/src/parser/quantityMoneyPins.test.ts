@@ -19,6 +19,7 @@ import {
   resolveChargeAmount,
   type ClassifiedRow,
   type OcrResult,
+  type ParsedItem,
 } from "@receipt-lens/core";
 import { loadFixtureSplit } from "../fixtures/load.js";
 import { matchItems } from "../matching/matcher.js";
@@ -44,6 +45,42 @@ async function devCord(): Promise<readonly LabeledReceipt[]> {
 
 const rowsOf = (fixture: LabeledReceipt, options = {}): readonly ClassifiedRow[] =>
   classifyRows(fixture.ocr as unknown as OcrResult, options).rows;
+
+/**
+ * 05's `parse()` reconstructed through the `tenderFamily: false` seam: item rows, name built by dropping
+ * the price-column word, every amount null — because 05 emitted no paise. This exists so the *before*
+ * column of the pairing delta is a committed artifact rather than a session measurement; DECISIONS/0008's
+ * reporting discipline says a number worth putting in a report is worth putting in a test first.
+ */
+function baseHeadItems(ocr: OcrResult): ParsedItem[] {
+  const rows = classifyRows(ocr, { tenderFamily: false }).rows;
+  const merged = new Map<number, number[]>();
+  rows.forEach((entry, index) => {
+    if (entry.classification !== "continuation" || entry.mergedInto === null) return;
+    const bucket = merged.get(entry.mergedInto);
+    if (bucket) bucket.push(index);
+    else merged.set(entry.mergedInto, [index]);
+  });
+  const items: ParsedItem[] = [];
+  for (const entry of rows) {
+    if (entry.classification !== "item") continue;
+    const [price] = entry.priceCandidates;
+    const words = entry.row.words.filter((word) => word !== price).map((word) => word.text);
+    items.push({
+      id: `i${items.length + 1}`,
+      name: [...words, ...(merged.get(entry.row.index) ?? []).map((at) => rows[at]!.row.text)].join(" ").replace(/\s+/g, " ").trim(),
+      qty: null,
+      quantitySource: "unresolved",
+      unitPrice: null,
+      priceSource: "unresolved",
+      lineTotal: null,
+      confidence: null,
+      sourceLineIds: [...entry.row.sourceLineIds],
+      warnings: [],
+    });
+  }
+  return items;
+}
 
 /**
  * Every word carrying a digit. Deliberately *wider* than the geometry's numeric vocabulary: the money
@@ -427,6 +464,22 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     // 195 products that were never items, and the money parsing added real ones back.
     expect(items).toBe(518);
     expect(pairs).toBe(135);
+  });
+
+  it("re-derives the base head's pairing so the 131→135 delta has both sides committed", async () => {
+    const receipts = await dev();
+    let basePairs = 0;
+    let baseItems = 0;
+    for (const fixture of receipts) {
+      const ocr = fixture.ocr as unknown as OcrResult;
+      const items = baseHeadItems(ocr);
+      baseItems += items.length;
+      basePairs += matchItems(fixture.gold.items, items).pairs.length;
+    }
+    // Both sides are `matchItems` (τ 0.70, money-compatibility gate) — never substring containment. The
+    // base head pairs 131 items with its money all null; this head pairs 135 with the gate *actively
+    // refusing* a mismatched price, so the rise is real rather than a loosened threshold.
+    expect({ baseItems, basePairs }).toEqual({ baseItems: 713, basePairs: 131 });
   });
 
   it("accounts for every CORD gold item name by the class of the row that carries it", async () => {
