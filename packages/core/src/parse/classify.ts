@@ -17,7 +17,7 @@ import {
   type PriceColumn,
   type RowWord,
 } from "./geometry.js";
-import { isAllCapsStandalone, matchesChargeLabel, matchesHeaderOrNoisePattern } from "./patterns.js";
+import { isAllCapsStandalone, matchesChargeLabel, matchesHeaderOrNoisePattern, matchesTenderFamily } from "./patterns.js";
 import { CONTINUATION_LENGTH_FLOOR, CONTINUATION_LENGTH_MEDIAN_MULTIPLIER } from "./constants.js";
 
 export type RowClassification = "item" | "continuation" | "noise_header" | "ambiguous";
@@ -33,6 +33,15 @@ export interface ClassifiedRow {
   readonly nameColumnLeft: number | null;
 }
 
+/**
+ * `tenderFamily` exists for one thing: DECISIONS/0008 P7's revised invariant requires a pre/post
+ * transition table for any rule that grows the discard class, so the base head's behaviour has to be
+ * re-derivable from the shipped code rather than from a remembered number. Production never passes it.
+ */
+export interface ClassifyOptions {
+  readonly tenderFamily?: boolean;
+}
+
 export interface RowClassifyResult {
   readonly rows: readonly ClassifiedRow[];
   readonly column: PriceColumn | null;
@@ -40,8 +49,13 @@ export interface RowClassifyResult {
   readonly medianWordHeight: number;
 }
 
-function isHeaderOrLabelledRow(row: ParsedRow): boolean {
-  return matchesHeaderOrNoisePattern(row.words.map((word) => word.text)) || matchesChargeLabel(row.text);
+function isHeaderOrLabelledRow(row: ParsedRow, tenderFamily: boolean): boolean {
+  const words = row.words.map((word) => word.text);
+  return (
+    matchesHeaderOrNoisePattern(words) ||
+    matchesChargeLabel(row.text) ||
+    (tenderFamily && matchesTenderFamily(row.text))
+  );
 }
 
 /**
@@ -75,12 +89,13 @@ export function meetsContinuationConditions(
   row: ParsedRow,
   nameColumnLeft: number,
   itemNameLengths: readonly number[],
-  bandTolerance: number
+  bandTolerance: number,
+  tenderFamily = true
 ): boolean {
   const words = row.words.map((word) => word.text);
   return (
     Math.abs(row.left - nameColumnLeft) <= bandTolerance &&
-    !isHeaderOrLabelledRow(row) &&
+    !isHeaderOrLabelledRow(row, tenderFamily) &&
     row.text.trim().length <= continuationLengthCap(itemNameLengths) &&
     !isAllCapsStandalone(words)
   );
@@ -127,7 +142,8 @@ function hasNameContent(row: ParsedRow, candidates: readonly RowWord[]): boolean
  * Clusters an `OcrResult` into rows and classifies each one. Deterministic: the pass reads only
  * geometry, text and rows already classified, so output never depends on object or map ordering.
  */
-export function classifyRows(ocrResult: OcrResult): RowClassifyResult {
+export function classifyRows(ocrResult: OcrResult, options: ClassifyOptions = {}): RowClassifyResult {
+  const tenderFamily = options.tenderFamily ?? true;
   const words = collectWords(ocrResult);
   const medianWordHeight = weightedMedianWordHeight(words);
   const bandTolerance = rowBandTolerance(medianWordHeight);
@@ -149,7 +165,12 @@ export function classifyRows(ocrResult: OcrResult): RowClassifyResult {
     };
 
     // 1. header/noise patterns and charge labels win before any numeric row is read as a product.
-    if (isHeaderOrLabelledRow(row)) {
+    if (isHeaderOrLabelledRow(row, tenderFamily)) {
+      // Family 5 is the one pattern family whose price-column entry still marks item position. A tender
+      // prints at the end of the priced block, so excluding its entry would reopen P7's header zone over
+      // the rows below it and silently discard 38 dev rows that are not tender-shaped at all — the
+      // opposite of what the family is for. Families 1–4 and the charge labels keep 0008's rule.
+      if (tenderFamily && matchesTenderFamily(row.text) && candidates.length >= 1) pricedRowsSeen += 1;
       previousWasItemOrContinuation = false;
       push("noise_header", null, null);
       continue;
@@ -189,7 +210,7 @@ export function classifyRows(ocrResult: OcrResult): RowClassifyResult {
     if (
       openItem &&
       previousWasItemOrContinuation &&
-      meetsContinuationConditions(row, openItem.nameColumnLeft, itemNameLengths, bandTolerance)
+      meetsContinuationConditions(row, openItem.nameColumnLeft, itemNameLengths, bandTolerance, tenderFamily)
     ) {
       // The merged row does not widen the item's measured length: growth would let each accepted
       // continuation raise the cap for the next one, and a run of them could swallow a header row.

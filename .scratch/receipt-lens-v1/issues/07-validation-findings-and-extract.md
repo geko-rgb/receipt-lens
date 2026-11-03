@@ -18,3 +18,24 @@
 - [ ] Findings carry stable codes addressed to the item, row or charge they concern; only canonical codes are emitted, with legacy spellings mapped at the boundary
 - [ ] An itemless result is a critical zero-items finding, not a silent empty success
 - [ ] `extract()` composes OCR, parse and validate; `parse()` accepts normalized OCR only and is pure; `validate()` takes options; all four entry points are exported with stable exports, browser entry metadata and a quickstart README
+
+## Inherited from ticket 06 (2026-11-03)
+
+**187 items with `priceSource: "unresolved"` (of 504 classified item rows) and 2 with no line total on
+dev. Emit findings; do not suppress.** 06 left every unestablished amount `null` rather than guessing, so
+`price_not_resolved` and `item_without_price` now have real triggers.
+
+07's report must **distinguish data-limited items** (the receipt prints a line total only — no unit price
+exists to extract) **from parser-failed items** (a unit price was printed and 06 did not extract it).
+The two need different findings: the first is a `missing_optional_field` / data-shape fact, the second is a
+06 defect. **If the latter exists, 07 should surface a regression note for 06, not work around it.**
+The checkable case for "printed but not extracted" is CORD's `@` marker (a printed unit price): of the
+paired CORD items whose gold annotates `unitPrice` — 3 of them — **all 3 agree exactly**, and 0 of the 135
+dev pairs has a `lineTotal` that contradicts gold. So 06's extracted prices are currently wrong in zero
+known cases; if 07's findings say otherwise, that is a 06 regression to report, not to paper over.
+
+Two more 06 facts 07 must not re-derive by accident: `included` is **never** set by the parser (business.md
+§6.6 makes it an explicit-cue decision), so every parsed tax is additive and any `round_off_adjusted`
+match will be computed against additive taxes. And `serviceCharge`/`tip`/`discount`/`roundOff` are **sums**
+across rows, because the DQ-03 public shape carries one field each — reconciling them against a printed
+subtotal assumes that summing, so a mismatch there may be 06's aggregation rather than an OCR error.

@@ -36,17 +36,21 @@ describe("clean item rows", () => {
     expect(parsed.items.map((item) => item.id)).toEqual(["i1", "i2"]);
   });
 
-  it("leave quantity, money and confidence unresolved — content parsing is ticket 06", () => {
+  it("reads quantity, money and confidence now that ticket 06 owns content parsing", () => {
     const parsed = parse(receipt(ITEM_A, ITEM_B));
+    // `8.000` / `5.000` are evidence only id-ID can read, so the document parses under id-ID:
+    // Rp 8.000 = 800000 paise.
+    expect(parsed.items.map((item) => item.lineTotal)).toEqual([800000, 500000]);
     for (const item of parsed.items) {
-      expect(item.qty).toBeNull();
-      expect(item.unitPrice).toBeNull();
-      expect(item.lineTotal).toBeNull();
+      // Two rows is under the floor of 5, so no quantity column exists; nothing is printed as `N ×`
+      // either, so §7's tentative 1 applies with its review marker.
+      expect(item).toMatchObject({ qty: 1, quantitySource: "assumed", priceSource: "detected" });
+      expect(item.unitPrice).toBe(item.lineTotal);
+      expect(item.warnings.map((warning) => warning.code)).toEqual(["qty_assumed"]);
+      // This provider supplies no scores, and §4 forbids inventing one.
       expect(item.confidence).toBeNull();
-      expect(item.quantitySource).toBe("unresolved");
-      expect(item.priceSource).toBe("unresolved");
-      expect(item.warnings).toEqual([]);
     }
+    expect(parsed.warnings.filter((warning) => warning.code === "qty_assumed")).toHaveLength(2);
     expect(parsed.subtotal).toBeNull();
     expect(parsed.grandTotalSource).toBe("unresolved");
   });

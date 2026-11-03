@@ -196,3 +196,14 @@ index (nothing entered or left the row set — 5,199 rows matched on both sides)
 - **Guardrail adopted** (verbatim in DECISIONS/0008 P7): rule changes ship with a pre/post transition
   table, and any change that moves rows from a non-noise class into `noise_header` needs explicit
   justification, because that class is a discard 06 cannot reach through `ParseResult`.
+
+## Carried forward to P5 by ticket 06 (2026-11-03)
+
+P5's chain-rule y-band interleaves **16 of 254 CORD gold names across two rows** (words of one annotated
+line staggered across 0.3×–3.4× the y-band tolerance). Not catastrophic (6.3%) but real. **Future P5 work
+must measure against these 16.** Not reattachment-reachable — the words are in two separate
+`ParseResult` rows, not one row with a missing name.
+
+Enumeration, mechanism and the metric consequence are in `06-items-quantities-and-charges.md`
+("Findings — the 16 absent gold names"); the head pair for every number quoted there is
+`20e4459` → ticket 06's PR head.
