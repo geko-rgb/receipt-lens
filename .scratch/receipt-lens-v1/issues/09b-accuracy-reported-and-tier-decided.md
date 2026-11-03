@@ -30,3 +30,19 @@ scoring. The README must state this beside the metric.** SROIE annotates `total`
 (DECISIONS/0002), so it has no gold item or charge class to compare against, and its 728 ambiguous
 rows are unjudgable by construction — which is exactly why the split has to be reported rather than
 the headline rate.
+
+## Required before 09b publishes (carried by ticket 06, 2026-11-03)
+
+**Gold-name recovery must be re-derived with 03b's field matcher, not substring containment.** The shipped
+164/254 number in `rowClassification.test.ts` is substring-based and mis-scores 16 geometry-fragmented
+gold names (all 16 have every word present in the row set, none of them contiguous — see 06's ticket
+file). **Do not publish the substring number in the README.**
+
+**Also re-derive the "gold pairs 131→135" delta with 03b's matcher and confirm it was not
+substring-computed; if it was, the delta is unreliable.** Verification as of this writing: both sides are
+`matchItems` at τ 0.70 with the money-compatibility gate, committed in
+`benchmarks/src/parser/quantityMoneyPins.test.ts` ("re-derives the base head's pairing…"), which
+reconstructs the 05 head through the `tenderFamily: false` seam — 713 items / 131 pairs against
+518 items / 135 pairs. The pairing delta is therefore matcher-derived and stands; the *reachability*
+number (164/254) is the one that is not, and 09b must replace it. Expect the matcher's figure to be lower;
+it is the honest one.
