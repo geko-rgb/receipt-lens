@@ -71,6 +71,14 @@ function isPercentAttached(words: readonly RowWord[], index: number): boolean {
   return /%/.test(words[index + 1]?.text ?? "");
 }
 
+/** The number a quantity word prints — `1X`, `1 x` and `1` all name the count in front of them. */
+function patternValue(word: RowWord | undefined): number | null {
+  const match = word ? /^(\d{1,2})(?:\s*[x×])?$/i.exec(word.text.trim()) : null;
+  if (!match) return null;
+  const value = Number(match[1]);
+  return value <= QUANTITY_MAX_VALUE ? value : null;
+}
+
 function smallInteger(word: string): number | null {
   if (!BARE_INTEGER.test(word.trim())) return null;
   const value = Number(word.trim());
@@ -130,21 +138,23 @@ function inBand(word: RowWord, band: QuantityColumn): boolean {
 }
 
 /** §5's first clause: a leading `N x` / `N×` pattern needs no column to be read. */
-export function quantityPattern(words: readonly RowWord[]): number | null {
+export function quantityPatternWords(words: readonly RowWord[]): readonly RowWord[] | null {
   for (let i = 0; i < words.length; i += 1) {
     if (isPercentAttached(words, i)) continue;
     const glued = GLUED_QUANTITY.exec(words[i]!.text.trim());
     if (glued) {
-      const value = Number(glued[1]);
-      if (value <= QUANTITY_MAX_VALUE) return value;
+      if (Number(glued[1]) <= QUANTITY_MAX_VALUE) return [words[i]!];
       continue;
     }
-    const value = smallInteger(words[i]!.text);
-    if (value === null) continue;
+    if (smallInteger(words[i]!.text) === null) continue;
     const next = words[i + 1]?.text.trim();
-    if (next && MULTIPLY_WORD.test(next)) return value;
+    if (next && MULTIPLY_WORD.test(next)) return [words[i]!, words[i + 1]!];
   }
   return null;
+}
+
+export function quantityPattern(words: readonly RowWord[]): number | null {
+  return patternValue(quantityPatternWords(words)?.[0]);
 }
 
 /** An integer inside the price band is a printed total, not a quantity (Q6). */
@@ -164,8 +174,8 @@ export function readQuantity(
   column: PriceColumn | null,
   exclude: readonly RowWord[] = []
 ): QuantityReading {
-  const pattern = quantityPattern(row.words);
-  if (pattern !== null) return { qty: pattern, quantitySource: "explicit", warning: null, via: "pattern" };
+  const pattern = quantityPatternWords(row.words);
+  if (pattern) return { qty: patternValue(pattern[0]), quantitySource: "explicit", warning: null, via: "pattern" };
 
   const integers = row.words
     .map((word, index) => ({ word, index }))
@@ -179,15 +189,35 @@ export function readQuantity(
   if (!band) {
     return { qty: null, quantitySource: "unresolved", warning: "qty_unresolved", via: "unattributed" };
   }
-  const bandHits = integers.filter(({ word }) => inBand(word, band));
+  const bandHits = integers.filter(({ word }) => inBand(word, band)).map(({ word }) => word);
   if (bandHits.length === 0) {
     return { qty: null, quantitySource: "unresolved", warning: "qty_unresolved", via: "unattributed" };
   }
-  const values = new Set(bandHits.map(({ word }) => smallInteger(word.text)));
+  const values = new Set(bandHits.map((word) => smallInteger(word.text)));
   if (values.size > 1) {
     return { qty: null, quantitySource: "unresolved", warning: "qty_unresolved", via: "conflicting" };
   }
   return { qty: [...values][0]!, quantitySource: "explicit", warning: null, via: "column" };
+}
+
+/**
+ * The words an explicit read consumed from the row, so the item's name can drop them: a name that still
+ * carries `2 x` is a name the parser claims to have read a quantity out of and then left in.
+ */
+export function consumedQuantityWords(
+  row: ParsedRow,
+  band: QuantityColumn | null,
+  column: PriceColumn | null,
+  exclude: readonly RowWord[] = []
+): readonly RowWord[] {
+  const reading = readQuantity(row, band, column, exclude);
+  if (reading.quantitySource !== "explicit") return [];
+  if (reading.via === "pattern") return quantityPatternWords(row.words) ?? [];
+  return row.words.filter((word, index) => {
+    if (exclude.includes(word) || smallInteger(word.text) === null) return false;
+    if (isPercentAttached(row.words, index) || inPriceBand(word, column)) return false;
+    return band !== null && inBand(word, band);
+  });
 }
 
 /** Exposed for the pin test in `benchmarks/src/parser/`, which re-derives DECISIONS/0010 Q1's counts. */
