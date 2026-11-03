@@ -1,8 +1,8 @@
 # HANDOFF — session log and next steps (2026-11-03)
 
 ## Where everything lives
-- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `9e482e9` (PR #7,
-  tickets 01/02/03a/03b/04 merged). Fetch before reading `origin/main`: a stale local ref made a
+- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `de1667f` (PR #9,
+  tickets 01/02/03a/03b/04/05/06 merged). Fetch before reading `origin/main`: a stale local ref made a
   fresh session think 03a was unmerged.
 - **GitHub remote (private, origin):** `https://github.com/geko-rgb/receipt-lens`. Branch
   protection on `main`: PR required, status check `unit` required, force-push/deletion denied,
@@ -335,38 +335,104 @@ get a `ParseResult`.
 up to date ✓ `pnpm install --frozen-lockfile` green (no dependency change) ✓. Disk: 55 GB free on
 `/home`; ~2,100 lines of tracked source added, no new asset bytes.
 
-## Next: ticket 07 — validation findings and extract
-After 06: 07 → 08 → 09a → 09b → 10a → 10 → …
-Read first for 07: its ticket file, `PROJECT(1).md` §6 (all of it: the two confidence floors, critical
-findings, minor row/charge diagnostics, the arithmetic validator and `items_may_be_missing`),
-`docs/business.md` §12–13, `DECISIONS/0007` (the tolerance distinction — untouched), `DECISIONS/0008`
-(rule 3, and the revised P7 invariant) and `DECISIONS/0010` (Q5's typing rules, Q7's tender ruling, and
-the Q8 seam that says money semantics live in 06's layer, not in geometry). What 06 hands over:
+## CHECKPOINT — ticket 07 complete (2026-11-03, branch `ticket/07-validation-findings-and-extract`)
 
-- `parse()` returns a full `ParseResult`. Items carry `qty`/`quantitySource`, `unitPrice`/`priceSource`,
-  `lineTotal`, `confidence` (the mean of the word scores the provider supplied, else null — never imputed)
-  and per-item warnings. 187 of 518 dev items arrive with `priceSource: "unresolved"` and 2 with no
-  `lineTotal` at all: those are the real triggers for `price_not_resolved` and `item_without_price`.
-- §6's codes are 07's to emit: `price_not_resolved`, `name_confidence_low`, `price_confidence_low`,
-  `ocr_confidence_low`, `confidence_unavailable`, `name_length_outlier` (needs ≥5 items and a population
-  standard deviation), `items_may_be_missing`, `round_off_adjusted`, `missing_optional_field`, and every
-  arithmetic finding. `validate()` is still the ticket-01 stub.
-- Charges arrive typed but `included` is never set: 06 reads an inclusion cue only as a *precedence*
-  signal (tax+aggregate rows), and business.md §6.6 makes `included` an explicit-cue decision, so the
-  field is left undefined and 07 must treat every tax as additive. If 07 wants to set it, that is a
-  documented behaviour, not a side effect of the arithmetic matching.
-- `serviceCharge`, `tip`, `discount` and `roundOff` sum across rows because the public shape has one
-  field each; `taxes[]` stays one entry per label, and a row naming two taxes with one printed amount
-  keeps the second entry `null` with `unclassified_charge` — 06 refused to split an amount.
-- `noise_header` rows still appear nowhere in `ParseResult`, and that now includes tenders: see
-  DECISIONS/0008 and 0010 Q7. Split-layout name reattachment (P7's last section) was **not** done in 06
-  and is still open; the channel is `classifyRows()`.
-`eval/` stays unread; tuning is dev-only (DECISIONS/0004). DECISIONS/0006 stays shut: the parser
-consumes no τ, and `benchmark.config` is locked unless a new record supersedes it. Blocked-by lines
-are authoritative; `Week:`/`Milestone:` labels are planning hints and several are wrong. Branch + PR,
-never direct-push `main`.
+**What landed:** the validator and the one-call API. `packages/core/src/validate/` is now
+`findings.ts` (the finding constructor, §4's legacy-code mapping, the charge-ref convention),
+`arithmetic.ts` (§6's conditional formula over integer paise), `confidence.ts` (the two floors, the
+receipt-wide diagnostic, null handling) and `index.ts` (`validate()` filled — it was ticket 01's
+throw-stub). `extract.ts` composes ocr → parse → validate and owns no logic of its own; `api.test.ts`
+asserts `extract()` equals the staged call on identical input. `packages/core/README.md` is the §4
+quickstart, and the package is publishable (`npm pack --dry-run` clean, 85.2 kB packed / 317.8 kB
+unpacked, 83 files — session-measured, like every pack figure here: the command writes nothing to the repo). `private: true` was removed and `publishConfig.access: "public"` added; **nothing was
+published** — see Open items.
+
+`DECISIONS/0011` is the artifact of this ticket: the 34-row conditional table, and the reason the ticket is
+reviewable. The owner approved its four judgement pins (V3 direction rule, V6 attribution, V14 two-code
+price split, V15 outlier multiple) at a checkpoint **before** validator code existed, then asked for the
+27-critical mechanism to be sampled first. Both gates changed what the record says — see corrections.
+
+**Headline dev numbers, all re-derived by the shipped `validate()` in the committed
+`benchmarks/src/parser/validationPins.test.ts` (11 tests) — not by an in-test restatement:** 1,781 findings
+over 250 receipts, 106 critical, **86 receipts `uncertain`**. `ambiguous_row` 820,
+`confidence_unavailable` 250, `qty_assumed` 231, `price_not_resolved` 185, `qty_unresolved` 141,
+`zero_items` 42, `arithmetic_total` 34, `arithmetic_item_sum` 27, `unclassified_charge` 22,
+`items_may_be_missing` 18, `name_length_outlier` 6, `ambiguous_price_separator` 2, `item_without_price` 2,
+`invalid_result_schema` 1.
+
+**Four things a fresh session should not rediscover the hard way:**
+
+1. **Dev cannot exercise the confidence floors, at all.** Dev reference OCR supplies **0 scored words out
+   of 10,424**, so all 518 items score null, every receipt takes `confidence_unavailable`, and the 106
+   criticals cap **0** values. The floors are covered by authored fixtures only, and §17's M1-exit
+   calibration cannot come from this corpus. Carried to 09b explicitly: do not cite dev as floor evidence.
+2. **§6 line 406's name-vs-price split is not computable inside the fixed contract.** `ParsedItem.confidence`
+   is one mean over every word on the row (`items.ts:152`) and `validate()` never sees an `OcrResult`. V6's
+   pinned answer flags the contributing field set instead of guessing which field was low; it degrades to
+   exact attribution when the item has only one contributor. Same class of gap: §6's word-count-weighted
+   receipt mean, and `missing_optional_field`'s printed-label cue (V12 — deliberately never emitted, because
+   06 drops a labelled row with no readable amount before `ParseResult` sees it).
+3. **"Coverage is plausible" (§6 line 459) has no computable reading from a `ParseResult`** — validate()
+   cannot know how many item rows a receipt printed. V3 substitutes the *direction* of the difference,
+   which §6's own sentence already argues: absent rows can only make the sum small. Over-sum critical (27),
+   under-sum minor (17).
+4. **A pairing gate that drops failing cases cannot report "0 wrong."** The brief's "3 gold-annotated → 3
+   exact, so 06 is wrong in zero known cases" was true only of pairs `matchItems` accepted, and money
+   compatibility is a *precondition* of pairing (§8.2, 0006 Option B). Measured by name similarity alone:
+   **49** gold items annotate `unitPrice`, and **2 are actively wrong** — the `items.ts:132` rescue turns a
+   printed line total into a `detected` unit price under an **assumed** `qty 1`. **230 of 518 items carry
+   that signature.** Filed on 06 (0011 V13.1). This is DECISIONS/0010's "the measurement predicate was
+   looser than the matcher" lesson again, in the opposite direction.
+
+**Also: the 27 `arithmetic_item_sum` criticals are not Q5's predicted mechanism.** Five sampled at row
+level: charge rows (`PB 1 10%`, `P.Rest 10 %`, `SERV CHARGE 10%`, `SR 6%`) and tender rows (`BCA Card`,
+`DEBIT BCA`) that 05 classified as **items**, so `readCharges` never saw them and no precedence rule ever
+ran; plus one correct item list whose printed subtotal is net of a discount 06 never typed. The parsed
+subtotal is **right on 21 of 21** checkable receipts, so the comparison is sound and the item list
+genuinely over-counts. 8 of 27 have an excess exactly equal to the Σ of their `%`-row items; 06's own
+`matchesTenderFamily` explains only 1. Filed on 05 and 06, and the underlying §5 line 159 compliance gap —
+`charges.ts:108` silently drops every row whose label is outside the dictionary — is filed as **ticket 20**.
+
+**Verified locally:** `pnpm install --frozen-lockfile` ✓ (no dependency change) `pnpm build` ✓
+`pnpm typecheck` ✓ `pnpm -r test` **447 passing** (core 222, pwa 27, benchmarks 198; base `de1667f` had
+348) ✓ `pnpm verify:results` byte-identical ✓ `pnpm verify:fixtures` 715 files byte-identical ✓
+`pnpm scan:pii` idempotence clean, 51 advisories unchanged ✓ `node scripts/model-manifest.mjs --check` up to
+date ✓ fixture budget 12.0 MB / 50 MB ✓ `npm pack --dry-run` ✓ (85.2 kB, session-measured). Disk: **56 GB free** on `/home`;
+~144 KB of tracked text added (decision record, README, validator + tests, pin suite, ticket 20), no new
+asset bytes, no new dependency, nothing over 1 MB. `.git` 15 MB.
+
+**Not done, on purpose:** no `npm publish` and no branch push. `@receipt-lens/core` declares **no licence**
+— nothing in the repo does — and a public scoped publish of an unlicensed package is an owner decision, not
+an agent default. Branch + PR per the standing rules when the owner wants them shipped.
+
+## Next: ticket 08 — measured footprint
+
+After 07: 08 → 09a → 09b → 10a → 10 → … Read first for 08: its ticket file, `PROJECT(1).md` §9 (the
+cache-invalidation rules and the README claim), `DECISIONS/0007` (the provider is main-thread today; `ocr/
+worker.ts` is still unwritten and no ticket has needed it), and `HANDOFF`'s ticket-04 section for the real
+run's asset byte count (6,277,292 bytes across det/rec/dictionary) and the measured session numbers.
+What 07 hands over:
+
+- `validate()`, `extract()` and the whole §4 surface are live. `packages/core/dist` is 488 KB unpacked at
+  build; the packed tarball is 85.2 kB with source maps, 83 files (session-measured). 08's job is the *browser* footprint,
+  measured, not these numbers.
+- The pipeline is `ocr → parse → validate`, pure between stages, so a worker boundary (09a/10) wraps it
+  without changing any signature.
+- Finding codes are the UI contract. `validate.test.ts` asserts core emits no blocker field, and §6 line 401
+  means 10/11/13 must react to codes only. Ticket 13's `LockBlocker` mapping still has no §13 code for
+  unknown-sign charges — `unclassified_charge` is core's minor finding, and 07 added nothing to §13.
+- Floors, the round-off band and `name_length_outlier`'s k=2 are pinned in DECISIONS/0011 as **consumed
+  defaults, not calibrated values**; §17 still owes their M1-exit evaluation, and 09b is told it cannot be
+  done against dev (V0.1).
 
 ## Open items / owner decisions pending
+- **`@receipt-lens/core` is packable but not published, and declares no licence.** Ticket 07 made it
+  publishable (`private` removed, `publishConfig.access: "public"`, `files` covers `dist` + `README.md`;
+  `npm pack --dry-run` clean at 85.2 kB / 83 files) and stopped there. Nothing in the repo carries a
+  licence file or a `license` field, and a public scoped publish of an unlicensed package is an owner
+  decision, not an agent default. §3's "register the `@receipt-lens` scope" is also still open. Owner call
+  wanted: licence (or explicit `UNLICENSED`), the version to publish at (currently `0.0.0`), and whether
+  the scope is registered at all.
 - **`.agents/skills/` tracking is undecided — TODO.** Write `DECISIONS/0009-skills-tracking.md`
   choosing one: (a) tracked, with a `pnpm check:skills` that verifies each `SKILL.md` against
   `skills-lock.json`'s computed hashes, or (b) gitignored, with `skills-lock.json` as the

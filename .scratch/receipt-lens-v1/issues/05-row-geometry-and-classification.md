@@ -207,3 +207,26 @@ must measure against these 16.** Not reattachment-reachable — the words are in
 Enumeration, mechanism and the metric consequence are in `06-items-quantities-and-charges.md`
 ("Findings — the 16 absent gold names"); the head pair for every number quoted there is
 `20e4459` → ticket 06's PR head.
+
+## Comments
+
+**Carried by ticket 07 (2026-11-03).**
+
+**1 item with `lineTotal: null` is a 05 false positive.** `sroie/dev/3` — the footer row
+`CASHIER [NAME] TIME 12 31 00` became an item named `CASHIER [NAME] TIME` with an assumed qty of 1 and no
+money at all. Classifier edge case, not worked around in 06 or 07; 07 reports it as `item_without_price`
+critical. Committed in `benchmarks/src/parser/validationPins.test.ts` ("the two items with no line
+total").
+
+**A classification leak 07 had to attribute.** Of the 27 dev receipts where Σ item line totals exceed
+the printed subtotal, **11 have an item whose printed row carries a `%` token** and for **8 the excess is
+exactly those items' sum** — rows like `PB 1 10% 8.100`, `P.Rest 10 %`, `PB1 (10%)`, `SERV CHARGE 10%`,
+`SR 6% 54.56`, `SR@6% 40.00`. 06's own `matchesTenderFamily` accounts for the excess on exactly **1**,
+so `BCA Card` and `DEBIT BCA` are outside Q7's tender family. §5 line 385's safeguard (*"Charge labels
+are matched before numeric rows are classified as products"*) cannot fire on labels the dictionary does
+not contain, so these rows reach `readCharges` as class `item` and no charge precedence ever runs.
+DECISIONS/0011 V3.1 corrects this record's attribution of the exposure: it is **not** Q5's
+tax/aggregate-precedence mechanism. The subtotal parse is not the problem — where CORD annotates a
+subtotal, 06 reads it correctly on all **21 of 21** checkable receipts, so the item list genuinely
+over-counts. Census committed in `validationPins.test.ts` ("the item-sum criticals are over-inclusive
+item lists").
