@@ -171,6 +171,35 @@ describe("monetary compatibility (§8.2, Option A: unannotated does not vote)", 
   });
 });
 
+describe("the money gate is switchable, and says which way it ran (DECISIONS/0008)", () => {
+  const annotated = [goldItem("ES TEH", { unitPrice: 5000, lineTotal: 10000 })];
+  const wrongMoney = [predictedItem("ES TEH", { unitPrice: 6000, lineTotal: 12000 })];
+
+  it("pairs the same input when the gate is off, which is where a wrong price becomes countable", () => {
+    expect(matchItems(annotated, wrongMoney).pairs).toEqual([]);
+    const off = matchItems(annotated, wrongMoney, 0.7, { moneyGate: false });
+
+    expect(off.pairs).toHaveLength(1);
+    expect(off.pairs[0]!.similarity).toBe(1);
+  });
+
+  it("defaults to on, and records the state on the result so no paired-gold number is unlabelled", () => {
+    expect(matchItems(annotated, wrongMoney).moneyGate).toBe(true);
+    expect(matchItems(annotated, wrongMoney, 0.7, { moneyGate: false }).moneyGate).toBe(false);
+  });
+
+  it("changes nothing for a pair the gate would have admitted anyway", () => {
+    const agreeing = [predictedItem("ES TEH", { unitPrice: 5000, lineTotal: 10000 })];
+    const on = matchItems(annotated, agreeing);
+    const off = matchItems(annotated, agreeing, 0.7, { moneyGate: false });
+
+    expect(off.pairs).toEqual(on.pairs);
+    expect(off.unmatchedGold).toEqual(on.unmatchedGold);
+    expect(off.unmatchedPredicted).toEqual(on.unmatchedPredicted);
+    expect([on.moneyGate, off.moneyGate]).toEqual([true, false]);
+  });
+});
+
 describe("names are compared after §8.1 normalization, never raw", () => {
   it("matches a name that differs only in case, punctuation and spacing", () => {
     const match = matchItems([goldItem("Se'I Sapi Sambal Matah ( R )")], [predictedItem("  se i sapi  sambal   matah  r  ")]);
