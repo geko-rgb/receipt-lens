@@ -19,8 +19,8 @@
 > reload and the test will fail for the wrong reason.** Offline *reload* is ticket 17's Cache API
 > to solve; 09a does not need to prove that claim.
 
-- [ ] A minimal harness page exercises the full core pipeline (load → infer) standalone, independent of the PWA
-- [ ] A Playwright run precaches the assets, blocks outbound requests at the context level, performs inference on a real receipt image, and succeeds
-- [ ] Attempted requests during that run are recorded and any unexpected egress fails the job
-- [ ] Static first-party scanning supplements the runtime check and is labelled as a supplement, not a proof
-- [ ] The privacy workflow is wired so a violation turns the pipeline red on the PR
+- [x] A minimal harness page exercises the full core pipeline (load → infer) standalone, independent of the PWA
+- [x] A Playwright run precaches the assets, blocks outbound requests at the context level, performs inference on a real receipt image, and succeeds
+- [x] Attempted requests during that run are recorded and any unexpected egress fails the job
+- [x] Static first-party scanning supplements the runtime check and is labelled as a supplement, not a proof
+- [x] The privacy workflow is wired so a violation turns the pipeline red on the PR
