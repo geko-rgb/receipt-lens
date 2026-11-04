@@ -4,8 +4,8 @@ Owner-set rules (2026-11-02). Every ticket report includes a one-line disk delta
 what was added, where it lives (tracked/ignored/fetched), repo size, free space.
 
 1. **Nothing over 1 MB is committed without explicit approval.** The three PP-OCRv6
-   Tiny model assets (`assets/models/`, ~6.3 MB total) are the standing exception
-   already approved in ticket 01. Nothing else is.
+   Tiny model assets (`assets/models/`, 6,277,292 B, plus the 2,700 B manifest) are the
+   standing exception already approved in ticket 01. Nothing else is.
 2. **Datasets are fetched, not committed.** Pinned URL + SHA-256 + license live in
    `benchmarks/datasets/dataset-manifest.json`; bytes are materialized by script into
    the git-ignored `benchmarks/datasets/raw/`. Verified: no dataset bytes in git

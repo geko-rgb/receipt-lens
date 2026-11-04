@@ -112,7 +112,7 @@ Framework gate G1 (end W11) → IndexedDB/SW foundation → all Phase 3 workstre
 | Gate | Decision | Due | Recommended default |
 |---|---|---|---|
 | G1 | PWA framework commitment | end W11 | **Svelte 5 + Vite + TypeScript** (fallback: React 19 + Vite if ecosystem wins) |
-| G2 | Verify third-party ~31 MB deployment figure | W22 | Ignore until measured; cite only own numbers |
+| G2 | Third-party "~31 MB deployment figure" | closed W8 (ticket 08) | **Withdrawn, not verified.** No primary source for it exists in this repo and none could be traced, so it is removed from circulation per ticket 08. The only deployment size figure any doc may cite is the generated table in `packages/core/README.md`, which regenerates from `benchmarks/results/footprint.json`. |
 | G3 | Keep PP-OCRv6 Tiny or move to Small | end W9 | **Keep Tiny** unless strict-metric gap is material |
 | G4 | Pin CORD and SROIE snapshots, licenses, hashes | end W2 | CORD v2 official; canonical SROIE from source repo |
 | G5 | UPI `pn`/`tn`/`tr` limits from primary NPCI spec | before W19 constants lock | Current tentative values, flagged unverified; keep `tr` optional |

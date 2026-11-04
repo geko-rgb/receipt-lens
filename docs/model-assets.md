@@ -24,5 +24,8 @@ at any point; risk R10):
 - Fetch-and-hash-at-build makes every clean build depend on upstream vendor URL
   availability and silently accepts whatever bytes the vendor republishes under the
   same path; pinning-by-download-to-repo records exactly what we shipped.
-- Total footprint is ~6.3 MB — small enough to commit without repo surgery.
+- These three files total 6,277,292 bytes — small enough to commit without repo surgery.
+  That is the **model share** of the footprint, not the footprint. The measured whole is
+  dominated by the inference runtime's WASM binary, and the only size figure that may be
+  quoted is the generated table in `packages/core/README.md`.
 - Same-origin serving is a hard requirement, so the bytes must be ours to serve.
