@@ -258,4 +258,6 @@ the source of truth for any behaviour asserted here. The framework evidence this
 - **Whether `billValidation` results are cached across transactions.** They are recomputed per
   transaction inside the runner; caching them is a performance question with no v1 evidence behind it.
 - **Multi-tab or cross-window state.** `revision` exists; no sync protocol exists; ticket 14 decides.
-- **`PROJECT(1).md`** is unedited (standing rule).
+- **`PROJECT(1).md`**: unedited by this record. It was later edited once in ticket 11, by owner instruction
+  and for a different question — the §19 out-of-scope entry for fractional/weight quantities — not by this
+  decision.
