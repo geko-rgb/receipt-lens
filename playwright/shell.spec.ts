@@ -119,7 +119,9 @@ test.describe("shell navigation", () => {
     const state = await shellState(page);
     expect(state.route).toBe("capture");
     expect(state.heading).toBe("Capture");
-    expect(await page.getByTestId("capture-note").textContent()).toContain("navigation and layout only");
+    // Ticket 10 replaced the placeholder: capture is a real view now, so the note no longer says
+    // "navigation and layout only" — it must still be present, and must describe intake.
+    expect(await page.getByTestId("capture-note").textContent()).toContain("Capture a receipt");
 
     // DECISIONS/0017 D4: the shell must not force-load the OCR runtime on first paint.
     expect(requests.filter((url) => /\.wasm$|onnx|ort[-/.]/i.test(url))).toEqual([]);

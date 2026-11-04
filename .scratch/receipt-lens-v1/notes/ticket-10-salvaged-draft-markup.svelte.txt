@@ -1,0 +1,110 @@
+      <div class="draft-review">
+        <h2 data-testid="review-title">Review extracted items and charges</h2>
+
+        {#if error}
+          <div class="alert alert-error"><span>{error}</span></div>
+        {/if}
+
+        <!-- Items -->
+        <section data-testid="items-section" class="section">
+          <h3>Items</h3>
+          {#each draftItems as item (item.id)}
+            <div class="item-row" style="border-bottom: 1px solid #eee; padding: 8px 0; margin: 4px 0;">
+              <div style="font-weight: 500; white-space: nowrap;">
+                {item.name}{#if item.qty !== null && item.qty !== undefined}(qty: {item.qty}){/if}
+              </div>
+              <div style="font-size: 0.8em; color: #666; white-space: nowrap;">
+                {item.confidence !== null ? `confidence: ${item.confidence.toFixed(2)}` : "confidence: n/a"}
+                {#each item.warnings as w}
+                  <span class="warning-badge" style="background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 3px; font-size: 0.7em; margin-left: 4px;">{w.code}</span>
+                {/each}
+              </div>
+            </div>
+          {/each}
+
+          {#if draftItems.length === 0}
+            <p>No items detected. This may be a word-free image.</p>
+          {/if}
+        </section>
+
+        <!-- Charges -->
+        {#if draftCharges.length > 0 || (parseResult?.serviceCharge !== null || parseResult?.tip !== null || parseResult?.discount !== null || parseResult?.roundOff !== null)}
+        <section data-testid="charges-section" class="section">
+          <h3>Charges</h3>
+          {#each ([...(parseResult?.taxes || []), ...(parseResult?.otherCharges || [])]) as charge}
+            <div class="charge-row" style="border-bottom: 1px solid #eee; padding: 8px 0; margin: 4px 0;">
+              <span style="font-weight: 500;">{charge.label || 'Unnamed charge'}}</span>
+              {#if charge.amount !== null}<span style="font-weight: normal;">{charge.amount} paise</span>
+              {/if}
+              {#if charge.amount === null}<span style="color: #666;">unresolved</span>{/if}
+              {charge.source && charge.source !== "detected" ? ` (${charge.source})` : ""}
+            </div>
+          {/each}
+
+          {#if parseResult?.serviceCharge !== null}
+            <div class="charge-row" style="border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px;"><span>Service charge: {parseResult.serviceCharge} paise</span></div>
+          {/if}
+          {#if parseResult?.tip !== null}
+            <div class="charge-row" style="border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px;"><span>Tip: {parseResult.tip} paise</span></div>
+          {/if}
+          {#if parseResult?.discount !== null}
+            <div class="charge-row" style="border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px;"><span>Discount: {parseResult.discount} paise</span></div>
+          {/if}
+          {#if parseResult?.roundOff !== null}
+            <div class="charge-row" style="border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px;"><span>Round off: {parseResult.roundOff} paise</span></div>
+          {/if}
+        </section>
+        {/if}
+
+        {#if draftItems.length === 0 && (!ocrResult || ocrResult.lines.length === 0)}
+          <div class="alert alert-info" data-testid="zero-items-state">
+            <span>No items detected — word-free image.</span>
+            <p>The receipt image contains no readable text. This is a critical zero-items state.</p>
+          </div>
+        {/if}
+
+        <!-- Action buttons -->
+        <div class="actions">
+          <button
+            data-testid="accept-btn"
+            on:click={acceptNewParse}
+            disabled={isProcessing}>
+            Accept (keeps previous parse until new result accepted)
+          </button>
+          <button
+            data-testid="discard-btn"
+            on:click={discardNewParse}
+            disabled={isProcessing}>
+            Discard (restore previous parse)
+          </button>
+          {#if !cameraDenied}
+            <button
+              data-testid="retention-toggle"
+              on:click={toggleRetention}>
+              {retained ? "Retain image active" : "Retain image (opt-in)"}
+            </button>
+          {:else}
+            <span>Image not retained (camera denied)</span>
+          {/if}
+          <button
+            data-testid="reprocess-btn"
+            on:click={runOcrOnCurrentImage}
+            disabled={isProcessing}>
+            Reprocess
+          </button>
+        </div>
+      </div>
+    {/if}
+
+---
+
+## data-testid vocabulary used by the salvaged block (ticket 10 contract)
+review-title, items-section, charges-section, zero-items-state, accept-btn, discard-btn,
+reprocess-btn, retention-toggle (deferred to ticket 14 — see kickoff), plus from the surrounding
+shell of the same draft: receipt-preview, rotate-btn, rotate-status, deskew-btn, deskew-status,
+reset-crop, crop-info, contrast-minus, contrast-value, contrast-plus, process-btn, use-file-picker-btn.
+
+Missing from the draft and required by ticket 10: h1 "Capture" and data-testid="capture-note"
+(playwright/shell.spec.ts:115 asserts both).
+
+Also missing: any <input type="file">. The draft defines handleFileSelect() and never binds it.
