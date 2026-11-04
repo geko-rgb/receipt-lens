@@ -1,9 +1,9 @@
-# HANDOFF — session log and next steps (2026-11-04)
+# HANDOFF — session log and next steps (2026-11-05)
 
 ## Where everything lives
-- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `de1667f` (PR #9,
-  tickets 01/02/03a/03b/04/05/06 merged). Fetch before reading `origin/main`: a stale local ref made a
-  fresh session think 03a was unmerged.
+- **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `c611451` (PR #15; tickets
+  01/02/03a/03b/04/05/06/07/09a/09b/10a/10 merged, 08 as well). Fetch before reading `origin/main`: a stale
+  local ref made a fresh session think 03a was unmerged.
 - **GitHub remote (private, origin):** `https://github.com/geko-rgb/receipt-lens`. Branch
   protection on `main`: PR required, status check `unit` required, force-push/deletion denied,
   admins included. **The repo is `receipt-lens`, not `Recipt-lens`** — see the correction below;
@@ -543,6 +543,77 @@ budget 12.0 MB / 50 MB ✓ `playwright --grep-invert @offline` **13 passing** (1
 `node scripts/pwa-framework/verify-evidence.mjs` ✓. Disk: **52 GB free**; tracked +~130 KB (shell sources,
 specs, docs, record); ignored +~293 MB (probe, deletable on merge); `.git` 16 MB.
 
+## CHECKPOINT — ticket 11 complete (2026-11-05, branch `ticket/11-bill-editor-transactions`)
+
+**Note for a fresh session:** ticket 10 merged (`c611451`, PR #15) without adding its own checkpoint
+section here, so this file's previous newest section is 10a. Read 10's ticket file
+(`.scratch/receipt-lens-v1/issues/10-capture-review-reprocess.md`, still unticked) and `DECISIONS/0018`
+for what landed there; the code is the artifact.
+
+**What landed:** the bill editor. Drafts become a bill, and the transaction contract is the product.
+`packages/pwa/src/lib/bill/` — `working-bill.ts` (§10's draft tier and the blocker vocabulary),
+`document.ts` (the committed `BillDocument`, `deepFreeze`, `visibleFindings`), `mapping.ts` (3C.1:
+`ParseResult` → drafts, charge ids = DECISIONS/0011 V9's refs), `totals.ts` (recompute, the printed-vs-
+calculated gap, guarded shares), `units.ts` (materialization and quantity maintenance), `finalize.ts`
+(§10's gates and `DraftItem → Item`), `transactions.ts` (the runner and every operation) — plus
+`src/lib/validate-bill.ts`, the path §6 line 399 names, and `src/lib/bill/bill-document.svelte.ts`, the
+~70-line reactive slot. `Bill.svelte` holds no rule. Tests: `packages/pwa/tests/bill/pins.test.ts` (71) and
+`playwright/bill-editor.spec.ts` (3), on the repo's own 5 files → 23 Playwright tests.
+
+**DECISIONS/0019** (state) and **DECISIONS/0020** (transaction pins) were written and approved at the owner's
+checkpoint **before** any code, and both are load-bearing rather than decorative: 0019's single-value commit
+rule is what makes rollback assertable as object identity, and 0020's pins are each an assertion in the
+committed suite.
+
+**Three things a fresh session should not rediscover the hard way:**
+
+1. **`$state` deep proxies are incompatible with the transaction model.** The document is committed
+   deep-frozen (0019 S7), and freezing a `$state` proxy throws `state_descriptors_fixed`. An operation handed
+   the reactive read of a document hands proxies back. The root is therefore `$state.raw`, and the capture
+   handoff is detached at `billStore.begin` with a **JSON round trip — `structuredClone` cannot clone a
+   Svelte proxy** ("#\<Object\> could not be cloned", found in the browser; the 71 unit tests never saw it
+   because they never read state through a reactive cell).
+2. **Core is in the entry chunk now, and that was predicted.** A bill edit must run core `validate()`
+   synchronously (§6 line 400), so `import { validate } from "@receipt-lens/core"` is eager —
+   `DECISIONS/0017` D4: "core itself cannot split out — only what sits behind core's own internal
+   `await import("onnxruntime-web/wasm")` does." `smoke.spec.ts` used to assert the *string*
+   `ort.wasm.bundle.min` was absent from the entry; that proxy is gone, replaced by a chunk-graph assertion
+   on `.vite/manifest.json` (runtime chunk `isDynamicEntry`, not in the entry's `imports`, in its
+   `dynamicImports`) plus the existing first-paint request walk. Entry: 144.44 kB raw / 48.12 kB gzip.
+   **D9.1's remeasurement is now unambiguously due** — the published 21.30 MB pair is still the harness's.
+3. **`splitting.ts`'s unacknowledged-unit throw is not a transaction failure.** `computeExactShares` throws
+   on a unit that is neither assigned nor acknowledged (`TODO(ticket 13)`), and that state is an ordinary
+   mid-edit bill — so `totals.ts` checks the precondition first and reports `sharesUnavailableFor`. A throw
+   inside recompute is `recompute_failed` and rolls the whole edit back; the editor must never refuse a price
+   change because a naan has no owner yet.
+
+**Findings this ticket filed rather than fixed:** the shipped parser reads the synthetic receipt
+`RECEIPT / COFFEE 4.50 / NAAN 60.00 / TOTAL 100.00` as **one item plus one preserved ambiguous row** — the
+`NAAN` line never becomes an item (05/06 territory; ticket 11's e2e therefore completes the bill with a
+hand-added line, which is the ticket's own acceptance case). And `unclassified_rows_unreviewed`'s "explicitly
+excluded" half has **no representation in §10** (`UnclassifiedRow` carries no review field), so ticket 13
+owns that field plus the "reviewed" affordance; the blocker this ticket emits fires only while no live line
+reads the row's source.
+
+**Also closed here** (both were `HANDOFF` open items): an `otherSign: "unknown"` charge maps to §10's
+existing `draft_charges_unresolved` — no new §13 code invented — and `Bill.grandTotal` now has exactly one
+writer (`setGrandTotal`).
+
+**Verified locally:** `pnpm install --frozen-lockfile` ✓ (no dependency change) `pnpm build` ✓
+`pnpm typecheck` ✓ (0 errors; `svelte-check` 0/0) `pnpm -r test` **573 passing** (core 222, pwa 137,
+benchmarks 214; base head `c611451` had 502) ✓ `pnpm test:e2e` **23 passing** (was 21; `@offline` included)
+✓ `pnpm scan:egress` 0 violations ✓ `pnpm verify:results` ✓ `pnpm verify:footprint` ✓ fixture budget
+12.0 MB / 50 MB ✓. Disk: **53 GB free** on `/home`; tracked ≈ +120 KB of text (2 records, 8 helper modules,
+2 suites, 2 spec edits); ignored: `dist/` rebuilt; `.git` unchanged in kind. **Nothing pushed, no PR** —
+owner approval required first, per the standing rule. Commits: `60bd4a2` (decisions), `dd0da96`
+(implementation).
+
+**Next ticket:** 12 (unit assignment) is unblocked. It inherits the store shape, the `assign`-shaped
+operation pattern in `transactions.ts`, §10's `assignment_duplicate`/`participant_unknown` codes, and the
+rule that assigning a unit clears `confirmedUnassigned` in the same transaction (0020 T7/T11). Ticket 13
+inherits `blockers.locking` already maintained after every edit, `bill_locked` as a rejection the editor
+raises (not 13's invention), and the two gaps named above.
+
 ## Superseded: next was ticket 08 — measured footprint
 
 Tickets 08 and 09a are merged (PRs #11, #12). The section below is kept for its history; for current
@@ -584,7 +655,18 @@ What 07 hands over:
   content.** Standing rule until 0009 lands: no `.agents/` worktree changes without explicit approval.
 - Rename repo `Recipt-lens` → `receipt-lens` (`gh repo rename`) or keep.
 - Rotate the fine-grained PAT (its first ~26 chars leaked into a session transcript; value still live).
-- Ticket 13: map `otherSign:"unknown"` charges + `hasNegativeShare` + unacknowledged-unit throw to real `LockBlockerCode`s (no §13 code exists for unknown-sign today — do not invent silently).
+- Ticket 13: `hasNegativeShare` and the unacknowledged-unit path now have real codes — ticket 11 emits
+  `negative_share_after_discount` from computed shares and `units_unassigned` from the unit set, and the
+  `otherSign: "unknown"` question is resolved as §10's existing `draft_charges_unresolved` (DECISIONS/0020
+  T8). What 13 still owns: the lock/unlock action itself, the checklist UI, and a place to record
+  "explicitly excluded" for an ambiguous row, which §10 does not model.
+- **Owner question raised by ticket 11 (DECISIONS/0020 "does not decide"):** a receipt printing a fractional
+  quantity (`1.5 kg`) cannot be represented in §11's unit model, so the editor rejects it as
+  `invalid_quantity`. v1 either documents that as a product limit, or the spec changes. An editor constant is
+  not the place that gets decided.
+- **DECISIONS/0017 D9.1 is now overdue, not merely live:** core entered the PWA's entry chunk in ticket 11
+  (144.44 kB raw / 48.12 kB gzip), so `pnpm measure:footprint` and the README tables need a PWA-scoped run —
+  the published 21.30 MB / 14.85 MB pair is still the harness's.
 - Ticket 15: `// TODO(spec): payer≠creator payee gap` at the UPI builder (DECISIONS/0001); G5 NPCI limits verification.
 - ROADMAP 3D.3 typo: "P5 24870/10" — spec §11 says 24870 paise; spec wins, roadmap untouched.
 
