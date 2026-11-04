@@ -34,6 +34,23 @@ export interface ItemMatch {
   /** predicted indices no gold item matched — each is a false positive (§8.4) */
   readonly unmatchedPredicted: readonly number[];
   readonly tau: number;
+  /** whether §8.2's money-compatibility gate ran: part of the identity of every paired-gold number */
+  readonly moneyGate: boolean;
+}
+
+export interface MatchOptions {
+  /**
+   * §8.2's money-compatibility gate. `true` (default, production, and every published scorer) is the
+   * spec's own matcher. `false` pairs on name similarity alone and is a **measurement seam only**, the
+   * same kind ticket 06 added for `classifyRows` and `detectQuantityColumn`.
+   *
+   * It exists because of DECISIONS/0008's paired-gold rule: money compatibility is a *precondition* of
+   * pairing, so a census over gate-on pairs can only ever report "0 wrong" on the money fields — the
+   * gate refuses exactly the pairs that would have shown the error. A price claim therefore has to run
+   * the same matcher twice and publish both, and `benchmarks/src/matching` stays the artifact of record
+   * for both runs instead of a second re-implementation.
+   */
+  readonly moneyGate?: boolean;
 }
 
 /**
@@ -50,7 +67,9 @@ export interface ItemMatch {
  * error. So: pair on name plus non-conflicting money, then charge the mismatch at field level.
  *
  * Nothing here relaxes a price. Where both sides carry a value, equality is exact and integer
- * (§8.5); there is no monetary tolerance anywhere in this harness.
+ * (§8.5); there is no monetary tolerance anywhere in this harness. The gate itself is switchable for
+ * measurement — see `MatchOptions.moneyGate` and DECISIONS/0008's paired-gold rule — but every published
+ * scorer runs it on, which is what §8.2 specifies.
  */
 export function monetaryFieldsAgree(gold: GoldItem, predicted: ParsedItem): boolean {
   if (gold.unitPrice !== null && predicted.unitPrice !== null && gold.unitPrice !== predicted.unitPrice) return false;
@@ -59,7 +78,12 @@ export function monetaryFieldsAgree(gold: GoldItem, predicted: ParsedItem): bool
 }
 
 /** Pairwise normalized-name similarity, `undefined` where §8.2 says no candidate may form. */
-function similarityTable(gold: readonly GoldItem[], predicted: readonly ParsedItem[], tau: number): (number | undefined)[][] {
+function similarityTable(
+  gold: readonly GoldItem[],
+  predicted: readonly ParsedItem[],
+  tau: number,
+  moneyGate: boolean
+): (number | undefined)[][] {
   const goldNames = gold.map((item) => normalizeItemName(item.name));
   const predictedNames = predicted.map((item) => normalizeItemName(item.name));
 
@@ -67,6 +91,7 @@ function similarityTable(gold: readonly GoldItem[], predicted: readonly ParsedIt
     predictedNames.map((predictedName, predictedIndex) => {
       const similarity = nameSimilarity(goldName, predictedName);
       if (similarity < tau) return undefined;
+      if (!moneyGate) return similarity;
       return monetaryFieldsAgree(gold[goldIndex]!, predicted[predictedIndex]!) ? similarity : undefined;
     })
   );
@@ -89,8 +114,14 @@ function better(candidate: Cell, incumbent: Cell): boolean {
 
 const zero: Cell = { pairs: 0, similarity: 0 };
 
-export function matchItems(gold: readonly GoldItem[], predicted: readonly ParsedItem[], tau: number = tauName): ItemMatch {
-  const similarity = similarityTable(gold, predicted, tau);
+export function matchItems(
+  gold: readonly GoldItem[],
+  predicted: readonly ParsedItem[],
+  tau: number = tauName,
+  options: MatchOptions = {}
+): ItemMatch {
+  const moneyGate = options.moneyGate ?? true;
+  const similarity = similarityTable(gold, predicted, tau, moneyGate);
   const height = gold.length + 1;
   const width = predicted.length + 1;
 
@@ -147,5 +178,5 @@ export function matchItems(gold: readonly GoldItem[], predicted: readonly Parsed
   const goldIndices = gold.map((_, index) => index).filter((index) => !matchedGold.has(index));
   const predictedIndices = predicted.map((_, index) => index).filter((index) => !matchedPredicted.has(index));
 
-  return { pairs, unmatchedGold: goldIndices, unmatchedPredicted: predictedIndices, tau };
+  return { pairs, unmatchedGold: goldIndices, unmatchedPredicted: predictedIndices, tau, moneyGate };
 }

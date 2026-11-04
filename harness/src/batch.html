@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>receipt-lens batch OCR — benchmark tool, not the measured harness page</title>
+  </head>
+  <body>
+    <!--
+      Ticket 09b's OCR driver page. It renders nothing: the driver in
+      benchmarks/scripts/run-end-to-end.mjs waits on `window.__receiptLensBatch` and calls it.
+      This is a second bundle on purpose — see the header comment in harness/src/batch.ts for why
+      the measured §9 harness page must not carry benchmark bytes.
+    -->
+    <script type="module" src="/dist/batch.js"></script>
+  </body>
+</html>

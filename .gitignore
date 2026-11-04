@@ -27,3 +27,8 @@ receipts-retained/
 
 # harness run artifacts (raw OcrResult JSON + screenshots of real receipts)
 harness/out/
+
+# ticket 09b: candidate model tier for the G3 comparison. Never committed — a tier
+# that has not won the gate does not join the shipped asset set, and the footprint
+# check must keep verifying the assets the product actually serves (DECISIONS/0012 F11).
+assets/models/candidate/

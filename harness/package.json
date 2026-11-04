@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Minimal OCR harness (PROJECT(1).md §9 M1): file in, normalized OcrResult JSON plus timings out. Not shipped.",
   "scripts": {
-    "build": "node build.mjs",
+    "build": "node build.mjs && node build-batch.mjs",
     "typecheck": "tsc -p . --noEmit",
     "serve": "node serve.mjs",
     "accept": "node run-acceptance.mjs"
