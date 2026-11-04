@@ -62,13 +62,19 @@ describe("targetUrl — navigation must not re-encode the fragment", () => {
   });
 
   it("preserves a fragment byte-for-byte across a chain of navigations", () => {
+    // The browser's own hash semantics, restated for a bare string: everything from the first "#".
+    // A path can never contain "#", so this is what location.hash would report.
+    const hashOf = (url: string): string => {
+      const index = url.indexOf("#");
+      return index === -1 ? "" : url.slice(index);
+    };
     const fragment = "v1." + "A".repeat(200) + "-" + "_z9";
     let url = targetUrl(ROUTE_PATHS.capture, fragment);
     for (const path of [ROUTE_PATHS.bill, ROUTE_PATHS.share]) {
-      url = targetUrl(path, fragmentOf(new URL(url, "https://bill.local").hash));
+      url = targetUrl(path, fragmentOf(hashOf(url)));
     }
     expect(url).toBe("/share#" + fragment);
-    expect(fragmentOf(new URL(url, "https://bill.local").hash)).toBe(fragment);
+    expect(fragmentOf(hashOf(url))).toBe(fragment);
   });
 });
 
