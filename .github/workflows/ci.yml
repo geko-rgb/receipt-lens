@@ -23,5 +23,13 @@ jobs:
       - run: pnpm scan:pii
       - run: pnpm verify:results
       - run: node scripts/check-fixture-budget.mjs
+      # Ticket 08 gate. The README footprint table is a pure function of the committed
+      # measurement, so regenerating it must be a no-op. The same check re-derives the
+      # measured bytes from this tree: it re-stats and re-hashes every committed model
+      # asset, re-stats the lockfile-pinned ORT WASM build, and re-hashes the manifest.
+      # A swapped model, a lockfile bump or a hand-edited number all fail here.
+      # The measurement itself is deliberately NOT run in CI: shared-runner timings would
+      # publish a table whose declared device class is "whatever pod hosted the job".
+      - run: pnpm verify:footprint
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

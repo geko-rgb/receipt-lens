@@ -16,7 +16,10 @@
     "verify:fixtures": "pnpm build && node benchmarks/dist/generate-fixtures.js --check",
     "scan:pii": "pnpm build && node benchmarks/dist/scan-pii.js",
     "report:results": "pnpm build && node benchmarks/dist/report-results.js",
-    "verify:results": "pnpm build && node benchmarks/dist/report-results.js --check"
+    "verify:results": "pnpm build && node benchmarks/dist/report-results.js --check",
+    "measure:footprint": "pnpm build && node benchmarks/scripts/measure-footprint.mjs",
+    "render:footprint": "node benchmarks/scripts/render-footprint-table.mjs --write",
+    "verify:footprint": "node benchmarks/scripts/render-footprint-table.mjs --check"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",
