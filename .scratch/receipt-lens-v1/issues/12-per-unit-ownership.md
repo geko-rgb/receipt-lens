@@ -16,3 +16,24 @@
 - [ ] A quantity decrease warns about the assignments it will remove and applies the removal in the same transaction
 - [ ] An acknowledged unassigned unit contributes its full cost to the creator's share as an explicit adjustment line at lock time, never as a rounding bucket
 - [ ] Behaviour is exercised through the bill-state seam, including the rollback and warning paths
+
+## Comments
+
+**2026-11-05 — forward note from ticket 11 (owner ruling on fractional quantities).**
+
+A fractional/weight quantity has **no unit representation** in §11's model, and that constrains what this
+ticket can assign. `DECISIONS/0020` T6: `setItemQuantity` rejects anything that is not a positive integer as
+`invalid_quantity`, because `ItemUnit` is `unitIndex 0..qty−1` — there is no half-unit to hand to a person.
+The owner ruled this a documented v1 product limit, now in `PROJECT(1).md` §19 and `docs/business.md` §16:
+users enter weight-based items as whole units at full price. If 12 wants a different answer (per-gram
+pricing, fractional shares of one unit), that is a spec change and needs its own record — not an editor
+constant, and not a unit whose `unitIndex` is 0.5.
+
+What 12 inherits from 11 in practice: `working.itemUnits` / `working.assignments` are already maintained
+transactionally (`totals.ts` enforces `count(units) = qty` and drops orphaned assignments in recompute, so a
+violation surfaces as `recompute_failed` and rolls the edit back); `assignments` is the only field 12 has to
+write; `blockers.assignment` already emits `unit_missing`, `participant_unknown` and `assignment_duplicate`;
+and `acknowledgeUnassignedUnit` in `transactions.ts` refuses a unit that already has assignments
+(`unit_assigned`), which is what makes §10 line 769's "assigning clears `confirmedUnassigned` in the same
+transaction" a real rule instead of a hope. `adjustmentLines` are regenerated from acknowledged units on
+every recompute, so 12 must not maintain them by hand.

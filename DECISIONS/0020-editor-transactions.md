@@ -390,9 +390,11 @@ and line they come from.
 
 - **The store shape and commit rule** — `DECISIONS/0019`.
 - **Fractional quantities.** §11's unit model makes `1.5` unrepresentable, so `invalid_quantity` rejects
-  it (T6). A receipt that prints "1.5 kg" is real; v1's answer is "resolve it to an integer or add it as a
-  charge/manual item". Whether that deserves a spec-level relaxation, a per-unit-price path, or a documented
-  product limit is an owner call, filed as an open item rather than decided by an editor constant.
+  it (T6). A receipt that prints "1.5 kg" is real, and the owner ruled on 2026-11-05 that this is a
+  **documented v1 product limit**, not a spec relaxation: it is now in `PROJECT(1).md` §19 and
+  `docs/business.md` §16 ("users must enter weight-based items as whole units at full price"), because
+  hiding a user-facing limit in a ticket file is not documenting it. Consequence for ticket 12: a
+  weight-based line has no unit to assign, so what 12 can assign is bounded by integer counts only.
 - **`unclassified_rows_unreviewed`'s "explicitly excluded" half** (T8) — needs a representation §10 does
   not have. Ticket 13's, with a record.
 - **Whether a draft the user deleted can be restored from the retained parse.** Ticket 11 records the
@@ -402,4 +404,6 @@ and line they come from.
 - **`LockBlockerCode`, `ParseWarningCode`, `BillValidationResult`, `WorkingBill`, `AdjustmentLine`,
   `UnclassifiedRow`, `Item`/`BillCharge` nullability, or any other §10/§4 shape** — none is widened. The
   only new name in this record is the finding code `line_total_mismatch` and the operation-level
-  `TransactionRejectCode`/`ShareBlocker` vocabulary, both PWA-owned. `PROJECT(1).md` is unedited.
+  `TransactionRejectCode`/`ShareBlocker` vocabulary, both PWA-owned. `PROJECT(1).md` was not edited by this
+  record; the owner later added the §19 out-of-scope line for fractional quantities (see below), which is a
+  product-scope ruling, not a reshape of any type pinned here.

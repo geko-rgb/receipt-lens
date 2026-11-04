@@ -66,3 +66,20 @@ not touch, the finalization gates, and `validateWorkingBill`'s exact return voca
 - **Evidence still owed by an earlier ticket:** `DECISIONS/0017` D9.1's footprint remeasurement is now
   unambiguously due — the PWA entry chunk is 144.44 kB raw / 48.12 kB gzip with core in the graph, against
   ticket 10a's 34.278 kB shell, and the published 21.30 MB pair is still the harness's.
+
+**Test-first evidence (not re-derivable from git):**
+At the state before `dd0da96`, `pnpm --filter @receipt-lens/pwa test tests/bill/pins.test.ts` reported
+"Tests 68 failed (68)", each error `not implemented: DECISIONS/0020 T…`, against throwing stubs.
+`tsc -p tsconfig.test.json` was clean against the same stubs. Helpers and tests were committed together in
+`dd0da96` because a stub-only commit would fail CI. The test-first order is true (session transcript) but
+not branch-derivable; this note makes it durable. Every assertion cites the record section it pins, so a
+rule deleted from code fails its named test — the durable evidence is the assertion-to-decision coupling,
+not the commit ordering.
+
+**Owner decisions taken at the merge gate (2026-11-05), against this ticket's three open questions:**
+(a) fractional quantities → reject as `invalid_quantity` **and document the limit prominently** — added to
+`PROJECT(1).md` §19 and `docs/business.md` §16, with a forward note to ticket 12; (b) footprint
+remeasurement → deferred to ticket 17 with a reconciliation note appended there; (c) the parser miss on the
+test receipt → filed now as ticket **21** (`21-item-shaped-row-never-becomes-an-item.md`), because it is a
+class the dev corpus has not named before — an item-shaped, price-bearing row that becomes *no* item, which
+is the opposite direction from ticket 20's charge rows that become items.

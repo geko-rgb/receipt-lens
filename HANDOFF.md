@@ -601,11 +601,16 @@ vanished from the code would fail its named test rather than pass silently.
 
 **Findings this ticket filed rather than fixed:** the shipped parser reads the synthetic receipt
 `RECEIPT / COFFEE 4.50 / NAAN 60.00 / TOTAL 100.00` as **one item plus one preserved ambiguous row** — the
-`NAAN` line never becomes an item (05/06 territory; ticket 11's e2e therefore completes the bill with a
-hand-added line, which is the ticket's own acceptance case). And `unclassified_rows_unreviewed`'s "explicitly
-excluded" half has **no representation in §10** (`UnclassifiedRow` carries no review field), so ticket 13
-owns that field plus the "reviewed" affordance; the blocker this ticket emits fires only while no live line
-reads the row's source.
+`NAAN` line never becomes an item. Filed at the merge gate as **ticket 21**
+(`21-item-shaped-row-never-becomes-an-item.md`), with the owner's framing question attached: is this the same
+class as the 27 `arithmetic_item_sum` criticals (charge/tender rows → items) or a new one (item-shaped rows →
+*no* item)? It is the opposite direction from ticket 20's leak — 20 over-counts Σ items, this under-counts —
+so the first work item is which it is, with evidence. Ticket 11's editor surfaces the row as a coded
+`ambiguous_row` finding and completes the bill by hand, which is ticket 11's own acceptance case, and ticket
+21's constraints say that if the parse changes, `playwright/bill-editor.spec.ts`'s arithmetic changes in the
+same commit. And `unclassified_rows_unreviewed`'s "explicitly excluded" half has **no representation in §10**
+(`UnclassifiedRow` carries no review field), so ticket 13 owns that field plus the "reviewed" affordance; the
+blocker this ticket emits fires only while no live line reads the row's source.
 
 **Also closed here** (both were `HANDOFF` open items): an `otherSign: "unknown"` charge maps to §10's
 existing `draft_charges_unresolved` — no new §13 code invented — and `Bill.grandTotal` now has exactly one
@@ -672,15 +677,36 @@ What 07 hands over:
   `otherSign: "unknown"` question is resolved as §10's existing `draft_charges_unresolved` (DECISIONS/0020
   T8). What 13 still owns: the lock/unlock action itself, the checklist UI, and a place to record
   "explicitly excluded" for an ambiguous row, which §10 does not model.
-- **Owner question raised by ticket 11 (DECISIONS/0020 "does not decide"):** a receipt printing a fractional
-  quantity (`1.5 kg`) cannot be represented in §11's unit model, so the editor rejects it as
-  `invalid_quantity`. v1 either documents that as a product limit, or the spec changes. An editor constant is
-  not the place that gets decided.
-- **DECISIONS/0017 D9.1 is now overdue, not merely live:** core entered the PWA's entry chunk in ticket 11
-  (144.44 kB raw / 48.12 kB gzip), so `pnpm measure:footprint` and the README tables need a PWA-scoped run —
-  the published 21.30 MB / 14.85 MB pair is still the harness's.
+- **Owner question raised by ticket 11 — now ruled (2026-11-05, at the merge gate).** A receipt printing a
+  fractional/weight quantity (`1.5 kg`) has no representation in §11's unit model, so the editor rejects it
+  as `invalid_quantity`. The owner's decision was **reject it and document it prominently**, not bury it:
+  `PROJECT(1).md` §19 and `docs/business.md` §16 now both carry the limit ("users must enter weight-based
+  items as whole units at full price"), with a forward note in ticket 12. DECISIONS/0020's "does not decide"
+  bullet records the ruling.
+- **DECISIONS/0017 D9.1 is now overdue, not merely live — and assigned to ticket 17 by owner ruling
+  (2026-11-05)**, with the reconciliation note appended to that ticket's file. Core entered the PWA's entry
+  chunk in ticket 11 (144.69 kB raw / 48.15 kB gzip, against ticket 10a's 34.278 kB shell), so the README must
+  break out **app shell / models+WASM / total** rather than cite one stale number: ticket 08's
+  21.30 MB / 14.85 MB pair is the harness's at the 10a shell state, and the 144.69 kB entry is a *subset* of
+  that cold total, not a contradiction of it. Re-derive the table from 17's service-worker precache
+  definition, which is what decides the caching story.
 - Ticket 15: `// TODO(spec): payer≠creator payee gap` at the UPI builder (DECISIONS/0001); G5 NPCI limits verification.
 - ROADMAP 3D.3 typo: "P5 24870/10" — spec §11 says 24870 paise; spec wins, roadmap untouched.
 
 ## Standing rules (from owner next.md — still in force)
 Branches+PRs only; no force-push/history rewrite without approval; no `--no-verify`/`.skip`/`test.only`; CI wrong → fix CI in its own explained commit; no PROJECT(1).md edits; no new runtime network calls (deps checked for telemetry/CDN/auto-update); runtime assets fully self-hosted; fixtures PII-clean; postinstalls reviewed before allowing; nothing >1 MB committed (models = approved exception); ≥5 GB free or stop; no destructive shell outside the repo; six-section ≤1-page report per ticket incl. disk delta; if ambiguous, stop and ask — silence is not approval.
+
+**Checkpoint gates in unattended mode (owner ruling, 2026-11-05, after ticket 11):** *"If running in
+unattended mode and a checkpoint is reached: output the checkpoint report as the last action, then stop. Do
+not continue past a checkpoint gate. If the mode makes stopping impossible, state that limitation at the
+start of the session so I know to check in. The checkpoint is not a formality — it's the moment when drift is
+caught cheaply."* Ticket 11 ran in auto mode, where tool calls are approved by a classifier rather than by
+the owner, so it reported Checkpoint 1 (the two decision records) and Checkpoint 2 (the failing pins) and
+**kept going instead of stopping** — the decisions were therefore reported, not approved, and it said so in
+its report and in the ticket file. Next session: say the limitation out loud at the start, then stop at the
+gate.
+
+**Owner-authorized exception to "no PROJECT(1).md edits":** ticket 11 added one §19 line recording the
+fractional/weight-quantity v1 limit (with the matching `docs/business.md` §16 entry), by explicit owner
+instruction at the merge gate. The standing rule still means *an agent does not edit the spec on its own
+initiative*.
