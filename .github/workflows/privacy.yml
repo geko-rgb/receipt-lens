@@ -1,0 +1,27 @@
+name: Privacy
+
+# Ticket 09a: the M1 offline/egress gate. PROJECT(1).md §9 names this workflow and requires it to
+# block merges on failure. The runtime test is the proof; the static scan is a labelled supplement.
+# The OCR run has exactly one owner here, so ci.yml's e2e step excludes @offline tests.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  privacy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Static first-party egress scan (supplement, not proof)
+        run: pnpm scan:egress
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Offline inference with egress blocked (M1)
+        run: pnpm test:offline
