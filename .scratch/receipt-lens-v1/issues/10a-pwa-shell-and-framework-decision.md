@@ -4,12 +4,12 @@
 
 **Blocked by:** 01 (walking skeleton)
 
-**Status:** ready-for-agent
+**Status:** in progress — checkpoint: gate G1 decided and committed (`DECISIONS/0017`); shell, design note and CI wait for owner approval of the framework
 
 **Effort:** ~8 h · **Roadmap:** workstream 3A (task 3A.1) · **Week:** W12 · **Milestone:** M3
 **Verify:** `pnpm --filter pwa build` passes and the shell preview deploys; the decision note is committed
 
-- [ ] A one-page decision record commits the framework (roadmap default: Svelte 5 + Vite + TypeScript; React 19 as the documented fallback if ecosystem evidence overrides) — later tickets cite the note instead of re-arguing (gate G1)
+- [x] A one-page decision record commits the framework (roadmap default: Svelte 5 + Vite + TypeScript; React 19 as the documented fallback if ecosystem evidence overrides) — later tickets cite the note instead of re-arguing (gate G1)
 - [ ] The shell deploys with routing between placeholder capture, bill, and share views — navigation and layout only, no product behaviour
 - [ ] A design note documents the intended IndexedDB schema plan and service-worker precache approach; the implementations themselves land in 14 and 17
 - [ ] CI builds the shell on every push alongside the other packages
