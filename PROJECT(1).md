@@ -1109,6 +1109,7 @@ No owner choice is pending for DQ-01 through DQ-04.
 - Nearest-rupee rounding mode for participant shares; v1 computes exact rational shares and converts to integer paise only when creating actual UPI transfer amounts.
 - Non-participant payer/creator accounting in v1; creator and payer must be participants.
 - Secure server-enforced share expiry/revocation, per-participant access control, or private “only-my-share” authorization. The share link is a bearer secret and carries the full included snapshot.
+- Fractional/weight-based quantities (1.5 kg, 500 g) are not representable in the v1 unit model; the editor rejects them as `invalid_quantity`. Users must enter weight-based items as whole units at full price.
 
 ## 20. Definition of Done
 

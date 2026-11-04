@@ -199,10 +199,13 @@ test("recrop and rerun keep the previous parse until discarded or accepted", asy
   await expect(page.getByTestId("previous-parse-note")).toHaveCount(0);
   expect(await page.getByTestId("items-section").innerText()).toBe(before);
 
-  // Accept hands the draft to /bill.
+  // Accept hands the draft to /bill. Ticket 11 replaced ticket 10's placeholder note with the editor, so the
+  // handoff is now proved by the working bill it built from the accepted parse — a draft line, and the print
+  // it has to reconcile against — rather than by a sentence saying the draft arrived.
   await page.getByTestId("accept-btn").click();
   await expect(page).toHaveURL(/\/bill/);
-  await expect(page.getByTestId("bill-note")).toHaveText("Draft received from capture.");
+  await expect(page.getByTestId("draft-count")).toContainText("draft line(s)");
+  await expect(page.getByTestId("printed-grand-total")).toContainText("₹100.00");
 });
 
 test("no receipt image bytes reach any store", async ({ page }) => {
