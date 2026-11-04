@@ -186,3 +186,11 @@ The ticket 10a shell has no state beyond the route: `packages/pwa/src/lib/router
 exists to prove D3a condition 1. There is deliberately no store, no IndexedDB call, no service worker and
 no OCR import yet — `playwright/smoke.spec.ts` fails the build if any of those appears in the bundle
 before its ticket does.
+
+**One thing ticket 16 must notice about the share view.** To make D3a condition 3 assertable, the shell
+publishes the raw fragment into a DOM attribute (`data-raw` on `Share.svelte`) — a bearer secret, rendered.
+It is test scaffolding and ticket 16 replaces it with the decoded view, but the rule it demonstrates stays:
+the fragment may be read, decoded and rendered, and must never be copied somewhere that outlives the page —
+not IndexedDB, not a console log, not an error-report payload. §10's snapshot rule (never the receipt image,
+never raw OCR) and the sharing-link rule in `GLOSSARY.md` (a link is a bearer secret, not access control)
+both apply to the decoded contents, not only to the URL.
