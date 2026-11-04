@@ -197,7 +197,7 @@ artifact that produced it. Headline (rule 3 plus the price-keyed header zone): 5
 5,199 parser rows; 713 items, 43 continuations, 3,517 noise_header, 926 ambiguous; 1,364 priced rows
 (26.2%), 3 separator rows, 0 empty-name items; 0 byte-identity failures over 250 fixtures.
 
-**Four things a fresh session should not rediscover the hard way:**
+**Five things a fresh session should not rediscover the hard way:**
 
 1. **The word-count-weighted median is count-weighted, not height-mass-weighted.** An earlier draft
    of the implementation accumulated `sum(heights)` and crossed half the total *mass*; §5's phrase
@@ -521,6 +521,12 @@ artifact together; do not leave `verify-evidence.mjs` pointing at a file that is
 4. **`vite preview` colourises its banner under a Playwright worker,** so the port digits arrive wrapped in
    escape codes. `playwright/shell.spec.ts` sets `NO_COLOR=1` and strips ANSI defensively; a spawn helper
    that greps for `http://localhost:\d+` without that hangs until it times out.
+
+5. **`pnpm scan:egress` fails on an absolute URL literal in a TEST file too.** It scans every
+   first-party `.ts` under `packages/pwa/src`, comments excepted, so a fixture base like
+   `new URL(x, "https://bill.local")` blocks the Privacy workflow even though nothing is fetched. Found by
+   CI, not locally: the check is in `privacy.yml`, and `pnpm test`/`playwright --grep-invert @offline` both
+   pass without it. Run `pnpm scan:egress` before pushing PWA source.
 
 **Carried forward:** DECISIONS/0012 F11 trigger 1 is live (the published 21.30 MB / 14.85 MB pair is still
 the *harness's*; remeasure once the PWA serves OCR, i.e. ticket 10); ticket 16 inherits the
