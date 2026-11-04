@@ -560,10 +560,22 @@ calculated gap, guarded shares), `units.ts` (materialization and quantity mainte
 ~70-line reactive slot. `Bill.svelte` holds no rule. Tests: `packages/pwa/tests/bill/pins.test.ts` (71) and
 `playwright/bill-editor.spec.ts` (3), on the repo's own 5 files → 23 Playwright tests.
 
-**DECISIONS/0019** (state) and **DECISIONS/0020** (transaction pins) were written and approved at the owner's
-checkpoint **before** any code, and both are load-bearing rather than decorative: 0019's single-value commit
-rule is what makes rollback assertable as object identity, and 0020's pins are each an assertion in the
-committed suite.
+**DECISIONS/0019** (state) and **DECISIONS/0020** (transaction pins) were written **before** any code and
+reported at Checkpoint 1, and the pins suite was reported failing against throwing stubs at Checkpoint 2 —
+but both reports went into an unattended (auto-mode) session, so they are *reported*, **not approved**.
+Re-read 0019 before building on it: the store choice is the one decision here that tickets 12–16 inherit, and
+it was made without an owner reply. Both records are load-bearing rather than decorative: 0019's
+single-value commit rule is what makes rollback assertable as object identity, and 0020's pins are each an
+assertion in the committed suite.
+
+**One process fact, stated because it cannot be re-derived from git:** the stub-then-implement sequence is
+real but not in the history — `dd0da96` contains the helpers and the 71-test suite together, because
+committing a tree where every rule-carrying function throws would have been a commit that fails CI. The
+evidence for Checkpoint 2 is the reported run (`68 failed (68)` — 71 after the money-input block was added,
+every one `not implemented: DECISIONS/0020 …`, plus `tsc -p tsconfig.test.json` clean against the stubs), and
+the
+assertions themselves are the durable part: each test cites the record section it pins, so a rule that
+vanished from the code would fail its named test rather than pass silently.
 
 **Three things a fresh session should not rediscover the hard way:**
 

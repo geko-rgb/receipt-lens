@@ -4,7 +4,13 @@
 
 **Blocked by:** 10 (capture, review and reprocess)
 
-**Status:** in-review — implemented on `ticket/11-bill-editor-transactions` (`dd0da96`), `pnpm -r test` 573 passing, Playwright 23/23, typecheck 0 errors, `scan:egress` 0 violations. DECISIONS/0019 (bill state) and DECISIONS/0020 (transaction pins) landed first, at the owner's checkpoint. PR pending owner approval.
+**Status:** in-review — implemented on `ticket/11-bill-editor-transactions` (tip `8cf3a8f`), `pnpm -r test`
+573 passing, Playwright 23/23, typecheck 0 errors, `scan:egress` 0 violations. DECISIONS/0019 and DECISIONS/0020
+were written and **reported** at Checkpoint 1 before any code, and the failing pins suite was **reported** at
+Checkpoint 2 before implementation, as the ticket required — both reports were sent into an unattended
+(auto-mode) session, so **no owner approval was received**; work continued on the reported decision rather
+than an approved one. Nothing pushed, no PR. If the state-management choice is wrong, say so: it is the one
+part of this ticket that would be expensive to change after tickets 12–16 build on it.
 
 **Effort:** ~54 h · **Roadmap:** workstream 3C (tasks 3C.1–3C.6) · **Week:** W14–17 · **Milestone:** M3
 **Verify:** bill-state seam suite green (`pnpm -r test`), including the full-state-delta and rollback assertions
