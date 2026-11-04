@@ -75,6 +75,14 @@ export interface DatasetScore {
     readonly goldless: number;
     readonly matched: number;
     readonly rate: number;
+    /**
+     * Index-aligned with the receipts `scoreReceipts` was handed: 1 when every field that dataset
+     * supports agrees on that receipt, 0 when it does not, and `null` when the receipt is `goldless`
+     * and strict is not about it. Ticket 09b publishes per-receipt records beside the aggregate, and a
+     * per-receipt strict flag has to come from the scorer that produced the aggregate rate rather than
+     * from a second implementation of its rules (DECISIONS/0008).
+     */
+    readonly perReceipt: readonly (0 | 1 | null)[];
   };
 }
 
@@ -152,6 +160,7 @@ export function scoreReceipts(
 
   let strictMatched = 0;
   let scoreable = 0;
+  const perReceipt: (0 | 1 | null)[] = [];
   for (const receipt of receipts) {
     const parsed = parse(receipt.ocr);
     let strictlyAgrees = true;
@@ -198,6 +207,7 @@ export function scoreReceipts(
       scoreable += 1;
       if (strictlyAgrees) strictMatched += 1;
     }
+    perReceipt.push(hasGold ? (strictlyAgrees ? 1 : 0) : null);
   }
 
   const fields: ScoredField[] = [
@@ -240,6 +250,7 @@ export function scoreReceipts(
       goldless: receipts.length - scoreable,
       matched: strictMatched,
       rate: ratio(strictMatched, scoreable),
+      perReceipt,
     },
   };
 }

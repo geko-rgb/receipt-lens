@@ -19,6 +19,11 @@
     "scan:pii": "pnpm build && node benchmarks/dist/scan-pii.js",
     "report:results": "pnpm build && node benchmarks/dist/report-results.js",
     "verify:results": "pnpm build && node benchmarks/dist/report-results.js --check",
+    "measure:accuracy": "pnpm build && node benchmarks/dist/measure-accuracy.js",
+    "verify:accuracy": "pnpm build && node benchmarks/dist/measure-accuracy.js --check && node benchmarks/dist/measure-accuracy.js --split eval --check",
+    "run:end-to-end": "pnpm build && node benchmarks/scripts/run-end-to-end.mjs",
+    "render:accuracy": "node benchmarks/scripts/render-accuracy-table.mjs --write",
+    "verify:accuracy-table": "node benchmarks/scripts/render-accuracy-table.mjs --check",
     "measure:footprint": "pnpm build && node benchmarks/scripts/measure-footprint.mjs",
     "render:footprint": "node benchmarks/scripts/render-footprint-table.mjs --write",
     "verify:footprint": "node benchmarks/scripts/render-footprint-table.mjs --check"

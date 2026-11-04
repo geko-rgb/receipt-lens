@@ -2,10 +2,17 @@
  * Ticket 04 checkpoint: load both ONNX sessions through onnxruntime-web and log the
  * input/output names and the tensor shapes each graph actually produces.
  *
- *   node scripts/inspect-ocr-sessions.mjs
+ *   node scripts/inspect-ocr-sessions.mjs [--dir assets/models/candidate]
  *
  * This intentionally runs outside the provider so a failure here is unambiguously a
  * model/runtime problem, not a preprocessing one. WASM only — this machine has no GPU.
+ *
+ * `--dir` points at a different asset set. Ticket 09b needs it: ADR-002's swap procedure says
+ * preprocessing must travel with the weights, and the two values a vendor manifest advertises for those
+ * weights were both wrong for Tiny in the direction that yields plausible garbage instead of an error
+ * (detection output is full resolution, not H/4; recognition output is already softmax, not logits).
+ * So a candidate tier is measured before it is believed, and the recognition row sums are reported here
+ * for exactly that reason.
  */
 import { createRequire } from "node:module";
 import { readFile } from "node:fs/promises";
@@ -16,7 +23,8 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 // onnxruntime-web is a dependency of packages/core, not of the workspace root.
 const coreRequire = createRequire(path.join(repoRoot, "packages/core/package.json"));
 const ortDist = path.dirname(coreRequire.resolve("onnxruntime-web/wasm"));
-const modelsDir = path.join(repoRoot, "assets/models");
+const dirFlag = process.argv.indexOf("--dir");
+const modelsDir = path.resolve(repoRoot, dirFlag === -1 ? "assets/models" : process.argv[dirFlag + 1]);
 
 const ort = await import(pathToFileURL(path.join(ortDist, "ort.node.min.mjs")).href);
 ort.env.wasm.wasmPaths = pathToFileURL(`${ortDist}${path.sep}`).href;
@@ -58,6 +66,18 @@ const recInput = new ort.Tensor(
 );
 const recOut = await rec.session.run({ [manifest.recognition.inputName]: recInput });
 const recName = rec.session.outputNames[0];
+const recValues = recOut[recName].data;
+const recClasses = recOut[recName].dims[2];
+// Row sums answer the one question the vendor manifest got wrong for Tiny: is the graph output already
+// normalized? A row summing to 1.0 is a probability distribution (softmax), and applying softmax again
+// collapses every confidence to ~0.0003 — silently, and with readable text.
+const rowSums = [];
+for (let row = 0; row < Math.min(3, recOut[recName].dims[1]); row += 1) {
+  let sum = 0;
+  for (let column = 0; column < recClasses; column += 1) sum += recValues[row * recClasses + column];
+  rowSums.push(Math.round(sum * 1e6) / 1e6);
+}
+const activation = rowSums.every((sum) => Math.abs(sum - 1) < 1e-3) ? "softmax" : "not-softmax";
 
 const dictText = await readFile(path.join(modelsDir, manifest.assets.find((a) => a.role === "dict").file), "utf8");
 const dictEntries = dictText.replace(/\r\n/g, "\n").split("\n").filter((line, index, all) => !(index === all.length - 1 && line === "")).length;
@@ -80,6 +100,11 @@ const report = {
     probeInputShape: [1, 3, manifest.recognition.preprocessing.height, recWidth],
     outputShape: [...recOut[recName].dims],
     classes: recOut[recName].dims[2],
+    rowSums,
+    activation,
+    declaredActivation: manifest.recognition.decoder.outputActivation,
+    declaredOutputShape: manifest.detection.outputShape,
+    measuredDetProbes: detProbes,
   },
   dictionary: {
     entries: dictEntries,
@@ -98,6 +123,14 @@ if (recOut[recName].dims[2] !== dictEntries + 1) {
 }
 if (dictEntries !== manifest.recognition.decoder.dictionaryEntries) {
   problems.push(`dictionary has ${dictEntries} entries, manifest says ${manifest.recognition.decoder.dictionaryEntries}`);
+}
+if (manifest.recognition.decoder.outputActivation !== (activation === "softmax" ? "softmax" : "logits")) {
+  problems.push(`recognition output is ${activation} (row sums ${rowSums.join(", ")}), manifest declares "${manifest.recognition.decoder.outputActivation}"`);
+}
+const declaredDownsample = String(manifest.detection.outputShape[2]).includes("/");
+const measuredDownsample = detProbes.every((probe) => probe.output[2] !== probe.input[0]);
+if (declaredDownsample !== measuredDownsample) {
+  problems.push(`detection output ${detProbes.map((probe) => `${probe.input}→${probe.output}`).join(", ")} contradicts the declared shape ${JSON.stringify(manifest.detection.outputShape)}`);
 }
 if (problems.length > 0) {
   console.error(`\nFAILED:\n- ${problems.join("\n- ")}`);
