@@ -72,24 +72,49 @@ test("the ONNX runtime stays behind the lazy boundary, never in the entry chunk"
   expect(assets.filter((name) => name.endsWith(".wasm")).length).toBeGreaterThan(0);
 });
 
-test("core is behind a dynamic import, not merged into the entry chunk", () => {
-  const entry = entryChunks();
-  expect(entry.length).toBeGreaterThan(0);
-  const entrySource = entry.map((chunk) => chunk.source).join("\n");
+/** The build's own chunk graph — the artifact D4's claim is about ("dynamicEntries … firstPaintClosure"). */
+interface ManifestChunk {
+  file: string;
+  name?: string;
+  isEntry?: boolean;
+  isDynamicEntry?: boolean;
+  imports?: string[];
+  dynamicImports?: string[];
+  assets?: string[];
+}
 
-  // The member names survive minification as property accesses (`(await import()).extract`), so the
-  // proof is the chunk split itself: an eager `import { extract } from "@receipt-lens/core"` would
-  // inline core into the entry chunk and leave no separate `dist-` chunk to fetch.
+function manifest(): Record<string, ManifestChunk> {
+  const manifestPath = path.join(shellDir, ".vite", "manifest.json");
+  if (!existsSync(manifestPath)) {
+    throw new Error(`missing ${path.relative(repoRoot, manifestPath)} — run \`pnpm build\` before Playwright`);
+  }
+  return JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, ManifestChunk>;
+}
+
+test("the OCR runtime is reachable only behind a dynamic import, never in the entry's static closure", () => {
+  const graph = manifest();
+  const entry = Object.values(graph).find((chunk) => chunk.isEntry === true);
+  expect(entry, "the manifest has no entry chunk").toBeDefined();
+
+  const ort = Object.entries(graph).find(([, chunk]) => chunk.name === "ort.wasm.bundle.min");
+  expect(ort, "the ONNX runtime is not in the build at all").toBeDefined();
+  const [ortKey, ortChunk] = ort!;
+
+  expect(ortChunk.isDynamicEntry, "the runtime chunk is not marked dynamic").toBe(true);
+  expect((entry!.imports ?? []).includes(ortKey), "the entry statically imports the runtime").toBe(false);
+  expect(entry!.dynamicImports ?? [], "the runtime is not behind a dynamic import").toContain(ortKey);
+  expect(ortChunk.assets?.some((asset) => asset.endsWith(".wasm")), "no WASM asset behind the runtime").toBe(true);
+
+  // The runtime's code and its WASM asset name stay out of the entry source. Ticket 11 did put *core* into
+  // that source, and said so: §6 line 400 makes every bill edit run core's `validate()` synchronously, which
+  // is the consequence DECISIONS/0017 D4 recorded in advance — "core itself cannot split out — only what sits
+  // behind core's own internal `await import("onnxruntime-web/wasm")` does". The boundary the footprint and
+  // privacy claims rest on is the runtime, and it is still a boundary: shell.spec.ts's first-paint request
+  // walk fetches no `.wasm`/onnx/ort asset on any route.
+  const entrySource = entryChunks()
+    .map((chunk) => chunk.source)
+    .join("\n");
   expect(entrySource).toMatch(/import\((["'`])\/*[^"'`]*\1\)/);
-
-  // The runtime is the heavy part and must never be in the entry chunk.
   expect(entrySource).not.toContain("onnxruntime");
   expect(entrySource).not.toContain("ort-wasm-simd-threaded");
-  expect(entrySource).not.toContain("ort.wasm.bundle.min");
-
-  // And the split really exists: core's own chunk is a file, and it carries the provider.
-  const { chunks } = builtShell();
-  const core = chunks.filter((chunk) => chunk.name.startsWith("dist-"));
-  expect(core.length).toBeGreaterThan(0);
-  expect(core.map((chunk) => chunk.source).join("\n")).toContain("createPPOCRv6Provider");
 });
