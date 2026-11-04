@@ -32,4 +32,6 @@ jobs:
       # publish a table whose declared device class is "whatever pod hosted the job".
       - run: pnpm verify:footprint
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
+      # The @offline suite (ticket 09a) has exactly one owner: .github/workflows/privacy.yml.
+      # Running it here too would double the browser OCR cost without adding a guarantee.
+      - run: pnpm exec playwright test --config playwright/playwright.config.ts --grep-invert @offline

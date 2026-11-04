@@ -8,6 +8,11 @@ No image, OCR text, or parsed field ever leaves the device. Inference runs local
 in the request path, and the pipeline contains no network call other than fetching those assets from
 the app's own origin.
 
+`playwright test --grep @offline` proves the inference path runs to completion with outbound network
+blocked after the assets load, making no cross-origin request and sending no receipt-image bytes; it
+is M1 scope only — not a service-worker or full-PWA audit, and not an offline-reload proof (that is
+ticket 17).
+
 ## Quickstart
 
 ```bash
