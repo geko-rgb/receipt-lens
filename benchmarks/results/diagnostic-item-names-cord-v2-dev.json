@@ -1,0 +1,263 @@
+{
+  "kind": "diagnostic-item-names",
+  "schemaVersion": "1.0",
+  "dataset": "cord-v2",
+  "split": "dev",
+  "tauPinned": 0.7,
+  "note": "τ is not changed by this file; DECISIONS/0006 is closed and consumed (DECISIONS/0015 C6).",
+  "totals": {
+    "receipts": 100,
+    "goldItems": 254,
+    "predictedItems": 245,
+    "pairsAtPinnedTau": 135,
+    "nameAgreementAmongPairs": 53,
+    "nameMissesAmongPairs": 82
+  },
+  "nameMissClassesAmongPairs": {
+    "prediction_has_extra_tokens": 80,
+    "prediction_truncated": 2
+  },
+  "extraTokenMissBySourceLines": {
+    "singleLine": 0,
+    "multipleLines": 80
+  },
+  "extraTokenIsNumeric": 70,
+  "nameMissExamples": [
+    {
+      "receiptId": "cord-v2/dev/0",
+      "gold": "REAL GANACHE",
+      "predicted": "1 REAL GANACHE",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/0",
+      "gold": "EGG TART",
+      "predicted": "1 EGG TART",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/0",
+      "gold": "PIZZA TOAST",
+      "predicted": "1 PIZZA TOAST",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/1",
+      "gold": "Kopi Susu Kolonel",
+      "predicted": "Kopi Susu Kolonel 1",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/6",
+      "gold": "POTATO SAUSAGE BREAD",
+      "predicted": "1 POTATO SAUSAGE BREAD",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/6",
+      "gold": "OREO GREEN TEA SPREAD",
+      "predicted": "1 OREO GREEN TEA SPREAD",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/6",
+      "gold": "WHITE CHOCO BANANA SPREAD",
+      "predicted": "1 WHITE CHOCO BANANA SPREAD",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/9",
+      "gold": "Tahu Ikan Oma Giok",
+      "predicted": "1 Tahu Ikan Oma Giok",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/10",
+      "gold": "Serbu 1",
+      "predicted": "2 Serbu 1",
+      "extraTokens": [
+        "2"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/10",
+      "gold": "Choco Peanut Bread",
+      "predicted": "2 Choco Peanut Bread",
+      "extraTokens": [
+        "2"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/11",
+      "gold": "Se'I Sapi Sambal Matah ( R )",
+      "predicted": "Se'I Sapi Sambal Matah ( R ) 1",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    },
+    {
+      "receiptId": "cord-v2/dev/11",
+      "gold": "Se'I Sapi Lada Hitam (J)",
+      "predicted": "Se'I Sapi Lada Hitam (J) 1",
+      "extraTokens": [
+        "1"
+      ],
+      "sourceLines": 3
+    }
+  ],
+  "orderOnlyAgreement": {
+    "count": 0,
+    "examples": []
+  },
+  "orderAdmitsPair": {
+    "count": 1,
+    "examples": [
+      {
+        "receiptId": "cord-v2/dev/25",
+        "gold": "Mie Trsi Kgkung",
+        "bestSimilarity": 0.35,
+        "sortedSimilarity": 0.75
+      }
+    ]
+  },
+  "unpairedGold": {
+    "items": 119,
+    "everyTokenPresentSomewhereOnTheReceipt": 90,
+    "bestNameSimilarityToAnyPrediction": {
+      "0.00-0.20": 68,
+      "0.20-0.40": 25,
+      "0.40-0.60": 14,
+      "0.60-0.70": 7,
+      "0.70-0.85": 1,
+      "0.85-1.00": 4
+    }
+  },
+  "tauSweep": [
+    {
+      "tau": 0.5,
+      "pinned": false,
+      "pairs": 146,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    },
+    {
+      "tau": 0.55,
+      "pinned": false,
+      "pairs": 143,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    },
+    {
+      "tau": 0.6,
+      "pinned": false,
+      "pairs": 141,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    },
+    {
+      "tau": 0.65,
+      "pinned": false,
+      "pairs": 139,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    },
+    {
+      "tau": 0.7,
+      "pinned": true,
+      "pairs": 135,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    },
+    {
+      "tau": 0.75,
+      "pinned": false,
+      "pairs": 128,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    },
+    {
+      "tau": 0.8,
+      "pinned": false,
+      "pairs": 121,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    },
+    {
+      "tau": 0.85,
+      "pinned": false,
+      "pairs": 102,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    },
+    {
+      "tau": 0.9,
+      "pinned": false,
+      "pairs": 79,
+      "nameTp": 53,
+      "nameFp": 192,
+      "nameFn": 201,
+      "precision": 0.216,
+      "recall": 0.209,
+      "f1": 0.212
+    }
+  ]
+}

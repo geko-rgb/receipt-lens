@@ -138,7 +138,22 @@ describe("scoreReceipts with the null parser", () => {
       { dataset: "sroie", fieldsLabeled: [...sroieFields], fieldsExcluded: [] }
     );
 
-    expect(scores.strict).toEqual({ receipts: 2, scoreable: 1, goldless: 1, matched: 0, rate: 0 });
+    expect(scores.strict).toEqual({ receipts: 2, scoreable: 1, goldless: 1, matched: 0, rate: 0, perReceipt: [0, null] });
+  });
+
+  it("publishes a per-receipt strict flag that agrees with its own aggregate", () => {
+    // Ticket 09b reads this array to write per-receipt rows into the accuracy artifact. It has to come
+    // from the scorer that produced the rate, not from a second implementation of strict's rules, and a
+    // row that is `null` must be exactly the receipt the aggregate left out of the denominator.
+    const scores = scoreReceipts(
+      [receipt(), receipt({ receiptId: "sroie/dev/1", gold: gold({ grandTotal: null }) }), receipt({ receiptId: "sroie/dev/2", gold: gold({ grandTotal: 250 }) })],
+      { dataset: "sroie", fieldsLabeled: [...sroieFields], fieldsExcluded: [] },
+      (source) => ({ ...emptyParseResult(), grandTotal: source === ocr ? 19300 : null })
+    );
+
+    expect(scores.strict.perReceipt).toEqual([1, null, 0]);
+    expect(scores.strict.perReceipt.filter((verdict) => verdict === 1).length).toBe(scores.strict.matched);
+    expect(scores.strict.perReceipt.filter((verdict) => verdict !== null).length).toBe(scores.strict.scoreable);
   });
 
   it("makes NaN impossible: a field with no gold and no prediction stays 0, never undefined-over-zero", () => {
@@ -275,7 +290,7 @@ describe("edge fixtures: no NaN and no misleading non-zero", () => {
     const scores = scoreReceipts([], cordSpec);
 
     expect(scores.receipts).toBe(0);
-    expect(scores.strict).toEqual({ receipts: 0, scoreable: 0, goldless: 0, matched: 0, rate: 0 });
+    expect(scores.strict).toEqual({ receipts: 0, scoreable: 0, goldless: 0, matched: 0, rate: 0, perReceipt: [] });
     expect(scores.macro).toEqual({ precision: 0, recall: 0, f1: 0, fields: 0, listed: 5 });
     expect(scores.items).toEqual({ gold: 0, predicted: 0, matchedPairs: 0, unmatchedGold: 0, unmatchedPredicted: 0, tau: 0.7 });
     for (const field of scores.fields) {
@@ -305,7 +320,7 @@ describe("edge fixtures: no NaN and no misleading non-zero", () => {
     }
     // Nothing is annotated here, so strict has no denominator to be generous about — and the
     // unannotated cells stay visible rather than vanishing from the report.
-    expect(scores.strict).toEqual({ receipts: 1, scoreable: 0, goldless: 1, matched: 0, rate: 0 });
+    expect(scores.strict).toEqual({ receipts: 1, scoreable: 0, goldless: 1, matched: 0, rate: 0, perReceipt: [null] });
     expect(scores.fields.filter((field) => field.tier === "item").map((field) => field.unannotatedGoldCells)).toEqual([1, 1, 1, 1]);
     expect(scores.items).toMatchObject({ gold: 1, predicted: 0, matchedPairs: 0, unmatchedGold: 1 });
   });
@@ -325,7 +340,7 @@ describe("edge fixtures: no NaN and no misleading non-zero", () => {
     // becoming false negatives.
     const qty = scores.fields.find((field) => field.field === "item.qty")!;
     expect([qty.tp, qty.fp, qty.fn, qty.absentAgreements, qty.unannotatedGoldCells]).toEqual([0, 1, 0, 0, 1]);
-    expect(scores.strict).toEqual({ receipts: 1, scoreable: 0, goldless: 1, matched: 0, rate: 0 });
+    expect(scores.strict).toEqual({ receipts: 1, scoreable: 0, goldless: 1, matched: 0, rate: 0, perReceipt: [null] });
   });
 
   it("produces the identical bytes on a second run, item tier included", () => {

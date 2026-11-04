@@ -1,7 +1,7 @@
 import type { ParsedItem } from "@receipt-lens/core";
 import type { GoldItem } from "../datasets/types.js";
 import { tauName } from "../benchmark.config.js";
-import { matchItems } from "../matching/matcher.js";
+import { matchItems, type MatchOptions } from "../matching/matcher.js";
 import { normalizeItemName } from "../matching/similarity.js";
 
 /**
@@ -99,9 +99,10 @@ export function scoreReceiptItems(
   gold: readonly GoldItem[],
   predicted: readonly ParsedItem[],
   attributes: readonly ItemAttribute[],
-  tau: number = tauName
+  tau: number = tauName,
+  options: MatchOptions = {}
 ): ReceiptItemScore {
-  const match = matchItems(gold, predicted, tau);
+  const match = matchItems(gold, predicted, tau, options);
   const counts = Object.fromEntries(attributes.map((attribute) => [attribute, emptyCounts()])) as Record<ItemAttribute, ItemFieldCounts>;
   let fieldMisses = 0;
 
