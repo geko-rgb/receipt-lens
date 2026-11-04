@@ -1,0 +1,14 @@
+{
+  "protocol": "synthetic-receipt/1",
+  "description": "Draw parameters for the receipt used by the ticket-09a offline test. The test renders these lines on a canvas in the page and hands the PNG bytes to the harness file input, so no receipt image is committed and no dataset is needed in CI.",
+  "canvas": { "width": 900, "height": 1200 },
+  "font": "bold 56px monospace",
+  "layout": { "leftPx": 60, "firstBaselinePx": 220, "lineHeightPx": 160 },
+  "lines": ["RECEIPT", "COFFEE 4.50", "TOTAL 100.00", "CASH 100.00"],
+  "reference": {
+    "lines": 4,
+    "words": 7,
+    "text": ["RECEIPT", "COFFEE 4.50", "TOTAL 100.00", "CASH 100.00"],
+    "note": "session-measured at Playwright 1.64.1 with PP-OCRv6 Tiny; re-derive if model tier or Playwright version changes"
+  }
+}
