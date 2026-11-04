@@ -31,5 +31,7 @@ is superseded by `ItemUnit` + `ItemUnitAssignment` — never reintroduce the old
 | Strict score | Dataset-scoped exact match across supported annotated fields. SROIE result is grand-total-only, not whole-receipt itemized accuracy. |
 | Field-level F1 | Diagnostic P/R/F1 using deterministic one-to-one item matching. |
 | Local inference | Receipt image/text processing runs on-device after required assets are available. Not a claim that app loading or intentional sharing makes no requests. |
+| Measured footprint | The committed browser cost of one deployment: per-asset bytes, initial download, what the cache actually retains, and cold/warm latency, generated from `benchmarks/results/footprint.json`. Not a size claim, not a model-file sum, and not a device estimate — a number outside its generated table is unmeasured by definition. |
+| Device class | The declared conditions a footprint or latency number was measured under (machine, browser build, CPU throttle, cache and network mode). A footprint number without a class is not comparable to one with a different class, and an emulated throttle is a proxy, never a phone. |
 | Sharing link | URL-fragment snapshot and bearer secret. Fragment is not sent in the initial HTTP request, but anyone with the full link can access its included bill data. No secure expiry/revocation in v1. |
 | Zero-item participant | Participant with no assigned items. Still pays equal shares of applicable non-included bill-level charges. |
