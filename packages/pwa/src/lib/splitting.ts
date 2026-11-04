@@ -11,8 +11,11 @@ export interface SplitResult {
   hasNegativeShare: boolean;
 }
 
-/** Signed effect on the payable total; discounts subtract, round_off is already signed. */
-function signedPaise(charge: BillCharge): number {
+/**
+ * Signed effect on the payable total; discounts subtract, round_off is already signed.
+ * Exported because ticket 11's derived totals must not restate §11 rule 8 a second time.
+ */
+export function signedChargePaise(charge: BillCharge): number {
   switch (charge.type) {
     case "discount":
       return -charge.amount;
@@ -53,7 +56,7 @@ export function computeExactShares(state: SplittableBill): SplitResult {
       (c) => !c.included && !(c.type === "other" && c.otherSign === "unknown")
     );
     for (const charge of applicable) {
-      const perParticipant = divInt(fromPaise(signedPaise(charge)), state.participants.length);
+      const perParticipant = divInt(fromPaise(signedChargePaise(charge)), state.participants.length);
       for (const participant of state.participants) {
         totals.set(
           participant.id,
