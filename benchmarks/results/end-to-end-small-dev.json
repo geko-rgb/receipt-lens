@@ -1,0 +1,3013 @@
+{
+  "kind": "accuracy",
+  "schemaVersion": "1.0",
+  "mode": "end-to-end",
+  "split": "dev",
+  "headline": false,
+  "parser": "shipped @receipt-lens/core parse() (ticket 06), validate() (ticket 07) — identical code path to parser-only mode",
+  "accuracyIsACeiling": true,
+  "ceilingReasons": [
+    "fixtures are the dataset's own reference OCR, so no OCR error reaches the parser-only numbers (DECISIONS/0003)",
+    "development happens against dev/, so bugs a dev-driven fix would have caught on eval/ are already gone (DECISIONS/0004)"
+  ],
+  "modeNote": "the secondary mode: real OCR over the dataset receipt images in headless Chromium, then the same parse(), so OCR error is included (PROJECT(1).md §8, DECISIONS/0014 M1)",
+  "protocol": {
+    "nameSimilarityMetric": "normalized-levenshtein",
+    "nameNormalization": "nfc-lowercase-punctuation-to-space-collapse-v1",
+    "tauName": 0.7,
+    "averaging": "per-field-micro; dataset-macro-over-fields-with-scored-cells",
+    "matching": "order-respecting one-to-one dynamic programming: pair count first, total name similarity second (§8.3)",
+    "itemFieldAgreement": "exact normalized-string equality for names and integer equality for amounts and quantities; tau governs pairing only",
+    "moneyGate": "on for every published scorer; the off column is the same matcher with §8.2's gate disabled, which is where a wrong price is visible (DECISIONS/0008)",
+    "roundOffBand": {
+      "reconcileToleranceMinorUnits": 2,
+      "magnitudeCapMinorUnits": 100
+    },
+    "ocrConfidenceFloors": {
+      "critical": 0.5,
+      "warning": 0.7
+    },
+    "scorerVersion": "03b.2"
+  },
+  "ocr": {
+    "provider": "pp-ocrv6",
+    "tier": "PP-OCRv6 Small",
+    "version": "1.0.0-small+sha256.b40e87d1af74",
+    "manifestHash": "b40e87d1af741de294924add0033f1c49319f7eb5621fe566939ece86589f509",
+    "assetBytes": 31133548,
+    "imageSource": [
+      {
+        "dataset": "cord-v2",
+        "file": "data/validation-00000-of-00001-cc3c5779fe22e8ca.parquet",
+        "bytes": 242080800,
+        "sha256": "0d0f6dac11fdcc549de2746aa9f53136a3bc22a2a1aff2b0b847f7622ad60c15",
+        "receiptsRead": 100
+      },
+      {
+        "dataset": "sroie",
+        "file": "data/train-00000-of-00001.parquet",
+        "bytes": 318620215,
+        "sha256": "b18c16b4d8481e5e4537a1700e4616907fe4acd92d6362a7e430b0e866213887",
+        "receiptsRead": 150
+      }
+    ],
+    "inferenceMs": {
+      "n": 250,
+      "min": 381.81,
+      "median": 1737.74,
+      "max": 5568.815
+    },
+    "runtime": {
+      "executionProvider": "wasm",
+      "numThreads": 4,
+      "pageRequestOrigins": [
+        "http://127.0.0.1:46231"
+      ]
+    },
+    "receiptImageBytes": 296862677,
+    "modelLoadMs": 805.615
+  },
+  "notes": [
+    "gold annotations are the PII-redacted fixtures (DECISIONS/0005) while predictions come from un-redacted images; no scored cell carries a redacted token — SROIE scores grandTotal only and CORD scores item and bill-level money",
+    "line grouping in this mode is the provider's reading-order view (0.5 × median word height, DECISIONS/0007), not the fixture grouping, so row segmentation error is inside these numbers rather than excluded from them",
+    "real OCR supplies a confidence score on every word, which is the first place the 0.50/0.70 floors run at all; running them is not calibrating them (DECISIONS/0014 M7.4)",
+    "still a ceiling: the parser underneath these numbers was tuned against dev/ (DECISIONS/0004)"
+  ],
+  "datasets": [
+    {
+      "dataset": "cord-v2",
+      "language": "Indonesian — out-of-language layout stress, never part of the English headline claim (ADR-010)",
+      "coverage": "item name/qty/unitPrice/lineTotal plus subtotal, grandTotal, serviceCharge, discount and taxTotal; no tip and no round-off annotation exists in the pinned snapshot",
+      "snapshotHash": "6cb6555829a62eec26ed953c785d30f4db23b3185fe0111661a5509d32c47054",
+      "provider": "pp-ocrv6",
+      "providerVersion": "1.0.0-small+sha256.b40e87d1af74",
+      "license": "CC-BY-4.0",
+      "receipts": 100,
+      "fieldsLabeled": [
+        "grandTotal",
+        "subtotal",
+        "serviceCharge",
+        "discount",
+        "taxTotal",
+        "item.name",
+        "item.qty",
+        "item.unitPrice",
+        "item.lineTotal"
+      ],
+      "fieldsExcluded": [
+        "tip",
+        "roundOff"
+      ],
+      "strict": {
+        "receipts": 100,
+        "scoreable": 100,
+        "goldless": 0,
+        "matched": 0,
+        "rate": 0
+      },
+      "macro": {
+        "precision": 0.5076315202180878,
+        "recall": 0.3965796860294424,
+        "f1": 0.4384691308410376,
+        "fields": 9,
+        "listed": 9
+      },
+      "items": {
+        "gold": 254,
+        "predicted": 232,
+        "matchedPairs": 118,
+        "unmatchedGold": 136,
+        "unmatchedPredicted": 114,
+        "tau": 0.7
+      },
+      "fields": [
+        {
+          "field": "grandTotal",
+          "tier": "scalar",
+          "tp": 70,
+          "fp": 9,
+          "fn": 26,
+          "precision": 0.8860759493670886,
+          "recall": 0.7291666666666666,
+          "f1": 0.8,
+          "absentAgreements": 2,
+          "unannotatedGoldCells": 0,
+          "goldCells": 96
+        },
+        {
+          "field": "subtotal",
+          "tier": "scalar",
+          "tp": 44,
+          "fp": 5,
+          "fn": 21,
+          "precision": 0.8979591836734694,
+          "recall": 0.676923076923077,
+          "f1": 0.7719298245614036,
+          "absentAgreements": 33,
+          "unannotatedGoldCells": 0,
+          "goldCells": 65
+        },
+        {
+          "field": "serviceCharge",
+          "tier": "scalar",
+          "tp": 7,
+          "fp": 2,
+          "fn": 5,
+          "precision": 0.7777777777777778,
+          "recall": 0.5833333333333334,
+          "f1": 0.6666666666666666,
+          "absentAgreements": 87,
+          "unannotatedGoldCells": 0,
+          "goldCells": 12
+        },
+        {
+          "field": "discount",
+          "tier": "scalar",
+          "tp": 1,
+          "fp": 4,
+          "fn": 4,
+          "precision": 0.2,
+          "recall": 0.2,
+          "f1": 0.20000000000000004,
+          "absentAgreements": 93,
+          "unannotatedGoldCells": 0,
+          "goldCells": 5
+        },
+        {
+          "field": "taxTotal",
+          "tier": "scalar",
+          "tp": 18,
+          "fp": 4,
+          "fn": 27,
+          "precision": 0.8181818181818182,
+          "recall": 0.4,
+          "f1": 0.537313432835821,
+          "absentAgreements": 53,
+          "unannotatedGoldCells": 0,
+          "goldCells": 45
+        },
+        {
+          "field": "item.name",
+          "tier": "item",
+          "tp": 48,
+          "fp": 184,
+          "fn": 206,
+          "precision": 0.20689655172413793,
+          "recall": 0.1889763779527559,
+          "f1": 0.19753086419753088,
+          "absentAgreements": 0,
+          "unannotatedGoldCells": 0,
+          "goldCells": 254
+        },
+        {
+          "field": "item.qty",
+          "tier": "item",
+          "tp": 41,
+          "fp": 117,
+          "fn": 157,
+          "precision": 0.25949367088607594,
+          "recall": 0.20707070707070707,
+          "f1": 0.2303370786516854,
+          "absentAgreements": 1,
+          "unannotatedGoldCells": 56,
+          "goldCells": 198
+        },
+        {
+          "field": "item.unitPrice",
+          "tier": "item",
+          "tp": 3,
+          "fp": 146,
+          "fn": 46,
+          "precision": 0.020134228187919462,
+          "recall": 0.061224489795918366,
+          "f1": 0.0303030303030303,
+          "absentAgreements": 59,
+          "unannotatedGoldCells": 205,
+          "goldCells": 49
+        },
+        {
+          "field": "item.lineTotal",
+          "tier": "item",
+          "tp": 116,
+          "fp": 115,
+          "fn": 106,
+          "precision": 0.5021645021645021,
+          "recall": 0.5225225225225225,
+          "f1": 0.512141280353201,
+          "absentAgreements": 0,
+          "unannotatedGoldCells": 32,
+          "goldCells": 222
+        }
+      ],
+      "money": [
+        {
+          "matcher": "matchItems(τ=0.7, money_gate=on)",
+          "moneyGate": true,
+          "pairs": 118,
+          "unitPrice": {
+            "goldAnnotated": 3,
+            "exact": 3,
+            "absent": 0,
+            "wrong": 0
+          },
+          "lineTotal": {
+            "bothPresent": 116,
+            "agree": 116,
+            "disagree": 0
+          }
+        },
+        {
+          "matcher": "matchItems(τ=0.7, money_gate=off)",
+          "moneyGate": false,
+          "pairs": 126,
+          "unitPrice": {
+            "goldAnnotated": 5,
+            "exact": 3,
+            "absent": 0,
+            "wrong": 2
+          },
+          "lineTotal": {
+            "bothPresent": 124,
+            "agree": 118,
+            "disagree": 6
+          }
+        }
+      ],
+      "provenance": {
+        "items": 232,
+        "priceSource": {
+          "detected": 149,
+          "assumed": 0,
+          "unresolved": 83,
+          "user_confirmed": 0
+        },
+        "quantitySource": {
+          "explicit": 30,
+          "assumed": 128,
+          "unresolved": 74,
+          "user_confirmed": 0
+        },
+        "detectedDirect": 21,
+        "detectedDerivative": 128
+      },
+      "confidence": {
+        "lines": 813,
+        "scoredLines": 813,
+        "words": 2247,
+        "scoredWords": 2247,
+        "items": 232,
+        "scoredItems": 232,
+        "wordScores": {
+          "min": 0.1441925587132573,
+          "max": 0.9999964237213135,
+          "mean": 0.9616154186941177,
+          "belowCritical": 68,
+          "belowWarning": 104
+        },
+        "itemsCappedByCritical": 102
+      },
+      "findings": {
+        "total": 539,
+        "critical": 63,
+        "advisory": 0,
+        "receiptsWithCritical": 47,
+        "byCode": {
+          "qty_unresolved": 74,
+          "price_not_resolved": 82,
+          "ambiguous_row": 157,
+          "qty_assumed": 128,
+          "zero_items": 19,
+          "ambiguous_price_separator": 4,
+          "confidence_unavailable": 19,
+          "arithmetic_total": 18,
+          "unclassified_charge": 5,
+          "arithmetic_item_sum": 25,
+          "items_may_be_missing": 3,
+          "name_length_outlier": 3,
+          "name_confidence_low": 1,
+          "item_without_price": 1
+        },
+        "byCriticalCode": {
+          "zero_items": 19,
+          "arithmetic_total": 18,
+          "arithmetic_item_sum": 25,
+          "item_without_price": 1
+        }
+      },
+      "nullDelta": {
+        "strictMatched": 0,
+        "strictScoreable": 100,
+        "macroF1": 0
+      },
+      "receiptRecords": [
+        {
+          "id": "cord-v2/dev/0",
+          "goldItems": 3,
+          "predictedItems": 3,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/1",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/2",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 2,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/3",
+          "goldItems": 2,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/4",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/5",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/6",
+          "goldItems": 3,
+          "predictedItems": 4,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/7",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/8",
+          "goldItems": 2,
+          "predictedItems": 2,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/9",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/10",
+          "goldItems": 2,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/11",
+          "goldItems": 4,
+          "predictedItems": 6,
+          "pairs": 4,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/12",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/13",
+          "goldItems": 2,
+          "predictedItems": 2,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/14",
+          "goldItems": 2,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/15",
+          "goldItems": 2,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/16",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/17",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/18",
+          "goldItems": 2,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/19",
+          "goldItems": 3,
+          "predictedItems": 3,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/20",
+          "goldItems": 2,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/21",
+          "goldItems": 4,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/22",
+          "goldItems": 2,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/23",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/24",
+          "goldItems": 6,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/25",
+          "goldItems": 7,
+          "predictedItems": 8,
+          "pairs": 6,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/26",
+          "goldItems": 5,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/27",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/28",
+          "goldItems": 2,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/29",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "unannotated",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/30",
+          "goldItems": 2,
+          "predictedItems": 2,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/31",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/32",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/33",
+          "goldItems": 2,
+          "predictedItems": 3,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/34",
+          "goldItems": 4,
+          "predictedItems": 7,
+          "pairs": 4,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/35",
+          "goldItems": 4,
+          "predictedItems": 6,
+          "pairs": 4,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/36",
+          "goldItems": 3,
+          "predictedItems": 5,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/37",
+          "goldItems": 3,
+          "predictedItems": 2,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/38",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/39",
+          "goldItems": 5,
+          "predictedItems": 5,
+          "pairs": 4,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/40",
+          "goldItems": 3,
+          "predictedItems": 3,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/41",
+          "goldItems": 11,
+          "predictedItems": 10,
+          "pairs": 5,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/42",
+          "goldItems": 3,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/43",
+          "goldItems": 2,
+          "predictedItems": 2,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/44",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/45",
+          "goldItems": 4,
+          "predictedItems": 5,
+          "pairs": 4,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/46",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/47",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/48",
+          "goldItems": 3,
+          "predictedItems": 4,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/49",
+          "goldItems": 2,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "unannotated",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/50",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/51",
+          "goldItems": 2,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/52",
+          "goldItems": 3,
+          "predictedItems": 3,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/53",
+          "goldItems": 3,
+          "predictedItems": 5,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/54",
+          "goldItems": 2,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/55",
+          "goldItems": 2,
+          "predictedItems": 3,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/56",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/57",
+          "goldItems": 3,
+          "predictedItems": 6,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/58",
+          "goldItems": 2,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/59",
+          "goldItems": 9,
+          "predictedItems": 11,
+          "pairs": 8,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/60",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/61",
+          "goldItems": 2,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/62",
+          "goldItems": 3,
+          "predictedItems": 5,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/63",
+          "goldItems": 2,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/64",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/65",
+          "goldItems": 2,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/66",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/67",
+          "goldItems": 5,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/68",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/69",
+          "goldItems": 3,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/70",
+          "goldItems": 3,
+          "predictedItems": 4,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/71",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/72",
+          "goldItems": 2,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/73",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/74",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/75",
+          "goldItems": 5,
+          "predictedItems": 5,
+          "pairs": 3,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/76",
+          "goldItems": 2,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/77",
+          "goldItems": 2,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "hallucinated",
+          "criticals": 2,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/78",
+          "goldItems": 4,
+          "predictedItems": 5,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/79",
+          "goldItems": 7,
+          "predictedItems": 4,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/80",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/81",
+          "goldItems": 5,
+          "predictedItems": 4,
+          "pairs": 4,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/82",
+          "goldItems": 4,
+          "predictedItems": 6,
+          "pairs": 4,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/83",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/84",
+          "goldItems": 2,
+          "predictedItems": 4,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/85",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/86",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/87",
+          "goldItems": 2,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/88",
+          "goldItems": 10,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/89",
+          "goldItems": 2,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/90",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "hallucinated",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/91",
+          "goldItems": 1,
+          "predictedItems": 3,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/92",
+          "goldItems": 2,
+          "predictedItems": 4,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/93",
+          "goldItems": 11,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/94",
+          "goldItems": 1,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/95",
+          "goldItems": 2,
+          "predictedItems": 4,
+          "pairs": 2,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/96",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/97",
+          "goldItems": 1,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "cord-v2/dev/98",
+          "goldItems": 1,
+          "predictedItems": 1,
+          "pairs": 1,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "cord-v2/dev/99",
+          "goldItems": 3,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        }
+      ]
+    },
+    {
+      "dataset": "sroie",
+      "language": "English — the headline language for the v1 product (ADR-010)",
+      "coverage": "grandTotal only: the dataset annotates company/date/address/total and no item, charge or subtotal field, so nothing item-level is scored from it and it cannot produce an item-price number (DECISIONS/0002)",
+      "snapshotHash": "483632b50b77561ec732d35487c8ff790b8c8380fce42305fcaab9ee665cccd4",
+      "provider": "pp-ocrv6",
+      "providerVersion": "1.0.0-small+sha256.b40e87d1af74",
+      "license": "CC-BY-4.0 as declared in the mirror's dataset card, LICENSE text, and NOTICE; the primary ICDAR host (rrc.cvc.uab.es/?ch=13, registration/consent) was NOT used and primary-source verification was NOT performed",
+      "receipts": 150,
+      "fieldsLabeled": [
+        "grandTotal"
+      ],
+      "fieldsExcluded": [
+        "subtotal",
+        "serviceCharge",
+        "tip",
+        "discount",
+        "roundOff",
+        "taxTotal",
+        "item.name",
+        "item.qty",
+        "item.unitPrice",
+        "item.lineTotal"
+      ],
+      "strict": {
+        "receipts": 150,
+        "scoreable": 149,
+        "goldless": 1,
+        "matched": 95,
+        "rate": 0.6375838926174496
+      },
+      "macro": {
+        "precision": 0.6834532374100719,
+        "recall": 0.6375838926174496,
+        "f1": 0.6597222222222221,
+        "fields": 1,
+        "listed": 1
+      },
+      "items": {
+        "gold": 0,
+        "predicted": 0,
+        "matchedPairs": 0,
+        "unmatchedGold": 0,
+        "unmatchedPredicted": 0,
+        "tau": 0.7
+      },
+      "fields": [
+        {
+          "field": "grandTotal",
+          "tier": "scalar",
+          "tp": 95,
+          "fp": 44,
+          "fn": 54,
+          "precision": 0.6834532374100719,
+          "recall": 0.6375838926174496,
+          "f1": 0.6597222222222221,
+          "absentAgreements": 0,
+          "unannotatedGoldCells": 0,
+          "goldCells": 149
+        }
+      ],
+      "money": [
+        {
+          "matcher": "matchItems(τ=0.7, money_gate=on)",
+          "moneyGate": true,
+          "pairs": 0,
+          "unitPrice": {
+            "goldAnnotated": 0,
+            "exact": 0,
+            "absent": 0,
+            "wrong": 0
+          },
+          "lineTotal": {
+            "bothPresent": 0,
+            "agree": 0,
+            "disagree": 0
+          }
+        },
+        {
+          "matcher": "matchItems(τ=0.7, money_gate=off)",
+          "moneyGate": false,
+          "pairs": 0,
+          "unitPrice": {
+            "goldAnnotated": 0,
+            "exact": 0,
+            "absent": 0,
+            "wrong": 0
+          },
+          "lineTotal": {
+            "bothPresent": 0,
+            "agree": 0,
+            "disagree": 0
+          }
+        }
+      ],
+      "provenance": {
+        "items": 359,
+        "priceSource": {
+          "detected": 251,
+          "assumed": 0,
+          "unresolved": 108,
+          "user_confirmed": 0
+        },
+        "quantitySource": {
+          "explicit": 110,
+          "assumed": 195,
+          "unresolved": 54,
+          "user_confirmed": 0
+        },
+        "detectedDirect": 63,
+        "detectedDerivative": 188
+      },
+      "confidence": {
+        "lines": 4449,
+        "scoredLines": 4449,
+        "words": 16030,
+        "scoredWords": 16030,
+        "items": 359,
+        "scoredItems": 359,
+        "wordScores": {
+          "min": 0.08282551914453506,
+          "max": 0.9999974966049194,
+          "mean": 0.9817211068166177,
+          "belowCritical": 99,
+          "belowWarning": 231
+        },
+        "itemsCappedByCritical": 72
+      },
+      "findings": {
+        "total": 1458,
+        "critical": 41,
+        "advisory": 0,
+        "receiptsWithCritical": 34,
+        "byCode": {
+          "ambiguous_row": 996,
+          "qty_unresolved": 54,
+          "qty_assumed": 195,
+          "price_not_resolved": 103,
+          "invalid_result_schema": 2,
+          "items_may_be_missing": 13,
+          "unclassified_charge": 37,
+          "arithmetic_item_sum": 10,
+          "arithmetic_total": 17,
+          "name_confidence_low": 2,
+          "price_confidence_low": 1,
+          "item_without_price": 5,
+          "zero_items": 7,
+          "confidence_unavailable": 7,
+          "name_length_outlier": 6,
+          "ambiguous_price_separator": 3
+        },
+        "byCriticalCode": {
+          "invalid_result_schema": 2,
+          "arithmetic_item_sum": 10,
+          "arithmetic_total": 17,
+          "item_without_price": 5,
+          "zero_items": 7
+        }
+      },
+      "nullDelta": {
+        "strictMatched": 0,
+        "strictScoreable": 149,
+        "macroF1": 0
+      },
+      "receiptRecords": [
+        {
+          "id": "sroie/dev/0",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/1",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/2",
+          "goldItems": 0,
+          "predictedItems": 5,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/3",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/4",
+          "goldItems": 0,
+          "predictedItems": 5,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/5",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/6",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/7",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/8",
+          "goldItems": 0,
+          "predictedItems": 5,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/9",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/10",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/11",
+          "goldItems": 0,
+          "predictedItems": 4,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/12",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/13",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/14",
+          "goldItems": 0,
+          "predictedItems": 10,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/15",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/16",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/17",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/18",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/19",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/20",
+          "goldItems": 0,
+          "predictedItems": 6,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/21",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/22",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/23",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/24",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/25",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/26",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/27",
+          "goldItems": 0,
+          "predictedItems": 4,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/28",
+          "goldItems": 0,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "sroie/dev/29",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/30",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/31",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/32",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/33",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": null,
+          "grandTotal": "hallucinated",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/34",
+          "goldItems": 0,
+          "predictedItems": 10,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/35",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/36",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/37",
+          "goldItems": 0,
+          "predictedItems": 5,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/38",
+          "goldItems": 0,
+          "predictedItems": 4,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/39",
+          "goldItems": 0,
+          "predictedItems": 5,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/40",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/41",
+          "goldItems": 0,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 1
+        },
+        {
+          "id": "sroie/dev/42",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/43",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/44",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/45",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/46",
+          "goldItems": 0,
+          "predictedItems": 9,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/47",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/48",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/49",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/50",
+          "goldItems": 0,
+          "predictedItems": 6,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/51",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/52",
+          "goldItems": 0,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 2,
+          "zeroItems": 1
+        },
+        {
+          "id": "sroie/dev/53",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/54",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/55",
+          "goldItems": 0,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "sroie/dev/56",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/57",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/58",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/59",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/60",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/61",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/62",
+          "goldItems": 0,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "sroie/dev/63",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/64",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/65",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/66",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/67",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/68",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/69",
+          "goldItems": 0,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "sroie/dev/70",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/71",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/72",
+          "goldItems": 0,
+          "predictedItems": 7,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/73",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/74",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/75",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/76",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/77",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/78",
+          "goldItems": 0,
+          "predictedItems": 9,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/79",
+          "goldItems": 0,
+          "predictedItems": 5,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/80",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/81",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/82",
+          "goldItems": 0,
+          "predictedItems": 12,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/83",
+          "goldItems": 0,
+          "predictedItems": 5,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/84",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/85",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/86",
+          "goldItems": 0,
+          "predictedItems": 4,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/87",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/88",
+          "goldItems": 0,
+          "predictedItems": 4,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/89",
+          "goldItems": 0,
+          "predictedItems": 4,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/90",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/91",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/92",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/93",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/94",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/95",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/96",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/97",
+          "goldItems": 0,
+          "predictedItems": 4,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/98",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/99",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/100",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/101",
+          "goldItems": 0,
+          "predictedItems": 0,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 1
+        },
+        {
+          "id": "sroie/dev/102",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/103",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/104",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/105",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/106",
+          "goldItems": 0,
+          "predictedItems": 14,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/107",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/108",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/109",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/110",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/111",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/112",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "absent",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/113",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/114",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/115",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/116",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/117",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/118",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/119",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/120",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/121",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/122",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/123",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/124",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/125",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/126",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/127",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/128",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/129",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/130",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/131",
+          "goldItems": 0,
+          "predictedItems": 5,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 2,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/132",
+          "goldItems": 0,
+          "predictedItems": 6,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/133",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/134",
+          "goldItems": 0,
+          "predictedItems": 4,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/135",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/136",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/137",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/138",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/139",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/140",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/141",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/142",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/143",
+          "goldItems": 0,
+          "predictedItems": 1,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/144",
+          "goldItems": 0,
+          "predictedItems": 3,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/145",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/146",
+          "goldItems": 0,
+          "predictedItems": 8,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 1,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/147",
+          "goldItems": 0,
+          "predictedItems": 6,
+          "pairs": 0,
+          "strict": 0,
+          "grandTotal": "wrong",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/148",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        },
+        {
+          "id": "sroie/dev/149",
+          "goldItems": 0,
+          "predictedItems": 2,
+          "pairs": 0,
+          "strict": 1,
+          "grandTotal": "exact",
+          "criticals": 0,
+          "zeroItems": 0
+        }
+      ]
+    }
+  ]
+}

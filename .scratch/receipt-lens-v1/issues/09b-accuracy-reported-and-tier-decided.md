@@ -4,15 +4,87 @@
 
 **Blocked by:** 04 (on-device OCR provider), 07 (validation and findings) — scoring protocol from 03b
 
-**Status:** ready-for-agent
+**Status:** done — merged pending owner review (2026-11-04)
 
 **Effort:** ~20 h · **Roadmap:** tasks 1E.3 (Tiny-vs-Small) and 1D.9 (README table generation), plus G3/G8t closure · **Week:** W8–9 · **Milestone:** M1
 **Verify:** accuracy tables regenerate byte-identically from committed results JSON; the tier decision note is committed citing both runs
 
-- [ ] The alternative, larger model set is measured against the same fixtures through the same provider, and the default recommendation (gate G3) is confirmed or revised on that data with the reasoning recorded in a committed note
-- [ ] Published accuracy tables are generated from committed machine-readable results, with per-dataset labelling coverage and the language mismatch disclosed beside them
-- [ ] The declared headline evaluation mode is stated where the numbers are published
-- [ ] Threshold and tolerance defaults exercised by this ticket (τ, confidence floors, round-off band — gate G8t) are pinned in benchmark configuration and documented as such
+- [x] The alternative, larger model set is measured against the same fixtures through the same provider, and the default recommendation (gate G3) is confirmed or revised on that data with the reasoning recorded in a committed note
+- [x] Published accuracy tables are generated from committed machine-readable results, with per-dataset labelling coverage and the language mismatch disclosed beside them
+- [x] The declared headline evaluation mode is stated where the numbers are published
+- [x] Threshold and tolerance defaults exercised by this ticket (τ, confidence floors, round-off band — gate G8t) are pinned in benchmark configuration and documented as such
+
+## Evidence (2026-11-04)
+
+**Decision records.** `DECISIONS/0014-accuracy-modes.md` pins the two modes (headline = parser-only,
+secondary = end-to-end, never blended), the per-dataset scoring and language scope, the metric
+configuration every number travels with, and seven publication limits; **M8 corrects its own ceiling
+claim from the measurement** (end-to-end is not numerically bounded by parser-only, because the modes also
+differ in line grouping). `DECISIONS/0015-model-tier-decision-criteria.md` commits the G3 thresholds
+**before** the Small download and resolves them after: A +5.54 pp (marginal band), B +0.044 (fails),
+C holds → **Tiny remains the default**, owner-decidable with the measured data, criteria re-runnable.
+
+**Artifacts, all committed.** `benchmarks/results/parser-only-{dev,eval}.json`,
+`end-to-end-{tiny,small}-{dev,eval}.json` (+ dated/sha archive copies), and
+`diagnostic-item-names-cord-v2-dev.json`. The README accuracy block is generated from them by
+`benchmarks/scripts/render-accuracy-table.mjs`; CI regenerates it and fails on drift, and the same check
+discharges G8t by comparing each artifact's τ / metric / floors / round-off band / scorer version against
+`benchmark.config.ts` **and** against the values `DECISIONS/0006`, `DECISIONS/0011` and ROADMAP G8t declare.
+
+**Headline numbers (SROIE English, eval, strict Tier 1).** 60.7% parser-only (219/361) — the published
+headline and the OCR-error ceiling; 57.3% end-to-end with Tiny (207/361); 62.9% with Small (227/361).
+CORD (out-of-language layout bucket, ADR-010): strict 2/100 dev and 0/100 eval parser-only, 0/100 both
+splits end-to-end for either tier.
+
+**Gate G3 measurement, same protocol both tiers.** Small costs 4.96× the model bytes (31.13 MB vs
+6.28 MB), ~2.2× the projected cold download, and **3.8× the median inference** (494 ms → 1,880 ms over the
+same 461 eval receipts), and gains +5.54 pp on SROIE eval strict with no CORD item-field regression. C4's
+two vendor-manifest traps reproduced on Small exactly as on Tiny (detection output is full resolution, not
+H/4; recognition output already softmax, not logits) — measured and corrected before the run, so the
+comparison was not decided by an export quirk.
+
+**Carry-forwards, all handled.** (1) modes reported separately with the headline named where the numbers
+are published; (2) price accuracy separated from name accuracy — `item.lineTotal`/`item.unitPrice` F1 per
+dataset and mode, plus SROIE's receipt-level `grandTotal`, with ticket 04's faded-thermal anecdote kept
+out of the percentages; (3) every paired-gold number states `matchItems(τ=0.70, money_gate=on|off)`, and
+`money_gate=off` leads the README table because it is the only column that can see a wrong price (dev 2 of
+5 reachable gold unit prices actively wrong, eval 3 of 11); (4) the 27 `arithmetic_item_sum` criticals are
+published with their attribution and explicitly not cited as accuracy evidence; (5) `detected` is split
+direct vs promoted-line-total (dev 331 = 101 + 230, reproducing `validationPins.test.ts` exactly; 06's
+rescue-gate fix has **not** landed); (6) floors stated as unexercised in the headline mode and first
+observable end-to-end (all 2362/15352 dev words scored), while remaining declared defaults, not
+calibrated; (7) `zero_items` published as "itemization could not be proven", not parser failures;
+(8) SROIE-only English claim, CORD headers state Indonesian/out-of-language, and SROIE headers state
+grand-total-only.
+
+**CORD `item.name` = 0.212 diagnosed before publishing, per the owner's condition.** It is a parser
+defect, not a language effect: the metric is flat at 0.212 across τ 0.50–0.90 (so τ is not the cause and
+τ was not touched), word order accounts for 0 of 82 paired misses, and 80 of 82 misses have the gold
+tokens as a strict subset of the prediction with the surplus being pure digits in 70 cases — every one on
+a continuation-merged item. **The printed quantity is being folded into `Item.name`.** Filed on tickets
+05/06 with the mechanism, the counts and the artifact; the README states the defect beside the number.
+
+**Not done, deliberately.** The ambiguous-row gold-class split ticket 05 asked for cannot be computed from
+committed artifacts: the pinned CORD snapshot carries no non-financial lines (`DECISIONS/0004`), so there
+is no gold noise-header/continuation class, and the fixtures drop CORD's per-line category. Recorded as
+`DECISIONS/0014` M7.5 with what would be needed (a per-line gold-category sidecar) rather than proxied.
+
+**M1-exit calibration of the floors is still an open loop** (§17): it needs a calibration-corpus decision,
+which is a dataset-selection choice for the owner, not a tuning parameter.
+
+**Verified locally:** `pnpm install --frozen-lockfile` not needed (no dependency change) ✓ `pnpm build` ✓
+`pnpm typecheck` ✓ `pnpm -r test` **463 passing** (core 222, pwa 27, benchmarks 214) ✓
+`pnpm verify:accuracy` (dev + eval byte-identical) ✓ `pnpm verify:accuracy-table` (6 artifacts, G8t
+verified) ✓ `pnpm verify:results` ✓ `pnpm verify:fixtures` 715 files byte-identical ✓ `pnpm scan:pii`
+idempotence clean, 51 advisories unchanged ✓ `pnpm verify:footprint` ✓
+`node scripts/model-manifest.mjs --check` ✓ `node benchmarks/scripts/diagnose-item-names.mjs --check` ✓
+fixtures budget 12.0 MB / 50 MB; largest committed new file 127 KB (< 1 MB ceiling) ✓.
+**harness/dist/main.js unchanged at 141 KB**, so ticket 08's measurement was not disturbed by adding a
+second, benchmark-only bundle. Disk: **53 GB free** on `/home`; ~1.4 MB of new tracked text
+(2 decision records, 11 result JSONs, 5 scripts, 3 harness/TS sources); `assets/models/candidate/`
+(31.13 MB) is git-ignored and **not** committed. Raw OCR was never written: the runs used no
+`--keep-ocr`, and the committed artifacts carry counts and outcomes only (no `text`/`name` keys).
+
 
 ## Required from 09b, added by ticket 05 (2026-11-03)
 

@@ -200,3 +200,23 @@ Two known cases where the promotion is provably wrong against gold: `cord-v2/dev
 classified `noise_header`), and `cord-v2/dev/68` `i1` Honey Mandarin returns 2,600,000 against a gold
 1,300,000. Committed in `validationPins.test.ts` ("price provenance", "the matcher's money gate hid 06's
 wrong unit prices").
+
+## Filed against 06 by ticket 09b (2026-11-04): quantity tokens folded into `Item.name`
+
+**Quantity tokens are being folded into `Item.name`.** Diagnostic committed at
+`benchmarks/results/diagnostic-item-names-cord-v2-dev.json` (`node benchmarks/scripts/diagnose-item-names.mjs
+--check` re-derives it): **80 of 82 paired misses have gold tokens as a strict subset of the prediction; 70
+have surplus pure digits; all 80 sit on continuation-merged items.** Gold `REAL GANACHE` → predicted
+`1 REAL GANACHE`; gold `Choco Peanut Bread` → `2 Choco Peanut Bread`.
+
+**Fix:** when the quantity is parsed (leading `N ×` or detected quantity column), strip that token from the
+name before assignment.
+
+**Expected effect:** CORD dev `item.name` agreement **53/254 → ~133/254** — the largest movement available
+to the parser on this corpus, and the reason 09b published 0.212 as a defect rather than as a language
+limitation (`DECISIONS/0015` M-4, `DECISIONS/0014` M7.8).
+
+**Do not modify the matcher.** τ = 0.70 is confirmed correct: `item.name` F1 is flat at 0.212 across τ
+0.50–0.90 and word order accounts for 0 of the 82 misses, so the metric is not the variable here and
+`DECISIONS/0006` stays closed (`DECISIONS/0015` C6).
+

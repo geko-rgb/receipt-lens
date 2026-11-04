@@ -248,3 +248,25 @@ This is **complementary to Ticket 20** (recognised labels → dropped from `Pars
 the findings are correct responses to a classification leak, not measurements of arithmetic.
 Committed in `benchmarks/src/parser/validationPins.test.ts` ("the item-sum criticals are over-inclusive
 item lists", "emission census"); mechanism attribution in DECISIONS/0011 V3.1.
+
+## Filed against 05 by ticket 09b (2026-11-04): 119 CORD gold items never became items
+
+**119 CORD dev gold items have no corresponding `ParsedItem` — a 05/20 classification gap, not a naming
+problem.** Of those 119, **68 have no similarity above 0.20 to any predicted name on the receipt** — there
+is nothing comparable to pair with. 90 have every gold token somewhere on the page, so the words are
+present and the rows are not items.
+
+Diagnostic committed at `benchmarks/results/diagnostic-item-names-cord-v2-dev.json` (`--check` re-derives);
+counts: 254 gold / 245 predicted / 135 paired at `matchItems(τ=0.70, money_gate=on)`, best-similarity
+buckets `0.00–0.20: 68, 0.20–0.40: 25, 0.40–0.60: 14, 0.60–0.70: 7, 0.70–0.85: 1, 0.85–1.00: 4`.
+
+Mechanism is classifier coverage — charge labels outside the dictionary, tender shapes outside Q7's family,
+and wrapped names — which is **complementary to ticket 20** (recognised labels dropped from `ParseResult`)
+and to the **27 `arithmetic_item_sum` criticals** (unrecognised charge labels becoming items). The two
+point in opposite directions and the same dictionary gap is between them.
+
+**Not fixed in 06, and this blocks CORD item F1 from being read as a parser-accuracy verdict**: 09b
+publishes the CORD item-field numbers with this attribution beside them (`DECISIONS/0014` M7.2, M7.8), and
+a future re-measurement of gate G3's revisit condition is only meaningful once this and ticket 20 are
+addressed (`DECISIONS/0015`, owner-confirmed section).
+

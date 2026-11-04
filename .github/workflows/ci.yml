@@ -22,6 +22,16 @@ jobs:
       # the checks around it that a test alone cannot make.
       - run: pnpm scan:pii
       - run: pnpm verify:results
+      # Ticket 09b gates. `verify:accuracy` re-runs the shipped parse() over the committed dev and eval
+      # fixtures and requires the bytes of the published accuracy artifacts to come out the same; the
+      # fixtures are committed, so this needs no dataset download and no browser. `verify:accuracy-table`
+      # regenerates the README block from those artifacts, fails on drift, and discharges gate G8t by
+      # comparing each artifact's declared τ, metric, confidence floors and round-off band against
+      # benchmark.config *and* against the values DECISIONS/0006, DECISIONS/0011 and ROADMAP G8t declare.
+      # The end-to-end measurement is deliberately not run here: it needs the 2.7 GB raw snapshot and
+      # Chromium, and its artifact is committed rather than reproduced (DECISIONS/0014 M6).
+      - run: pnpm verify:accuracy
+      - run: pnpm verify:accuracy-table
       - run: node scripts/check-fixture-budget.mjs
       # Ticket 08 gate. The README footprint table is a pure function of the committed
       # measurement, so regenerating it must be a no-op. The same check re-derives the

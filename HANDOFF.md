@@ -1,4 +1,4 @@
-# HANDOFF — session log and next steps (2026-11-03)
+# HANDOFF — session log and next steps (2026-11-04)
 
 ## Where everything lives
 - **Working repo (authoritative):** `/home/albus/dev/splitt2` — git, `main` = `de1667f` (PR #9,
@@ -405,7 +405,74 @@ asset bytes, no new dependency, nothing over 1 MB. `.git` 15 MB.
 — nothing in the repo does — and a public scoped publish of an unlicensed package is an owner decision, not
 an agent default. Branch + PR per the standing rules when the owner wants them shipped.
 
-## Next: ticket 08 — measured footprint
+## CHECKPOINT — ticket 09b complete (2026-11-04, branch `ticket/09b-accuracy-reported-tier-decided`)
+
+**What landed:** the data half of M1. `DECISIONS/0014-accuracy-modes.md` (two modes, headline = parser-only,
+never blended; per-dataset language/scope; the metric config every number carries; eight publication
+limits), and `DECISIONS/0015-model-tier-decision-criteria.md` (gate G3 thresholds **committed before** the
+Small download, then resolved against the measurement). New measurement code:
+`benchmarks/src/scoring/accuracy.ts` + `benchmarks/src/measure-accuracy.ts` (parser-only CLI),
+`benchmarks/scripts/run-end-to-end.mjs` + `harness/src/batch.ts`/`batch.html`/`build-batch.mjs` (a second,
+benchmark-only bundle — `dist/main.js` stayed at 141 KB so ticket 08's measurement was untouched),
+`benchmarks/scripts/fetch-candidate-model.mjs` (Small, SHA-256-verified against upstream pins, into
+gitignored `assets/models/candidate/`), `benchmarks/scripts/render-accuracy-table.mjs` (README block +
+G8t verification), `benchmarks/scripts/diagnose-item-names.mjs`. New committed artifacts:
+`parser-only-{dev,eval}.json`, `end-to-end-{tiny,small}-{dev,eval}.json`,
+`diagnostic-item-names-cord-v2-dev.json`, each with a dated/sha archive copy. `--split` seams in
+`matching/matcher.ts` (`moneyGate`) and `scoring/itemScores.ts` are measurement-only, like 06's
+`tenderFamily`; `scoring/report.ts` gained `strict.perReceipt` so per-receipt rows come from the same
+scorer as the aggregate, and `dev-null-bootstrap.json` is still byte-identical.
+
+**Gate G3 outcome: Tiny remains.** Small (31.13 MB, 4.96×) gained **+5.54 pp** on SROIE eval strict
+(62.9% vs 57.3%) with **no** CORD item-field regression, at **3.8× median inference** (1,880 ms vs
+494 ms) — A landed in the pre-declared marginal band, B failed (+0.044 vs +0.10 floor), so the rule's
+marginal branch applies: owner-decidable with the data, **Tiny by default absent an explicit override**.
+The criteria file is the artifact; the decision was not negotiated after seeing the numbers.
+
+**Four things a fresh session should not rediscover the hard way:**
+
+1. **"Parser-only is a ceiling" is narrower than it reads.** Small's end-to-end SROIE eval strict (62.9%)
+   **exceeded** the same receipts' parser-only figure (60.7%). Mechanism is line grouping, not recognition:
+   SROIE fixture lines are harness-derived y-clusters and PII-redacted, while real OCR brings its own
+   reading-order view, and on receipts printing several competing totals (`sroie/dev/12`) which candidate
+   reaches `parse()` depends on grouping. 16 dev receipts moved up, 11 down. Filed as
+   `DECISIONS/0014` M8, which corrects 0014's own M2 — do not restate the unqualified ceiling claim.
+2. **CORD `item.name` 0.212 is a parser bug, not Indonesian.** Flat across τ 0.50–0.90; 0 of 82 paired
+   misses are word order; **80 of 82 have gold's tokens as a strict subset of the prediction, 70 of those
+   surplus tokens are digits, and all 80 sit on continuation-merged items** — the printed quantity is being
+   folded into `Item.name`. Owned by 05/06; the fix would move dev name recall from 53/254 toward 133/254.
+   09b filed it with evidence rather than fixing it inside a measurement ticket.
+3. **The vendor manifest lies about two values, on both tiers.** Detection output is full resolution (not
+   `H/4`) and recognition output is already softmax (not `ctc_logits`) — for Small exactly as for Tiny.
+   `node scripts/inspect-ocr-sessions.mjs --dir assets/models/candidate` measures both and now fails when
+   the manifest contradicts them. Never write a candidate manifest from advertised values: the softmax one
+   silently zeroes every confidence.
+4. **A pre-committed threshold can be ceiling-limited.** C1/B required +0.15 F1 on a field whose
+   parser-only value is 0.6616 and whose Tiny value is 0.6216 — the headroom was ~0.04 unless grouping
+   helped. The rule still resolved correctly (B failed on measurement, not arithmetic), but a future
+   criteria record should check reachability against the mode ceiling *before* fixing the number (C5).
+
+**Also handed forward:** `zero_items` (42 dev) is still "itemization could not be proven"; the 27
+`arithmetic_item_sum` criticals remain the 05/20 classification gap; the 187 `priceSource: unresolved`
+dev items and 230 derivative `detected` prices say ticket 06's rescue gate has **not** landed; the
+floors are exercised end-to-end (every OCR word is scored) but **calibrated nowhere** — §17 still owes
+the calibration-corpus decision. The ambiguous-row gold-class split 05 asked for is **not computable**
+from committed artifacts (`DECISIONS/0014` M7.5) and was filed, not proxied.
+
+**Verified locally:** `pnpm build` ✓ `pnpm typecheck` ✓ `pnpm -r test` **463 passing** (core 222, pwa 27,
+benchmarks 214) ✓ `pnpm verify:accuracy` (dev + eval byte-identical) ✓ `pnpm verify:accuracy-table`
+(6 artifacts, G8t pins cross-checked against `benchmark.config` and the decision records) ✓
+`pnpm verify:results` ✓ `pnpm verify:fixtures` 715 files byte-identical ✓ `pnpm scan:pii` idempotence
+clean, 51 advisories unchanged ✓ `pnpm verify:footprint` ✓ `model-manifest.mjs --check` ✓ fixtures
+12.0 MB / 50 MB, largest new file 127 KB ✓. Disk: **53 GB free**; ~1.4 MB new tracked text; Small's
+31.13 MB is git-ignored and uncommitted; **no raw OCR or receipt text was ever written** (no `--keep-ocr`,
+and the artifacts carry counts/outcomes only — verified no `text`/`name` keys). Branch + PR per standing
+rules when the owner wants it shipped.
+
+## Superseded: next was ticket 08 — measured footprint
+
+Tickets 08 and 09a are merged (PRs #11, #12). The section below is kept for its history; for current
+state read the 09b checkpoint above and `ROADMAP.md`.
 
 After 07: 08 → 09a → 09b → 10a → 10 → … Read first for 08: its ticket file, `PROJECT(1).md` §9 (the
 cache-invalidation rules and the README claim), `DECISIONS/0007` (the provider is main-thread today; `ocr/
