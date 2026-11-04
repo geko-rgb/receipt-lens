@@ -469,6 +469,74 @@ clean, 51 advisories unchanged ✓ `pnpm verify:footprint` ✓ `model-manifest.m
 and the artifacts carry counts/outcomes only — verified no `text`/`name` keys). Branch + PR per standing
 rules when the owner wants it shipped.
 
+## CHECKPOINT — ticket 10a complete (2026-11-04, branch `ticket/10a-pwa-shell-and-framework-decision`)
+
+**What landed:** gate G1 decided on measurement, and the shell that decision makes possible.
+`DECISIONS/0017-pwa-framework.md` (D0–D10 + artifact retention), `scripts/pwa-framework/` (the throwaway
+probe behind every number in it), `packages/pwa` as a Vite + Svelte 5 app (`index.html`, `src/main.ts`,
+`src/App.svelte`, `src/lib/router.ts` + `router.test.ts`, four placeholder views under `src/routes/`),
+`playwright/shell.spec.ts` (10 tests) and `playwright/smoke.spec.ts` rewritten as a built-shape check,
+plus `docs/pwa-design.md` (IndexedDB schema plan + service-worker precache plan — intent only; 14 and 17
+implement). CI: the shell rides `pnpm build` (`pnpm -r build` now includes `tsc -p . && vite build` for
+`@receipt-lens/pwa`), and `playwright/smoke.spec.ts` fails the job if the shell bundle grows an OCR
+reference. New dev deps on `@receipt-lens/pwa` only: `svelte@5.57.3`, `vite@8.3.5`,
+`@sveltejs/vite-plugin-svelte@7.3.1` — no new *runtime* dependency, and none of the three declares an
+install hook.
+
+**G1 outcome: Svelte 5 + Vite 8 + TS, plain SPA, path routing with an in-house router.** React 19 lost
+dimension 1 (first-paint shell 303,013 B raw / 96,580 gzip against Svelte's 103,598 / 37,462) and tied
+dimensions 2, 4 and 5; its one advantage was router quality, and routing turned out to be
+framework-neutral. The probe's four builds each ran a real Tiny inference in Chromium (29 lines / 75
+words), which is the honest answer to "does the framework interfere with onnxruntime-web": no.
+
+**Owner conditions 1–3 are implemented and proved** (`DECISIONS/0017` D3a): `hashchange`/`popstate`
+re-render without a navigation, `location.hash` is treated as opaque after the first `#` and is never
+URL-decoded before handoff to the codec, a fragment-bearing `/` is the share-link entry point, every other
+unknown path shows not-found without dropping the fragment, and the fragment survives
+`/capture#v1.x → /bill#v1.x → /share#v1.x` byte-for-byte. Q2/Q3 got their cases too: direct navigation to
+`/capture` renders with zero ORT requests, and `/share` with no fragment renders a placeholder rather than
+crashing.
+
+**Delete `scripts/pwa-framework/` after 10a merges** (owner ruling, so it cannot become permanent legacy).
+It is the re-derivation baseline for every number in DECISIONS/0017 while it exists — `node
+scripts/pwa-framework/verify-evidence.mjs` re-reads the artifact and fails on drift — and it costs ~293 MB
+ignored on disk (`node_modules` 120 MB + four `dist` trees). Delete the directory, the lockfile and the
+artifact together; do not leave `verify-evidence.mjs` pointing at a file that is gone.
+
+**Four things a fresh session should not rediscover the hard way:**
+
+1. **`svelte-spa-router` cannot do what this app needs.** v5.1.1 is hash-only — it assigns
+   `window.location.hash` on every navigate and exposes no mode prop — and in hash mode the ticket-16
+   fragment shape renders the wrong view, or in React's hash build, no view at all. This is measured in
+   the probe artifact, and it is why the router is in-house.
+2. **`svelte-routing` 2.13.0 works on Svelte 5 only in its children form.** The documented
+   `component={Foo}` prop throws `TypeError: Cannot read properties of undefined (reading 'before')`
+   because it uses the Svelte 4 component API. If a later ticket wants to replace the in-house module,
+   use `<Route path="/bill"><Bill /></Route>` and pay the measured +16,995 B.
+3. **Workbox's default 2 MiB precache limit is a build failure here, not a warning.** With
+   `globPatterns: [..., "wasm"]`, `vite-plugin-pwa` aborts the build naming
+   `maximumFileSizeToCacheInBytes`, and the generated manifest silently excludes the 14.85 MB runtime
+   otherwise. Ticket 17 sets the limit (20 MiB), and re-checks it if the model tier ever changes —
+   `rec.onnx` at Small is 21,159,378 B and would be dropped without a word.
+4. **`vite preview` colourises its banner under a Playwright worker,** so the port digits arrive wrapped in
+   escape codes. `playwright/shell.spec.ts` sets `NO_COLOR=1` and strips ANSI defensively; a spawn helper
+   that greps for `http://localhost:\d+` without that hangs until it times out.
+
+**Carried forward:** DECISIONS/0012 F11 trigger 1 is live (the published 21.30 MB / 14.85 MB pair is still
+the *harness's*; remeasure once the PWA serves OCR, i.e. ticket 10); ticket 16 inherits the
+`https://<host>/#v1.…` link shape and the raw-hash rule; ticket 17 inherits the `wasmPaths` duplication
+finding (the bundler hoists its own hashed WASM copy while the runtime fetches the mounted one — pick one,
+and the design note recommends letting ORT resolve its emitted asset) and the `generateSW` vs
+`injectManifest` recommendation in `docs/pwa-design.md` §2.2.
+
+**Verified locally:** `pnpm build` ✓ `pnpm typecheck` ✓ `pnpm -r test` **474 passing** (core 222, pwa 38,
+benchmarks 214) ✓ `pnpm verify:accuracy` (dev + eval byte-identical) ✓ `verify:accuracy-table` ✓
+`verify:results` ✓ `scan:pii` (51 advisories unchanged, idempotence clean) ✓ `verify:footprint` ✓ fixture
+budget 12.0 MB / 50 MB ✓ `playwright --grep-invert @offline` **13 passing** (10 shell + 3 built-shape) ✓
+`pnpm --filter @receipt-lens/pwa dev` serves on :5173 with `/capture` and `/share` resolving ✓
+`node scripts/pwa-framework/verify-evidence.mjs` ✓. Disk: **52 GB free**; tracked +~130 KB (shell sources,
+specs, docs, record); ignored +~293 MB (probe, deletable on merge); `.git` 16 MB.
+
 ## Superseded: next was ticket 08 — measured footprint
 
 Tickets 08 and 09a are merged (PRs #11, #12). The section below is kept for its history; for current

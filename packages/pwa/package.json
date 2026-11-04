@@ -7,8 +7,15 @@
     "@receipt-lens/core": "workspace:*"
   },
   "scripts": {
-    "build": "tsc -p .",
+    "build": "tsc -p . && vite build",
+    "dev": "vite",
+    "preview": "vite preview",
     "typecheck": "tsc -p . --noEmit && tsc -p tsconfig.test.json",
     "test": "vitest run"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "svelte": "5.57.3",
+    "vite": "8.3.5"
   }
 }

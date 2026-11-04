@@ -130,9 +130,43 @@ works, and it costs 16,995 B raw over the hash router. `react-router` 8.5.1 work
 same package. **That is the one place React's ecosystem is measurably ahead, and it does not change the
 framework**: routing is a 4-route surface in a v1 that needs exactly one rule (`read location.hash raw`),
 so the answer is a small in-house router rather than either a 17 KB dependency with a broken documented
-API or a framework switch. Revisit trigger: if a later ticket needs nested/parallel routes, loaders or
+API or a framework switch. That choice is only safe while it stays true to D7's promise: `router.ts`
+imports nothing from any framework, and if it ever does, the "the router transfers unchanged to React"
+claim in D7 stops being true and must be rewritten rather than inherited. Revisit trigger: if a later ticket needs nested/parallel routes, loaders or
 scroll restoration beyond what the in-house module does, re-evaluate `svelte-routing` (children API only)
 or SvelteKit — not React.
+
+## D3a — The router contract (owner conditions, 2026-11-04)
+
+The in-house router is approved with three binding conditions. They are the module's specification, not
+implementation notes: the shell's `lib/router.ts` and `playwright/shell.spec.ts` are the artifacts that
+hold them, and a violation is a bug in 10a, not a discovery for 16.
+
+1. **The router listens for `hashchange` and `popstate`, not just for startup.** Initial route resolution
+   reads `location.hash` raw; subsequent hash changes re-render the route **without a navigation**. The
+   raw fragment is **never URL-decoded before handoff to the share-link parser** — decoding is ticket
+   16's concern, not the router's. The router treats `location.hash` as an opaque string after the first
+   `#`; it never splits on subsequent `#` characters.
+2. **Unknown-route fallback is pinned.** Unknown routes and fragment-bearing landing pages route to the
+   share view. A navigation to `/#v1.…` (fragment only, no path) is the primary share-link entry point;
+   the router treats it as `/share` with the fragment preserved. A navigation to `/nonexistent` shows a
+   not-found view **without breaking fragment preservation if one is present**.
+   > **How the two halves are reconciled** (stated because the first sentence alone reads as "unknown
+   > routes go to share", which the third sentence contradicts for `/nonexistent#v1.…`): the fragment
+   > decides it only at the **landing path**. `routeFor("/", "v1.…")` is `share` — a fragment-bearing `/`
+   > is a share link, and it is the only shape ticket 16 emits. Every other unknown path is `notFound`
+   > whether or not it carries a fragment, and showing not-found must leave `location.hash` untouched, so
+   > the fragment survives even though the view says not-found. `routeFor("/bill", "v1.…")` stays `bill`:
+   > a known path owns the route, and the fragment is just carried along (condition 3 depends on that).
+   > Implemented in `packages/pwa/src/lib/router.ts`, unit-tested in `router.test.ts`, proved in the
+   > browser in `playwright/shell.spec.ts`.
+3. **Fragment integrity across route changes.** Navigating `/capture#v1.x` → `/bill#v1.x` →
+   `/share#v1.x` preserves the fragment byte-for-byte at every step. If any route change corrupts a byte,
+   ticket 16's share links fail silently — this condition exists because that failure is invisible.
+
+Tested, in order: the re-render-without-reload case (condition 1), the fragment-bearing landing and the
+`/nonexistent` fallback (condition 2), and the three-hop byte-for-byte walk (condition 3), in
+`playwright/shell.spec.ts` against the built shell.
 
 ## D4 — Dimension 4: lazy loading, so first paint never forces the ONNX runtime
 
@@ -169,6 +203,15 @@ anyway because ticket 17's friction lives here, and both candidate stacks hit it
 |---|---|
 | plugin defaults, `globPatterns: ["**/*.{js,css,html,wasm}"]` | **build fails**: `Configure "workbox.maximumFileSizeToCacheInBytes" to change the limit: the default value is 2 MiB.` The emitted WASM is excluded from the 5-entry manifest (162,382 B svelte / 379,370 B react precached). |
 | `maximumFileSizeToCacheInBytes: 20 MiB` | build succeeds; 6 entries; **15,011,240 B** precached for the Svelte shell, **15,228,465 B** for React, **14,972,628 B** for no-framework (7 entries); `wasmPrecached: true`, `notPrecached: []`. |
+
+**The 20 MiB figure is sized for Tiny, and it is a ceiling, not a margin.** Tiny's largest cacheable
+asset is the 14,848,852 B WASM. If DECISIONS/0015's revisit condition ever fires and Small wins the tier,
+`rec.onnx` alone is 21,159,378 B — over the limit — and it would be **silently dropped from the precache**
+while the build still succeeded, because the default behaviour this record had to raise a limit to defeat
+is exactly a silent exclusion. So: **any model-tier change re-opens the service-worker config; the tier's
+largest asset must fit below the limit or the limit must rise.** Ticket 17 owns the config; DECISIONS/0012
+F11's trigger 2 (the tier changes) is the moment this gets checked, and the `verify:footprint` drift guard
+is what makes an unraised limit visible rather than assumed.
 
 The generated `sw.js` in every raised-limit build contains `precacheAndRoute([...])` with
 `revision: null` for content-hashed assets (filename hashing is the cache-buster), plus
@@ -216,9 +259,17 @@ Per the rule this ticket was set with, a tie on a dimension is not a reason to s
 | **Vue 3 / Solid / Preact** | not evaluated | Not the default, not the documented fallback; G1 was a binary gate. Nothing found in v1's needs would be answered only by them. |
 | **TanStack Router / wouter / `@tanstack/react-router`** | not evaluated as frameworks | Routing libraries; D3 settles routing regardless of the framework, and v1's router surface is one rule. |
 
+**If the Svelte 5 ecosystem fails in practice, the fallback is React 19 on the same decisions, not a
+re-argument.** If ticket 14 (IndexedDB migrations) or ticket 17 (service-worker update protocol) hits an
+unresolvable Svelte 5 incompatibility, the documented fallback is **React 19 with the same in-house router
+and the same Vite toolchain**. The router, the fragment-preservation rules (D3a) and the lazy-ONNX pattern
+(D4) are framework-neutral and transfer unchanged; only the view layer and the ~200 KB of runtime differ.
+The fallback is a component-layer swap under this same record, not a reopening of G1's evidence.
+
 ## D8 — What would overturn this, stated in advance
 
-- A library the product genuinely needs that ships React-only. Nothing in v1 does: IndexedDB is a browser
+- A library the product genuinely needs that ships React-only. (The Svelte-5-incompatibility path is
+  D7's fallback, which keeps this record's routing, fragment and lazy-load decisions intact.) Nothing in v1 does: IndexedDB is a browser
   API, §10's money is `BigInt`, ticket 16's codec is a bundled compressor plus WebCrypto, tickets 15's
   UPI/WhatsApp are URL builders.
 - `onnxruntime-web` behaving differently under Svelte in a configuration this probe did not run (GPU/WebGPU
@@ -234,13 +285,43 @@ Per the rule this ticket was set with, a tie on a dimension is not a reason to s
 1. **DECISIONS/0012 F11 trigger 1 is now live**: "the PWA exists — tickets 10a and 10". Once the shell (and
    then the capture flow) is deployed, `pnpm measure:footprint` must be re-run and the README table
    regenerated: today's 21.3 MB / 14.8 MB pair is the harness's (`deployment.scope`), not the PWA's.
-2. **Ticket 17** inherits: `maximumFileSizeToCacheInBytes` raised (D5), one deliberate choice about the
-   emitted-WASM copy versus `wasmPaths` (D4), and the model-asset cache contract that the glob does not
-   cover (D5).
+2. **Ticket 17** inherits: `maximumFileSizeToCacheInBytes` raised (D5) and re-checked on every tier
+   change (D5's Tiny-shaped ceiling), one deliberate choice about the emitted-WASM copy versus `wasmPaths`
+   (D4), and the model-asset cache contract that the glob does not cover (D5).
 3. **Ticket 16** inherits the link shape (`https://<host>/#v1.…`), the "read `location.hash` raw, never a
-   router param" rule, and the measured fact that a 7,755-character base64url fragment survives intact.
+   router param" rule, D3a's no-URL-decode-before-handoff rule (decoding is the codec's, and the codec
+   owns it), and the measured fact that a 7,755-character base64url fragment survives intact.
 4. **Ticket 10** inherits the lazy-boundary rule (D4): core stays eager because the bill view needs it, so
    nothing OCR-adjacent may be imported eagerly, or it lands in the first-paint chunk.
+
+## D10 — The shell as it landed (2026-11-04)
+
+`packages/pwa` is now a Vite + Svelte 5 app: `index.html` → `src/main.ts` → `App.svelte` with a header
+wordmark, a three-link nav and `Capture` / `Bill` / `Share` / `NotFound` placeholder views, no product
+behaviour. The router is `src/lib/router.ts` — framework-neutral by design, because D7's fallback claims
+the routing layer transfers to React unchanged — with D3a's rules written into it and unit-tested in
+`router.test.ts`, and the live history behaviour proved in Chromium by `playwright/shell.spec.ts`.
+
+Built shell, from `packages/pwa/dist/app/.vite/manifest.json` and its assets: one entry chunk
+**34,278 B raw / 13.34 kB gzip**, one CSS chunk **760 B / 0.41 kB gzip**, no code splitting (nothing in
+the shell is lazy, because the shell imports neither core nor the OCR runtime), no `.wasm` in `assets/`.
+Core joins the graph in ticket 10; that is when the DECISIONS/0012 F11 remeasurement becomes meaningful
+(D9.1).
+
+Two deliberate absences, both asserted by `playwright/smoke.spec.ts` so they cannot drift in silently:
+no `onnxruntime`/`ort-wasm-simd-threaded` reference in any shell chunk (D4's lazy boundary), and no core
+entry symbol in the bundle at all (10a is navigation and layout only).
+
+## Artifact retention
+
+`scripts/pwa-framework/` is a throwaway probe, and `results/framework-evidence.json` is 417 KB of
+committed evidence for it. It is the re-derivation baseline for every number above, so it stays for now.
+**Delete `scripts/pwa-framework/` — probe sources, `verify-evidence.mjs` and the artifact together — when
+this ticket merges**, per the owner's ruling on probe lifetime; the numbers then live on only in this
+record and in the shell's own tests. If a later revision supersedes G1 first, the same rule applies from
+that moment: a published number outlives the session that measured it only while its artifact exists
+(DECISIONS/0008), so pruning the artifact means annotating this record that the table is no longer
+re-derivable rather than leaving an orphan check pointing at a deleted file.
 
 ## What this record does not decide
 
