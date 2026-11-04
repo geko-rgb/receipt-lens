@@ -1,0 +1,62 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  color: #26221c;
+  background: #fbfaf7;
+  line-height: 1.45;
+}
+
+#shell-wordmark {
+  margin: 0;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #ddd7cb;
+}
+
+#shell-nav {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid #eee8dc;
+}
+
+#shell-nav a {
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.4rem;
+  color: #3b3629;
+  text-decoration: none;
+}
+
+#shell-nav a:hover {
+  background: #efe9dc;
+}
+
+#shell-view {
+  padding: 1.25rem 1rem 3rem;
+  max-width: 44rem;
+}
+
+#shell-view h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.3rem;
+}
+
+#shell-view p {
+  margin: 0 0 0.55rem;
+}
+
+.placeholder {
+  color: #6d6656;
+  font-size: 0.9rem;
+}
+
+code {
+  font-size: 0.85em;
+  overflow-wrap: anywhere;
+}
