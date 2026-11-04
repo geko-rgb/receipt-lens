@@ -28,6 +28,14 @@ function builtShell(): { html: string; chunks: { name: string; source: string }[
   return { html, chunks };
 }
 
+/** The chunk(s) the entry document itself loads — everything else is reachable only behind a dynamic import. */
+function entryChunks(): { name: string; source: string }[] {
+  const { html } = builtShell();
+  const entryNames = [...html.matchAll(/<script[^>]+src="\/assets\/([^"]+)"/g)].map((match) => match[1]!);
+  return builtShell()
+    .chunks.filter((chunk) => entryNames.includes(chunk.name));
+}
+
 test("the shell entry document mounts the app from relative build assets only", () => {
   const { html } = builtShell();
 
@@ -42,25 +50,46 @@ test("the shell entry document mounts the app from relative build assets only", 
   }
 });
 
-test("no shell chunk carries the ONNX runtime — it stays behind the lazy boundary", () => {
-  const { chunks } = builtShell();
-  expect(chunks.length).toBeGreaterThan(0);
+test("the ONNX runtime stays behind the lazy boundary, never in the entry chunk", () => {
+  const entry = entryChunks();
+  expect(entry.length).toBeGreaterThan(0);
 
-  for (const chunk of chunks) {
+  for (const chunk of entry) {
     expect(chunk.source, `${chunk.name} references onnxruntime`).not.toContain("onnxruntime");
     expect(chunk.source, `${chunk.name} references the threaded WASM`).not.toContain("ort-wasm-simd-threaded");
   }
 
-  // And the bundler must not have hoisted a WASM asset into the shell's own output.
+  // The boundary is only real if the runtime exists somewhere behind it — ticket 10 makes the shell
+  // able to OCR, so the runtime and its WASM asset are now produced, just never on first paint.
+  const { chunks } = builtShell();
+  const lazy = chunks.filter((chunk) => !entry.some((e) => e.name === chunk.name));
+  expect(
+    lazy.some((chunk) => chunk.source.includes("ort-wasm-simd-threaded")),
+    "no lazy chunk carries the ONNX runtime",
+  ).toBe(true);
+
   const assets = readdirSync(path.join(shellDir, "assets"));
-  expect(assets.filter((name) => name.endsWith(".wasm"))).toEqual([]);
+  expect(assets.filter((name) => name.endsWith(".wasm")).length).toBeGreaterThan(0);
 });
 
-test("the shell does not import @receipt-lens/core at all (no product behaviour yet)", () => {
+test("core is behind a dynamic import, not merged into the entry chunk", () => {
+  const entry = entryChunks();
+  expect(entry.length).toBeGreaterThan(0);
+  const entrySource = entry.map((chunk) => chunk.source).join("\n");
+
+  // The member names survive minification as property accesses (`(await import()).extract`), so the
+  // proof is the chunk split itself: an eager `import { extract } from "@receipt-lens/core"` would
+  // inline core into the entry chunk and leave no separate `dist-` chunk to fetch.
+  expect(entrySource).toMatch(/import\((["'`])\/*[^"'`]*\1\)/);
+
+  // The runtime is the heavy part and must never be in the entry chunk.
+  expect(entrySource).not.toContain("onnxruntime");
+  expect(entrySource).not.toContain("ort-wasm-simd-threaded");
+  expect(entrySource).not.toContain("ort.wasm.bundle.min");
+
+  // And the split really exists: core's own chunk is a file, and it carries the provider.
   const { chunks } = builtShell();
-  const combined = chunks.map((chunk) => chunk.source).join("\n");
-  // core's only public entry symbols the shell could pull in; none of them may appear yet.
-  for (const marker of ["classifyRows", "createPPOCRv6Provider", "unclassifiedRows"]) {
-    expect(combined, `shell bundle contains ${marker}`).not.toContain(marker);
-  }
+  const core = chunks.filter((chunk) => chunk.name.startsWith("dist-"));
+  expect(core.length).toBeGreaterThan(0);
+  expect(core.map((chunk) => chunk.source).join("\n")).toContain("createPPOCRv6Provider");
 });
