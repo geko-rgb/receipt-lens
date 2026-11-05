@@ -654,6 +654,14 @@ What 07 hands over:
   defaults, not calibrated values**; §17 still owes their M1-exit evaluation, and 09b is told it cannot be
   done against dev (V0.1).
 
+## E2E test structure (owner note, recorded 2026-11-05)
+
+E2E test structure: Ticket 12 used one continuous flow test (defensible for a bounded ticket with a coherent
+narrative). For tickets 13+, prefer split tests over continuous flows where distinct state transitions warrant
+independent failure feedback. Continuous flow is fine when the flow is bounded and debugging cost is low; split
+is better when the flow is long or the state space is complex. Rationale: a broken split test tells you which
+transition broke; a broken continuous flow tells you only that something in the flow broke.
+
 ## Open items / owner decisions pending
 - **`@receipt-lens/core` is packable but not published, and declares no licence.** Ticket 07 made it
   publishable (`private` removed, `publishConfig.access: "public"`, `files` covers `dist` + `README.md`;

@@ -56,6 +56,11 @@ acknowledgement lives on the PWA tier's entity, not on the parser's `ParsedItem`
 "whole mutable state" and 0019 S5's persistence unit, so both new fields travel with the bill through ticket
 14 and are absent from ticket 16's snapshot (which carries resolved data only).
 
+§10 now carries the owner-authorized note (2026-11-05) for both fields, verbatim: *"PWA-layer
+additions to the working model, not core types: `WorkingBill.excludedRowIds: string[]` … and
+`WorkingBill.staleLinkCutoffAt: string | null` … These live on `WorkingBill`, not on core `ParseResult` or
+`ParsedItem`, to preserve the tier boundary. Full semantics in `DECISIONS/0022`."*
+
 **The cost, named:** an id set can in principle go stale. In v1 it cannot: rows are only replaced when the
 bill is replaced (0020 T5 — a re-import is an explicit new bill, never a merge), so nothing removes a row from
 a live `WorkingBill`. The blocker filter treats an unknown id as inert rather than as corruption.
@@ -125,16 +130,35 @@ The lifecycle actions themselves are the one exception, and it is not a bypass: 
 `false`, and no caller can reach the flag. `lockBill` runs with the guard on, so locking an already-locked bill
 returns `bill_locked` — the code's own condition, applied to a lifecycle action, with no tenth code invented.
 
-## L3 — The lock transaction, bulk finalization, and the invariant that enforces the checklist
+## L3 — The lock transaction, the checklist invariant, and the recorded deviation
 
 `lockBill(document, options)` is one §6-line-400 transaction whose operation:
 
-1. finalizes every draft item and draft charge whose §10 gates are met (`DECISIONS/0020` T6's bulk form, the
-   same helper `finalizeAllResolvable` uses — one implementation, two callers);
-2. sets `working.bill.isLocked = true`;
-3. mints the missing tokens (L5).
+1. finalizes every **draft charge** whose §10 gates are met (`DECISIONS/0020` T6's bulk form, the same helper
+   `finalizeAllResolvable` uses — one implementation, two callers);
+2. rejects **`items_unfinalized`** if any draft **item** remains, with `refs` = those ids;
+3. sets `working.bill.isLocked = true`;
+4. mints the missing tokens (L5).
 
-The checklist is **not** evaluated inside the operation. The runner commits the tentative document, runs
+**Deviation from §10 line 645 (recorded, not silent):** *"At lock attempt, resolved drafts may be finalized
+in bulk"* cannot apply atomically to draft items, because item finalization materializes units in pending
+state (0021 A1) and per-unit acknowledgment is a creator act that bulk-finalize cannot perform on the
+creator's behalf (0021 A4). `lockBill` therefore finalizes only draft charges (which have no units); draft
+items must be finalized via `finalizeAllResolvable` as a separate committed transaction before lock. If the
+user clicks Lock with draft items present, the UI surfaces the path ("finalize N draft items" → assignment UI
+→ lock) rather than attempting it atomically. This is a UX constraint, not a correctness compromise: the
+outcome is the same, just one more step.
+
+**Why `items_unfinalized` and not `draft_items_unresolved`.** Broadening that blocker to fire for any draft
+would make the checklist complete, but it contradicts `DECISIONS/0020` T8's pinned clearing rule — a
+resolvable draft does not raise it — which has its own assertion (`packages/pwa/tests/bill/pins.test.ts:235`).
+So the lock action carries the missing precondition as a rejection of its own: a guard for a state the UI
+never sends, in the shape 0021 A3 used for a duplicate pair. The checklist panel shows a "finalize N draft
+items first" line beside the blockers instead of inventing a tenth blocker code (§13's nine are closed), and
+`ready_to_lock` (L10) requires no draft items for the same reason. Draft *charges* are the exception that
+proves the rule: they materialize no units, so a bill whose only drafts are charges locks in one transaction.
+
+The checklist itself is **not** evaluated inside the operation. The runner runs
 `recompute` → core `validate` → `validateWorkingBill` in the pinned order, and only then applies the
 invariant:
 
@@ -158,21 +182,6 @@ subject of the rejection *is* the checklist, so the codes are the addresses, and
 in the returned document's `billValidation.blockers.locking[].refs`. This is a widening of `refs`' meaning for
 one code, recorded rather than assumed, in the same spirit as 0021 A3's extension of `unknown_entity`'s
 subject to a pair.
-
-**The consequence this ticket did not expect, stated plainly.** Units materialize on finalization and start
-`confirmedUnassigned: false` (0021 A1, §10 line 785). So **any lock attempt that has to finalize an item is
-blocked by `units_unassigned`** — the new units cannot have been assigned before they existed. Therefore:
-
-- the UI's lock action runs `finalizeAllResolvable` as its **own** transaction when `draftItems.length > 0`
-  (its effects are the visible unit grid), and then calls `lockBill`, which reports what still blocks;
-- `lockBill`'s internal finalization remains the atomic safety net for a direct seam call: it can never commit
-  a locked bill that still contains a draft, because a finalized item raises `units_unassigned` and an
-  unfinalizable one raises `draft_items_unresolved`;
-- a bill whose only drafts are **charges** can lock in one transaction, since charges create no units. That is
-  why `ready_to_lock` (L10) ignores draft charges but not draft items.
-
-This is a property of §10 (units appear at finalize) and §13 (every unit assigned or acknowledged), not a
-choice; recording it here means the next reader does not treat the two-step flow as an implementation smell.
 
 **Lock moves no money.** `calculatedPayableTotal`, `derived.shares` and `reconciliationGap` are recomputed in
 the locking commit and are numerically what they were a revision earlier; only `isLocked` and the tokens
@@ -352,11 +361,39 @@ rendering.
 `payer_missing` remains the blocker for a state that does not resolve (L1's matrix builds one through the raw
 seam). No operation can produce one.
 
-**Participant removal is not built in 13.** 0021 A10 pre-pinned `removeParticipant`'s cascade and deferred it
-to this ticket, but neither ticket 13's checklist nor its acceptance path needs participant management, and a
-removal needs a confirmation surface (it deletes assignments, 0021 A10's preview rule) that no ticket has
-specified. Its pinned semantics stand unbuilt; recorded in L15 so the next ticket inherits the rule rather than
-re-deriving it.
+**Participant removal** is in scope after all — see A16, which builds 0021 A10's
+pre-pinned cascade and adds the paid-participant guard.
+
+## A16 — `removeParticipant`: 0021 A10's deferral, in scope, and why a paid participant is unremovable
+
+0021 A10 pre-pinned removal's cascade and deferred the operation to this ticket. It is built here with one
+additional rule, per the owner's ruling: **settlement is a completed state that removal cannot un-do.**
+
+`removeParticipant(document, participantId)` is one transaction, and its preconditions are checked in this
+order:
+
+- **`unknown_entity`** — no participant on the bill has that id.
+- **`protected_participant`** — the id is `bill.creatorId` or `bill.payerId`. §11 rule 10 requires both to be
+  participants, so their removal is not a state this model can represent even transiently. Checked before
+  `participant_paid`, because it is a structural impossibility while paid is a settlement fact.
+- **`participant_paid`** — `participant.paid === true`. The creator must un-mark them paid first (ticket 15's
+  toggle), then remove.
+- Otherwise the participant and **every assignment naming them** are removed in the same commit. Units that
+  lose their only assignee stay `confirmedUnassigned: false`, so `units_unassigned` re-raises and the cost
+  transfer to the creator happens only through an explicit acknowledgement (0021 A10/A4) — never as a side
+  effect of removal. Charges redistribute because `participantCount` changed; that is the split's answer
+  (§11 rule 5), not a removal rule. `effects.removedAssignments` carries the cascade so the UI can name it
+  (business.md §14.3), and the roster's Remove action is confirm-first for that reason.
+
+**Why `participant_paid` and not `bill_locked`.** 0020 T1 defines `bill_locked` as a mutation while
+`bill.isLocked`. The removal this rule rejects happens on an *unlocked* bill — a locked bill never reaches the
+check, because the runner's guard rejects it first — so `bill_locked` would be false on its face. Redefining
+it as "any operation that would invalidate the settlement record" would make one code mean two unrelated
+conditions, and the remedies differ: unlock a locked bill, but un-mark a paid participant. A code whose
+remedy differs is a different code.
+
+The operation does not un-mark `paid`, does not touch units or acknowledgements beyond the cascade, and does
+not change `payerId` (the payer cannot be removed at all).
 
 ## L12 — Rejections added
 
@@ -368,6 +405,9 @@ Closed-union widenings of `DECISIONS/0020` T1, each for a condition no existing 
 | `unlock_unconfirmed` | `unlockBill` without `confirmed: true` (L4) | `[]` |
 | `not_locked` | `unlockBill` on an unlocked bill (L4) | `[billId]` |
 | `unknown_entity` | `setUnclassifiedRowExcluded` names a row not on the bill; `setPayer` names a non-participant | the id |
+| `items_unfinalized` | `lockBill` while any draft item remains (L3) | the draft item ids |
+| `participant_paid` | `removeParticipant` names a participant with `paid === true` (A16) | the participant id |
+| `protected_participant` | `removeParticipant` names the creator or the payer (A16) | the participant id |
 
 `bill_locked` is not new; it becomes reachable through the real lock flow for the first time. None of the four
 is a finding and none is added to §13's nine.
@@ -377,12 +417,12 @@ is a finding and none is added to §13's nine.
 | Concern | File | Kind |
 |---|---|---|
 | `excludedRowIds`, `staleLinkCutoffAt` on `WorkingBill`; no change to `LockBlockerCode` | `lib/bill/working-bill.ts` | shape |
-| `lockBill`, `unlockBill`, `setUnclassifiedRowExcluded`, `setPayer`; the runner's `requireUnlocked` flag and the locked-bill invariant | `lib/bill/transactions.ts` | operations |
+| `lockBill`, `unlockBill`, `setUnclassifiedRowExcluded`, `setPayer`, `removeParticipant`; the runner's `requireUnlocked` flag and the locked-bill invariant | `lib/bill/transactions.ts` | operations |
 | `finalizeResolvable(working)` extracted from `finalizeAllResolvable`, so lock and the bulk form share one implementation | `lib/bill/finalize.ts` | pure |
 | `lifecycleOf`, `LifecycleState` | `lib/bill/lifecycle.ts` | pure |
 | `unclassified_rows_unreviewed` honours `excludedRowIds` | `lib/validate-bill.ts` | one predicate |
 | checklist, lifecycle badge, Lock/Unlock, the unlock dialog, the stale-links notice, the ambiguous-row review list | `src/components/Lock.svelte` (new) + `Bill.svelte` removes the "ticket 13 takes it from here" hint | UI |
-| payer selector and the rejected-payer path | `src/components/Units.svelte` | UI |
+| payer selector, the rejected-payer path, and the confirm-first Remove action (A16) | `src/components/Units.svelte` | UI |
 
 `Bill.svelte` keeps no rule: the badge is `lifecycleOf(bill)`, the checklist is
 `bill.billValidation.blockers.locking`, and the buttons call the operations through the existing `apply`
@@ -404,7 +444,7 @@ E2E hooks: `data-testid="lifecycle-state"`, `lock-button`, `unlock-button`, `unl
 | 3 | the blocker matrix | each row of L1's table produced by its fixture and cleared by its fix, in CI |
 | 4 | locked edits | `setItemPrice` / `setItemQuantity` / `assignUnit` / `deleteItem` → `bill_locked`, document `===` input |
 | 5 | lock finalizes resolvable charges | one transaction, `isLocked`, charge moved to `charges`, revision + 1 |
-| 6 | lock cannot finalize an item into a locked bill | the attempt is `lock_blocked` with `units_unassigned`, document unchanged |
+| 6 | lock with draft items | `items_unfinalized` with the draft ids, document `===` input, nothing finalized |
 | 7 | unlock without confirmation | `unlock_unconfirmed`, `===` input, tokens untouched |
 | 8 | unlock twice | second is `not_locked`, `===` input |
 | 9 | unlock regenerates tokens | every token changed, none empty, all distinct |
@@ -415,6 +455,9 @@ E2E hooks: `data-testid="lifecycle-state"`, `lock-button`, `unlock-button`, `unl
 | 14 | zero items | a zero-item bill with a set total locks; `zero_items` still in `visibleFindings` |
 | 15 | lifecycle | all five states from documents that reach them; `draft` at revision 0, `review_required` after an edit, `ready_to_lock` only with no draft items, `settled` only when relevant participants are paid |
 | 16 | payer | `setPayer` to a participant succeeds and moves no share; a non-participant is `unknown_entity`; a raw-seam non-participant payer raises `payer_missing` and blocks lock |
+| 17 | remove a paid participant | `participant_paid`, document `===` input, participant still present |
+| 18 | remove an unpaid participant | assignments gone in the same commit, orphaned units pending, `units_unassigned` re-raised, `effects.removedAssignments` names them |
+| 19 | remove the creator or the payer | `protected_participant`, document `===` input |
 
 `playwright/lock-lifecycle.spec.ts` is **four separate tests, each self-contained from its own capture** —
 `fullyParallel` is on, and each transition is a distinct failure mode, so a shared continuous story would make
@@ -435,11 +478,9 @@ new guarantee.
 
 ## L15 — What this record does not decide
 
-- **`PROJECT(1).md`** — unedited. The two `WorkingBill` fields are PWA-owned additions recorded here, not a
-  spec edit; an owner-authorized §10 note is the only way they enter the source of truth, and the standing
-  rule forbids an agent doing it on its own initiative.
-- **Participant removal** (L11) — 0021 A10's pre-pinned cascade is unbuilt, with no confirmation surface
-  specified.
+- **§10's note for the two fields** — added by explicit owner authorization (2026-11-05) in the same
+  pattern as ticket 11's §19 addition, and quoted in L1. Further `PROJECT(1).md` edits remain prohibited
+  without the same instruction.
 - **`tokenExpiresAt` policy** (L5) and the link format, budget, codec and expiry hint — ticket 16.
 - **Settlement amounts, the paid toggle, UPI and WhatsApp text** — ticket 15. L10 defines `settled` as a
   projection of flags that 13 never writes.

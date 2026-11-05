@@ -740,6 +740,8 @@ interface BillShareSnapshot {
 }
 ```
 
+PWA-layer additions to the working model, not core types: `WorkingBill.excludedRowIds: string[]` (ambiguous rows the user has explicitly excluded from interpretation) and `WorkingBill.staleLinkCutoffAt: string | null` (timestamp of the most recent unlock; used to detect stale share links). These live on `WorkingBill`, not on core `ParseResult` or `ParsedItem`, to preserve the tier boundary. Full semantics in `DECISIONS/0022`.
+
 Receipt/input amounts and persisted item/charge amounts are integer paise. Calculated participant shares are exact rational paise represented as `ExactMoney = { numeratorPaise: string; denominator: string }`; use `BigInt` or an exact rational/decimal implementation internally, never IEEE-754 float. Reduce the fraction by GCD after arithmetic, with a positive denominator. Derived selectors include `calculatedItemsTotal`, `calculatedSubtotal`, and exact participant shares; they are not the printed `subtotal`/`grandTotal` fields. Shares are recomputed on load and never trusted from a cache. For terminating decimal shares, display the full exact decimal; for repeating decimals, display a non-rounded decimal with an ellipsis and provide the exact fraction in details/copy output. Never label a truncated decimal as exact. When the user explicitly corrects the printed grand total, set `grandTotalSource = "user_confirmed"`; item edits never change it implicitly.
 
 ### IndexedDB versioning and migrations
