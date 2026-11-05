@@ -23,12 +23,12 @@ export interface WebAppManifest {
   readonly icons: readonly { readonly src: string; readonly sizes: string; readonly type: string; readonly purpose: string }[];
 }
 
-/** The palette `src/app.css` already uses — a manifest must not introduce a brand colour as metadata. */
+/** The palette `src/app.css` already uses — a manifest must not introduce a brand colour as metadata (W11). */
 export const MANIFEST_PAGE_BACKGROUND = "#fbfaf7";
 export const MANIFEST_FILLED_SURFACE = "#efe9dc";
 export const MANIFEST_INK = "#26221c";
 
-/** The three icons W11 pins: 192, 512, and a maskable variant so the launcher does not crop the wordmark. */
+/** The three icons W11 pins: 192, 512, and a maskable 512 so the launcher does not crop the wordmark. */
 export const MANIFEST_ICON_PATHS: readonly string[] = [
   "/icons/receipt-lens-192.png",
   "/icons/receipt-lens-512.png",
@@ -41,5 +41,20 @@ export const MANIFEST_ICON_PATHS: readonly string[] = [
  * person — wording ticket 18 then has to defend.
  */
 export function appManifest(): WebAppManifest {
-  throw new Error(`not implemented: DECISIONS/0027 W11 — the web app manifest (scope must be ${SW_SCOPE})`);
+  return {
+    name: "receipt-lens",
+    short_name: "receipt-lens",
+    id: "/",
+    start_url: SW_SCOPE,
+    scope: SW_SCOPE,
+    display: "standalone",
+    background_color: MANIFEST_PAGE_BACKGROUND,
+    theme_color: MANIFEST_FILLED_SURFACE,
+    description: "In-browser receipt parsing and bill splitting. Receipts never leave your device.",
+    icons: [
+      { src: MANIFEST_ICON_PATHS[0]!, sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: MANIFEST_ICON_PATHS[1]!, sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: MANIFEST_ICON_PATHS[2]!, sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+  };
 }

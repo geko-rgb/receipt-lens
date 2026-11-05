@@ -8,11 +8,13 @@ import {
   SHELL_NAVIGATION_FALLBACK,
   canonicalPrecacheDigest,
   canonicalPrecacheSerialisation,
-  cachesToCleanup,
   isModelCache,
   isShellCache,
   modelCacheName,
   shellCacheName,
+  type CacheStorageLike,
+  supersededModelCaches,
+  supersededShellCaches,
 } from "../../src/lib/models/cache-names.js";
 import { SMOKE_MIN_LINES, SMOKE_MIN_WORDS, acceptsSmokeResult } from "../../src/lib/models/smoke.js";
 import { shouldPrepareModelSet } from "../../src/lib/models/trigger.js";
@@ -20,7 +22,6 @@ import {
   modelPreparingCopy,
   modelUpdateCopy,
   prepareModelSet,
-  type CacheStorageLike,
   type PrepareModelSetDeps,
 } from "../../src/lib/models/update.js";
 import { decideServing, type ServedRequest, type ServingAction, type ServingState } from "../../src/lib/sw/handling.js";
@@ -331,22 +332,34 @@ describe("W3 — cache names and the canonical serialisation", () => {
 
 /* ---------------------------------------------------------- W3.1 cleanup */
 
-describe("W3.1 — which caches may be deleted", () => {
+describe("W3.1 — each caller may only ask about the kind of cache it owns", () => {
   const shell = "receipt-lens-shell-v0123456789ab";
   const oldModel = "receipt-lens-models:1.0.0:aaaaaaaaaaaa";
   const newModel = "receipt-lens-models:1.0.0:bbbbbbbbbbbb";
   const names = [ACTIVE_MODEL_CACHE, shell, "receipt-lens-shell-vffffffffffff", oldModel, newModel];
 
-  it("keeps the current shell and the active model set, and returns everything else", () => {
-    expect(cachesToCleanup(names, { shell, model: newModel })).toEqual(["receipt-lens-shell-vffffffffffff", oldModel]);
+  it("the worker's sweep returns superseded shells and never a model cache", () => {
+    expect(supersededShellCaches(names, shell)).toEqual(["receipt-lens-shell-vffffffffffff"]);
+    expect(supersededShellCaches(names, shell).some(isModelCache)).toBe(false);
   });
 
-  it("never returns the pointer cache", () => {
-    expect(cachesToCleanup(names, { shell, model: null })).not.toContain(ACTIVE_MODEL_CACHE);
+  it("the page's sweep returns the superseded model set and never a shell cache", () => {
+    expect(supersededModelCaches(names, newModel)).toEqual([oldModel]);
+    expect(supersededModelCaches(names, newModel).some(isShellCache)).toBe(false);
+  });
+
+  it("neither selector can ever return the pointer cache", () => {
+    expect(supersededShellCaches(names, "receipt-lens-shell-vffffffffffff")).not.toContain(ACTIVE_MODEL_CACHE);
+    expect(supersededModelCaches(names, oldModel)).not.toContain(ACTIVE_MODEL_CACHE);
   });
 
   it("deletes nothing on a first install, where there is no superseded set at all", () => {
-    expect(cachesToCleanup([ACTIVE_MODEL_CACHE, shell], { shell, model: null })).toEqual([]);
+    expect(supersededShellCaches([ACTIVE_MODEL_CACHE, shell], shell)).toEqual([]);
+    expect(supersededModelCaches([ACTIVE_MODEL_CACHE, shell], null)).toEqual([]);
+  });
+
+  it("a shell sweep with no previous shell is empty — W13.1: an ordinary activate performs zero deletions", () => {
+    expect(supersededShellCaches([ACTIVE_MODEL_CACHE, shell], shell)).toHaveLength(0);
   });
 });
 
@@ -519,15 +532,20 @@ describe("W5 — the eight steps, in order, on a first preparation", () => {
 /* -------------------------------------------------------------- W7 failure */
 
 describe("W7 — a failed update keeps the old set and names the reason", () => {
+  /**
+   * W7's failure table, per step. A candidate is only collectable once the probe has produced a manifest, so
+   * the two step-1 failures expect no deletion at all — there is no name to delete, and inventing one would
+   * mean guessing a hash the probe never returned (W7.1).
+   */
   const failures = [
-    ["an unreachable probe", (h: Harness) => h.breakManifest(""), "probe_unreachable"] as const,
-    ["a manifest that is not JSON", (h: Harness) => h.breakManifest("<!doctype html><title>receipt-lens</title>"), "manifest_invalid"] as const,
-    ["a truncated asset", (h: Harness) => h.mutate((url) => url.endsWith("rec.onnx"), (body) => body.slice(0, 8)), "download_incomplete"] as const,
-    ["an asset substituted at the same length", (h: Harness) => h.mutate((url) => url.endsWith("det.onnx"), corruptSameLength), "hash_mismatch"] as const,
-    ["a smoke run that reads nothing", () => undefined, "smoke_failed"] as const,
+    ["an unreachable probe", (h: Harness) => h.breakManifest(""), "probe_unreachable", []] as const,
+    ["a manifest that is not JSON", (h: Harness) => h.breakManifest("<!doctype html><title>receipt-lens</title>"), "manifest_invalid", []] as const,
+    ["a truncated asset", (h: Harness) => h.mutate((url) => url.endsWith("rec.onnx"), (body) => body.slice(0, 8)), "download_incomplete", ["candidate"]] as const,
+    ["an asset substituted at the same length", (h: Harness) => h.mutate((url) => url.endsWith("det.onnx"), corruptSameLength), "hash_mismatch", ["candidate"]] as const,
+    ["a smoke run that reads nothing", () => undefined, "smoke_failed", ["candidate"]] as const,
   ];
 
-  for (const [label, apply, reason] of failures) {
+  for (const [label, apply, reason, expectedDeletes] of failures) {
     it(`${label}: pending on the retained set, pointer untouched, only the candidate deleted`, async () => {
       const journal: string[] = [];
       const h = await harness(journal);
@@ -544,7 +562,8 @@ describe("W7 — a failed update keeps the old set and names the reason", () => 
 
       expect(await readPointer(h.caches)).toBe(retained);
       expect(h.caches.deletes).not.toContain(retained);
-      expect(h.caches.deletes.filter((name) => name.startsWith(MODEL_CACHE_PREFIX))).toEqual([h.candidateName]);
+      const expected = expectedDeletes.map(() => h.candidateName);
+      expect(h.caches.deletes.filter((name) => name.startsWith(MODEL_CACHE_PREFIX))).toEqual(expected);
       expect(journal).not.toContain(`put:${ACTIVE_MODEL_CACHE}:${ACTIVE_MODEL_POINTER_PATH}`);
       expect(journal).not.toContain("persist");
       expect(h.caches.entries.has(retained)).toBe(true);
@@ -616,7 +635,7 @@ describe("W5 step 5 / W13 — the smoke acceptance bar", () => {
 describe("W2.1 — the model download triggers on navigation to /capture and nowhere else", () => {
   it("starts on capture and never on share, the ledger, the bill or an unknown route", () => {
     expect(shouldPrepareModelSet({ route: "capture", phase: "idle" })).toBe(true);
-    for (const route of ["share", "bills", "bill", "not-found"] as const) {
+    for (const route of ["share", "bills", "bill", "notFound"] as const) {
       expect(shouldPrepareModelSet({ route, phase: "idle" })).toBe(false);
     }
   });
@@ -712,9 +731,9 @@ describe("W4 — the worker's serving decisions", () => {
   });
 
   it("every passthrough is write:false — the worker never populates a cache (W2.2)", async () => {
-    const paths = ["/assets/missing.js", "/assets/models/unknown.bin", "/x"];
-    for (const path of paths) {
-      const action = await decideServing(requestOf(path, { mode: "same-origin" }), stateOf());
+    const empty = stateOf({ shellHas: async () => false, modelHas: async () => false, activeModelCache: null });
+    for (const path of ["/assets/missing.js", "/assets/models/unknown.bin", "/deeply/unshipped.css"]) {
+      const action = await decideServing(requestOf(path, { mode: "same-origin" }), empty);
       expect(asNetwork(action).write).toBe(false);
     }
   });
