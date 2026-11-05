@@ -335,10 +335,11 @@ prepareModelSet(deps: {
 }): Promise<ModelUpdateState>
 ```
 
-`Provider` construction reuses `packages/core`'s own seams rather than adding new ones:
-`fetchModelManifest(url, fetchImpl)` and `fetchVerifiedAsset(asset, fetchImpl)` already do exactly the probe
-and the download-plus-verify steps, and `PPOCRv6ProviderOptions.fetch` lets the smoke run be handed the
-in-memory verified bytes. **No core contract changes in this ticket** (W20).
+Core's published seams carry what they can: `fetchModelManifest(url, fetchImpl)` is exported and does the
+probe and the structural validation, and `PPOCRv6ProviderOptions.fetch` lets the smoke run be handed the
+in-memory verified bytes instead of whatever the worker happens to be serving. `fetchVerifiedAsset` and
+`sha256Hex` are **not** on core's public surface, so W5's steps 2–3 are the protocol's own — see the finding
+recorded there. **No core contract changes in this ticket** (W20).
 
 The worker's read path:
 
@@ -365,20 +366,32 @@ network error, never as a parsed-JSON error.
 
 The order is the contract, and each step is separately falsifiable.
 
-1. **probe** — `fetch(manifestUrl, { cache: "reload" })`, then `fetchModelManifest`, which validates the
-   structure and yields `{ manifest, manifestHash }`. Structural validation is already fail-loud there
-   (`model-manifest.ts:parseManifest`), so a truncated or non-JSON manifest stops here with
+1. **probe** — `fetch(manifestUrl, { cache: "reload" })`, then core's exported `fetchModelManifest`, which
+   validates the structure and yields `{ manifest, manifestHash }`. Structural validation is already fail-loud
+   there (`model-manifest.ts:parseManifest`), so a truncated or non-JSON manifest stops here with
    `manifest_invalid` and never reaches a download.
    - If `receipt-lens-models:<providerVersion>:<manifestHash>` is already the pointer's value, stop:
      `up-to-date`. No download, no smoke, no writes. This is the once-per-version property W2.1 claims.
-2. **download** — each asset through core's `fetchVerifiedAsset(asset, fetchImpl)`. `FetchLike` takes one
-   argument (`model-manifest.ts:218`), so the bypass is not a parameter of that call: the protocol's
-   `fetchImpl` *is* `(input) => fetch(input, { cache: "reload" })`, and that closure is the whole of W6's
-   mechanism on the page side.
-3. **verify** — inside the same core call: byte length against `asset.bytes`, then SHA-256 against
-   `asset.sha256`. A truncated body fails on length before the hash is computed; a substituted body fails on
-   the hash. `hash_mismatch` names which. **Verification precedes any write**, so nothing unverified is ever
-   in a cache, and a partial download cannot be mistaken for a model set.
+2. **download** — `fetchImpl(asset.url)` per asset, body read to an `ArrayBuffer`.
+3. **verify** — the protocol's own two checks, in this order: `bytes.byteLength === asset.bytes`, then
+   SHA-256 of the body against `asset.sha256`. A truncated body fails on length before the hash is computed;
+   a substituted body fails on the hash. `download_incomplete` and `hash_mismatch` name which.
+
+   **Found while writing the stubs, not while writing the pins.** An earlier draft of this step reused core's
+   `fetchVerifiedAsset`, which does exactly these two checks. It is **not exported** from
+   `packages/core/src/index.ts` — the manifest surface core publishes is `fetchModelManifest` plus types —
+   and exporting it would widen `@receipt-lens/core`'s public API (§4's staged surface) in a ticket whose W20
+   says the core contract is untouched. The same holds for `sha256Hex`. So the protocol restates the two
+   checks against `crypto.subtle`, six lines, and the reason codes come out exact rather than being inferred
+   from `fetchVerifiedAsset`'s message text, which would be a string match standing between a corrupt download
+   and the word a user reads.
+   - The cost is honest and it is a duplication: §9's verification rule now lives in two places. What keeps
+     them from drifting is that both are exercised by the same committed manifest — `model-manifest.test.ts`
+     already pins core's behaviour over the real bytes, and W5's test below pins the protocol's over the same
+     two failure classes. If a future ticket prefers one implementation over two, the change is to export
+     core's helper and delete the protocol's copy, and the tests stay valid either way.
+   **Verification precedes any write**, so nothing unverified is ever in a cache, and a partial download
+   cannot be mistaken for a model set.
 4. **write candidate** — `caches.open(candidateName)` and `cache.put` for the manifest and the three assets.
    The candidate is opened under its final name from the start, so there is no rename step to get wrong and
    a crash leaves an unreferenced cache rather than a half-active one.
@@ -412,7 +425,10 @@ cache it is trying to check — it would always report "up to date", the update 
 test suite would be green while the feature was dead. This is the trap in the design, and it has one clean
 answer.
 
-- The probe and every download use **`fetch(url, { cache: "reload" })`**.
+- The probe and every download use **`fetch(url, { cache: "reload" })`**. Core's `FetchLike` takes one
+  argument (`model-manifest.ts:218`), so the bypass is not a parameter threaded through a helper — the
+  protocol's `fetchImpl` *is* the closure `(input) => fetch(input, { cache: "reload" })`, and that closure is
+  the whole mechanism on the page side.
 - The worker honours it: for a model path with `request.cache === "reload"`, it goes to the network and
   **writes nothing** to any cache.
 - Normal OCR reads use the default cache mode, are served from the active model cache, and therefore work
