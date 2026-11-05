@@ -14,12 +14,23 @@ it may revise it — with a record, not silently.
 
 ## 1. IndexedDB schema plan (ticket 14 implements)
 
+> **Superseded in part by `DECISIONS/0023` (ticket 14, 2026-11-05), which this note explicitly left open**
+> ("ticket 14 may choose otherwise; the decision belongs in a `DECISIONS/` record either way"). **Ticket 14
+> persists one record per bill rather than normalizing into the ten stores below** — `bills` (keyPath
+> `billId`, value `{ billId, revision, savedAt, working }`), `creatorProfile` (one row) and `retainedImages`
+> (opt-in only), **no indexes**. The reason is 0019 S2.1's argument applied on disk: `recompute` throws on a
+> torn read (`totals.ts:82`, `:87`), so a bill whose entities landed in different transactions is not merely
+> observable-but-wrong, it is *unloadable*. §1.1's per-store index intent and §1.2's per-entity transaction
+> rules therefore do not ship as written; the invariants they encode are enforced by the transaction runner
+> and by `recompute` on load instead. Everything in §1.3 (the migration contract) stands and is what
+> `DECISIONS/0023` P3/P4 implements. Read 0023 P1–P2, P6 and P9 before writing storage code.
+
 One database, `receipt-lens`, with a monotonic `DB_SCHEMA_VERSION` starting at 1 (§10 "IndexedDB
 versioning and migrations"). Object stores are tables; each record is a plain JSON-serialisable object
 matching §10's entity, and §10's `ExactMoney` stays `{ numeratorPaise: string; denominator: string }` on
 disk — decimal strings, so a stored share never loses exactness to a float.
 
-### 1.1 Stores, keys and indexes
+### 1.1 Stores, keys and indexes — *intent only; see the supersession note above*
 
 | store | keyPath | indexes | §10 source |
 |---|---|---|---|
