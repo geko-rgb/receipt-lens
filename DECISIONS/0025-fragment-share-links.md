@@ -42,7 +42,7 @@ a measurement.
 | Component | Bytes before encoding | Encoding | Notes |
 |---|---|---|---|
 | `v1` | 2 ASCII chars | literal | The version prefix is outside the encryption and is the only cleartext discriminator. |
-| `token` | 32 random bytes | base64url, no `=` | Bearer secret and HKDF input. Minted with `crypto.getRandomValues`, not a UUID or a timestamp. |
+| `token` | UUID string, 36 chars | used verbatim (base64url-safe) | Bearer secret and HKDF input. Reuses ticket 15's `Participant.token`, encoded as UTF-8 for HKDF. See P11 amendment 1: this supersedes the original 32-random-bytes plan. |
 | `nonce` | 12 random bytes | base64url, no `=` | Fresh per encryption; never reused with the same key (GCM's hard requirement). |
 | `ciphertextAndTag` | variable | base64url, no `=` | WebCrypto AES-GCM appends the 16-byte authentication tag. |
 
@@ -74,7 +74,7 @@ requires.
 
 ```text
 key = HKDF-SHA-256(
-  ikm  = token bytes (32),
+  ikm  = UTF-8(token) (36 bytes; ticket 15's UUID string — see P11),
   salt = empty byte string (zero-length; HKDF's default zero salt),
   info = UTF-8("receipt-lens-share-v1"),
   L    = 32
@@ -213,6 +213,10 @@ encodeShareLink(snapshot, { token, now, nonce? }): { ok: true; fragment: string;
 decodeShareLink(fragment): { ok: true; snapshot: BillShareSnapshot } | { ok: false; code: DecodeFailureCode }
 ```
 
+The shipped names are `encodeSnapshot(snapshot, token)`, `decodeSnapshot(fragment, token)` and
+`deriveKey(token, billId?)`; `billId` is accepted and ignored (P11 amendment 2). The behavioural contract below
+is unchanged.
+
 `now` and `token` are caller-supplied, so the module reads no clock and no random source (0011's determinism
 rule) and a test can pin them; the default `crypto.getRandomValues` lives in the caller. `nonce` is an explicit
 test seam, never a production parameter.
@@ -238,6 +242,33 @@ The test matrix, all through this seam:
   is a deliberate external action (§15 rule 6), and the snapshot excludes image and OCR text by construction
   and by test.
 - **`PROJECT(1).md` is unedited by this record.**
+
+## P11 — Amendments from the 2026-11-05 codec session
+
+These three amendments were made when the codec landed in `packages/pwa/src/lib/share/codec.ts`; where they
+conflict with P1–P10 above, the amendment wins.
+
+1. **Token source (2026-11-05 codec session):** the codec uses the participant token from ticket 15's
+   `Participant.token` — a UUID string — encoded as UTF-8 bytes for HKDF input. This deviates from ADR-007's
+   "128-bit random token, base64url (22 chars)." UUIDv4 provides 122 bits of entropy (close to 128), costs +14
+   bytes per link vs. base64url-128 (negligible against the 8 KB budget), and reuses the existing token field
+   from the persistence layer. Accepted as a v1 simplification; ADR-007's "22 chars" claim updated to "UUID
+   string (36 chars)" with this note. Future migration to base64url-128 would require ticket-16+ token
+   regeneration.
+2. **HKDF salt:** 0025 originally specified salt = UTF-8(billId) per ADR-007. The codec omits billId from the
+   salt because the decoder does not have the bill id before decryption — including it would make decryption
+   impossible without an out-of-band bill-id channel. Current derivation: HKDF-SHA256(ikm = UTF-8(token),
+   salt = empty, info = "receipt-lens-share-v1", L = 32). The info context string provides domain separation;
+   without a per-bill salt, two different bills encrypted with the same token would use the same key, but
+   tokens are per-bill-generated so this is not reachable in practice. ADR-007's billId-salt claim updated to
+   match.
+3. **Budget enforcement:** measured on the full encoded fragment (`v1.<token>.<nonce>.<ciphertextAndTag>`),
+   8192 allowed, 8193 refused. Matches ADR-007's "entire fragment after #" language. Encoder refuses
+   (`link_budget_exceeded`) rather than truncating.
+
+Also recorded, not one of the three: the codec derives the key without a bill id (see amendment 2), so
+`deriveKey` takes an optional `billId` that is ignored; and the token bytes are the UUID's ASCII form, not a
+decoded binary token.
 
 ## Reporting discipline
 
