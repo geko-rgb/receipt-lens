@@ -22,6 +22,17 @@ jobs:
       - run: pnpm build
       - name: Static first-party egress scan (supplement, not proof)
         run: pnpm scan:egress
+      # Same family, same reason: structural, cheap, and it fails on the commit that introduces the problem
+      # rather than on the browser run that might reach it (DECISIONS/0027 W12.1).
+      - name: Web Storage single-key rule
+        run: pnpm check:storage-keys
       - run: pnpm exec playwright install --with-deps chromium
       - name: Offline inference with egress blocked (M1)
         run: pnpm test:offline
+      # Ticket 17 (W8/W9.1): the same M1 suite also carries the service-worker scenarios — install and
+      # precache, offline *across a reload*, the offline capture-to-draft flow, the update failure that keeps
+      # the previous model set, the /capture-only trigger, and the controller hand-off on a throttled link.
+      # They are @offline because they are the privacy claim's stronger form, and they belong here rather
+      # than in ci.yml for the same reason ticket 09a's tests do: one owner for the browser OCR cost.
+      - name: Service-worker offline reload and self-update (M1, ticket 17)
+        run: pnpm exec playwright test --config playwright/playwright.config.ts offline-reload.spec.ts

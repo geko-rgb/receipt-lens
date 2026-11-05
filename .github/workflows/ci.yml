@@ -28,6 +28,10 @@ jobs:
       # Ticket 03a gates. The null-parser bootstrap itself runs inside `pnpm test`
       # (benchmarks/src/bootstrap.test.ts) against the committed dev fixtures; these are
       # the checks around it that a test alone cannot make.
+      # Ticket 17 (DECISIONS/0027 W12.1): the app may hold exactly one localStorage key, owned by the install
+      # banner. A second key is how a bearer secret ends up somewhere that outlives the page; the check is
+      # structural, so it fires the moment the second call site is written.
+      - run: pnpm check:storage-keys
       - run: pnpm scan:pii
       - run: pnpm verify:results
       # Ticket 09b gates. `verify:accuracy` re-runs the shipped parse() over the committed dev and eval
@@ -49,6 +53,9 @@ jobs:
       # The measurement itself is deliberately NOT run in CI: shared-runner timings would
       # publish a table whose declared device class is "whatever pod hosted the job".
       - run: pnpm verify:footprint
+      # Ticket 17 (W11): the launcher icons are emitted by the build rather than committed, so what is
+      # checkable is that the generator is deterministic and that dist/app holds exactly what it produces.
+      - run: pnpm verify:icons
       - run: pnpm exec playwright install --with-deps chromium
       # Ticket 14's fixture gate (DECISIONS/0023 P9). `verify:storage-fixtures` re-runs the generator — which
       # drives the real app in Chromium, through the real save path — and then fails on `git diff --exit-code`
