@@ -13,12 +13,21 @@ import { prepareModelSet, type PrepareModelSetDeps, type SmokeOutcome, type Veri
 /** Where the app's own model assets are served from — the same path the manifest declares (§9, same-origin). */
 export const MODEL_MANIFEST_URL = "/assets/models/manifest.json";
 
+/** The header that marks a request as W6's probe. Same-origin, carries no data, and names nothing but itself. */
+export const PROBE_HEADER = "x-receipt-lens-probe";
+
 /**
- * W6: every protocol request must bypass the caches so a probe can learn what the origin is actually serving.
- * A query string would be an alternative, and it is forbidden — `playwright/offline.spec.ts`'s allowlist is
- * exact-path with an empty search, and the negative control that proves it is exact depends on that.
+ * W6, as amended by the browser: every protocol request must bypass the caches so a probe can learn what the
+ * origin is actually serving. `cache: "reload"` alone was the first attempt and it is wrong, because Chromium
+ * propagates a hard reload's bypass mode to the *document's own* `fetch` calls — so after an offline reload
+ * the app's model reads looked like probes, went to the network, and failed. The pin was found by the test
+ * that this ticket exists for.
+ *
+ * The bypass is therefore marked explicitly by the caller that means it, and a query string is still out:
+ * `playwright/offline.spec.ts`'s allowlist is exact-path with an empty search, and its negative control
+ * depends on that.
  */
-const reloadFetch = (input: string): Promise<Response> => fetch(input, { cache: "reload" });
+const reloadFetch = (input: string): Promise<Response> => fetch(input, { cache: "reload", headers: { [PROBE_HEADER]: "1" } });
 
 /**
  * Run one real inference against the bytes the protocol just verified (W5 step 5).

@@ -91,7 +91,7 @@ async function serve(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const name = await shellCache;
   const action = await decideServing(
-    { url: request.url, method: request.method, mode: request.mode, cache: request.cache },
+    { url: request.url, method: request.method, mode: request.mode, cache: request.cache, probe: request.headers.get("x-receipt-lens-probe") === "1" },
     {
       sameOrigin: url.origin === scope.location.origin,
       shellCache: name,

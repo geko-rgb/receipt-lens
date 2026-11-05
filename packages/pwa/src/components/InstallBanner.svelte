@@ -74,9 +74,9 @@
 </script>
 
 {#if installBannerState()}
-  <aside id="install-banner" data-install-banner role="note">
+  <aside id="install-banner" data-testid="install-banner" role="note">
     <p>{installBannerState()?.headline}</p>
-    <button type="button" data-install-prompt onclick={onInstall}>{installBannerState()?.install}</button>
-    <button type="button" data-install-dismiss onclick={onDismiss}>{installBannerState()?.dismiss}</button>
+    <button type="button" data-testid="install-prompt" onclick={onInstall}>{installBannerState()?.install}</button>
+    <button type="button" data-testid="install-dismiss" onclick={onDismiss}>{installBannerState()?.dismiss}</button>
   </aside>
 {/if}

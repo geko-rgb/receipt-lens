@@ -98,6 +98,9 @@ const draw = (size, { inset }) => {
 
 /** One icon as PNG bytes. RGB truecolour, no alpha, so no compositing surprises in a launcher. */
 export function renderIconPng(size, { maskable = false } = {}) {
+  if (!Number.isInteger(size) || size < 8 || size > 4096) {
+    throw new RangeError(`icon size must be an integer between 8 and 4096, received ${String(size)}`);
+  }
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(size, 0);
   ihdr.writeUInt32BE(size, 4);
