@@ -714,4 +714,26 @@ export function acknowledgeUnassignedUnit(document: BillDocument, unitId: string
   });
 }
 
+/**
+ * DECISIONS/0021 A2/A3: one transaction per toggle. Assigning clears `confirmedUnassigned` on the unit in
+ * the same commit (§10 line 769), and a duplicate pair is a rejection rather than a silent no-op.
+ * Stub — ticket 12's pins are red until the rule exists.
+ */
+export function assignUnit(_document: BillDocument, _unitId: string, _participantId: string): TransactionResult {
+  throw new Error("not implemented: transactions.assignUnit");
+}
+
+/** DECISIONS/0021 A4: the last pair removed leaves the unit pending, never acknowledged. Stub. */
+export function unassignUnit(_document: BillDocument, _unitId: string, _participantId: string): TransactionResult {
+  throw new Error("not implemented: transactions.unassignUnit");
+}
+
+/**
+ * DECISIONS/0021 A10: deterministic `p1..pN` id, no cascade into units or assignments, `invalid_name` on a
+ * blank name. Stub — red until the rule exists.
+ */
+export function addParticipant(_document: BillDocument, _name: string): TransactionResult {
+  throw new Error("not implemented: transactions.addParticipant");
+}
+
 export type { BillDocument };
