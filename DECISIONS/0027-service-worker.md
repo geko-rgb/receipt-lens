@@ -23,10 +23,11 @@ each is discharged by a committed test at checkpoint 3. Everything else is contr
 
 ## W0 — The pins, in one line each
 
-1. **A hand-written worker.** §2.2's exit clause authorizes replacing `generateSW` with a worker we write —
-   that part is pre-authorized and its condition is met. Going further and dropping `vite-plugin-pwa` and
-   Workbox entirely is **beyond the clause** and is put to the owner as an explicit scope change (W1.0). No
-   pin assertion differs between the two outcomes.
+1. **A hand-written worker.** §2.2's exit clause authorizes replacing `generateSW` with a worker we write;
+   going further and dropping `vite-plugin-pwa` and Workbox is beyond the clause and was **ruled in at
+   checkpoint 2 as a scope change**, on silent-drop correctness and a worker that W4 has already made thin —
+   explicitly *not* on a "nothing third-party runs" argument, which misdescribes §1's data-flow claim
+   (W1.0–W1.2). No pin assertion differs between the two outcomes.
 2. **Cache strategy: shell precached on install, model set downloaded on navigation to `/capture`.** The
    runtime WASM is *shell*, not *model* — its identity is its filename, so it needs no verification protocol,
    and the warm-visit-0-bytes claim has to hold whether or not anyone has run OCR. A `/share` recipient never
@@ -84,7 +85,12 @@ ruling wins** and the amended text carries it in place.
 | 2 | Shell cache name **`v<digest>` approved** — "a counter is a rule a human forgets" | W3 |
 | 3 | Full footprint re-derivation **is the deliverable**, with an escape hatch into a recorded `17b` ticket | W14.3 |
 | 4 | W20 approved **plus**: the footprint table must name the 1-thread basis explicitly | W14, W20 |
-| C | Workbox deviation accepted **conditionally**: quote §2.2's exit clause verbatim, or the deviation is a scope change needing a ruling | W1.0 |
+| C | Workbox deviation **ruled in at checkpoint 2** as a scope change, conditional on quoting §2.2 verbatim, on explicit lifecycle pins, and on a build-time completeness guard | W1.0–W1.3 |
+
+Also ruled at checkpoint 2: the "nothing third-party runs" argument is **withdrawn** from the record, because
+§1's claim is about data flow and not about dependency count (W1.2); the forward drift note is added to W5
+step 3; and W13 gains a third item pinning the two-worker controller race **in Chromium under slow-network
+emulation**, since a mocked test of a race tests the mock.
 
 **The condition found something.** Quoted in full at W1.0, the clause authorizes switching `generateSW` →
 `injectManifest` — a *custom worker built by `vite-plugin-pwa`, with Workbox still in it*. It does not
@@ -128,33 +134,14 @@ so the protocol and its tests are identical under `injectManifest` with Workbox.
 choice-dependent pin — where the precache list comes from — is isolated behind
 `packages/pwa/src/precache.ts`, which returns entries in `self.__WB_MANIFEST`'s own shape: under Workbox they
 are fed to `precacheAndRoute`, without it to the worker's own install handler. **No pin assertion changes on
-either side of this ruling**; only the worker's body does. What would weaken is W1.1's guard: under
-`maximumFileSizeToCacheInBytes` it becomes "assert the WASM is in the generated manifest *and* the ceiling is
-above the tier's largest asset" — the same guarantee, with a number to remember instead of a completeness
-rule.
+either side of this ruling**; only the worker's body does. What differs is only *where* W1.1's completeness
+guard is enforced — under the hand-written worker it is a build-time assertion (W1.1, Condition 2), under
+`maximumFileSizeToCacheInBytes` it would have been "assert the WASM is in the generated manifest *and* the
+ceiling exceeds the tier's largest asset", which is the same guarantee with a number to remember instead of a
+rule that cannot be forgotten.
 
-The case for the change, in full:
-
-- **Six new packages** (`vite-plugin-pwa`, `workbox-build`, `workbox-core`, `workbox-precaching`,
-  `workbox-routing`, `workbox-strategies`) inside a product whose §1 claim is that nothing third-party runs.
-  `DECISIONS/0017` D6 checked the plugin's *build-time* behaviour and found no install hooks and no request
-  targets in the emitted chunks, and it then said the thing that is still owed: *"a runtime audit is still
-  required."* Ticket 18 inherits that audit. Adding the dependency now widens the surface that has to be
-  audited, for code that is smaller than the audit.
-- **A failure mode that only exists because of the library.** `DECISIONS/0017` D5 and `docs/pwa-design.md`
-  §2.2 both spend their detail on `maximumFileSizeToCacheInBytes`: at the default 2 MiB the build fails, and
-  raising it to 20 MiB makes the build *silently* drop any asset over the limit — the exact shape of the
-  Small-model trap D5 warns about (`rec.onnx` at 21,159,378 B would vanish from the precache while the build
-  still passed). A hand-built manifest removes the ceiling and replaces it with a completeness rule (W1.1),
-  which fails for the right reason and cannot pass by omitting something.
-- **Testability.** §9's protocol is the part worth pinning, and it is expressible as a pure function of
-  `(fetch, caches, provider) → state`. That is exactly the shape `packages/pwa/tests/sw/pins.test.ts`
-  asserts (W4). Workbox's API is not a seam; it is an implementation.
-
-`vite-plugin-pwa` was never a *decided* dependency — D5's own framing is "this dimension cannot
-discriminate", and it was measured only to find the friction. Nothing in W1.0 contradicts a measurement; the
-ruling being asked for declines an option that was recommended but not selected. **This is the one place
-where ticket 17 goes past `docs/pwa-design.md`, and it is the only one in this record.**
+**Ruled: approved, as a scope change, at checkpoint 2 — see W1.2 for the reasons and W1.3 for the three
+conditions attached to it.**
 
 ### W1.1 The build emits the precache list, and the build fails if the list is incomplete
 
@@ -163,18 +150,89 @@ replaces a `__RL_PRECACHE_MANIFEST__` placeholder in the emitted worker chunk du
 every other asset is already in the bundle map. The list is the set of files written into `dist/app` minus an
 explicit exclusion set — `sw.js` itself, `.vite/manifest.json`, and any `*.map`.
 
-The guard is the replacement for the size ceiling, and it is stronger: **after `generateBundle`, if any
-file that will be written to `dist/app` is neither in the precache list nor in the named exclusion set, the
-build fails, naming the file.** A WASM that cannot be precached cannot be shipped by accident. The
-commitment is discharged by `playwright/smoke.spec.ts`, which reads the built worker and asserts that the
-hashed `.wasm` emitted under `assets/` appears in its manifest — an artifact check, not a source check, in
-the same style as the existing rig-leak and chunk-graph assertions.
+The guard replaces the size ceiling, and **it runs at build time, not at runtime and not as documentation**
+(owner ruling, W1.3 Condition 2 — "the whole point of hand-written is catching omissions before they ship").
+Both directions are asserted inside the Vite plugin, in `writeBundle`, once the contents of `dist/app` are
+final and nothing has yet been served to anyone:
+
+1. **Completeness.** Every file written into `dist/app` is either in the generated precache manifest or in the
+   named exclusion set. Anything else **fails the build, naming the file**. This is the direction the ceiling
+   got wrong: a dropped asset under `maximumFileSizeToCacheInBytes` leaves a build that succeeds and an offline
+   reload that fails, and the two claims ticket 17 exists to make depend on the list being whole.
+2. **Exclusion.** No file matching an exclusion pattern — `sw.js`, `.vite/manifest.json`, `*.map` — appears in
+   the manifest, and no `/assets/models/` path does either (W2.1). A precache that quietly swallowed a source
+   map or a model byte is the same class of accident in the other direction: it would spend the offline quota
+   on something a reader never asks for, and for model bytes it would put unverified weights on a device
+   without going through §9's gate at all.
+
+Failing the build is what makes it an assertion rather than a note. Three committed checks discharge it:
+
+- `playwright/smoke.spec.ts` reads the **built worker** and asserts the hashed `.wasm` emitted under `assets/`
+  appears in its embedded manifest, and that no `/assets/models/` path and no `.map` does — an artifact check,
+  not a source check, in the same style as the existing rig-leak and chunk-graph assertions;
+- `packages/pwa/tests/sw/pins.test.ts` drives the guard itself over a synthetic `dist/app` file list, so a
+  regression in the rule rather than the build is caught without a browser;
+- `pnpm build` **is** the runtime of the first two: if the plugin's completeness check throws, CI never reaches
+  the tests, which is the order Condition 2 asked for.
 
 D5's ceiling warning still travels, in its honest form: with no ceiling there is no silent drop, but the
 *origin quota* grows with the tier, and W18 is what notices. Any model-tier change re-opens this config and
-`DECISIONS/0012` F11 trigger 2 remains the moment it gets checked.
+`DECISIONS/0012` F11 trigger 2 remains the moment it gets checked. `maximumFileSizeToCacheInBytes` does not
+appear in this repository's config at all, since the library that owns it is not used; `pnpm build` failing on
+an incomplete precache is the setting that replaces it.
 
----
+### W1.2 The ruling (2026-11-05, checkpoint 2): hand-written worker, authorized as a scope change
+
+**Approved.** The ruling records why the wider change was accepted, and it was *not* accepted on the framing
+the checkpoint-2 draft led with.
+
+1. **`maximumFileSizeToCacheInBytes` silent-drop is a correctness risk to this ticket's own two claims.** The
+   WASM is 14.85 MB, so the ceiling works today — but any future asset addition can push over it with no
+   visible error, and both "offline reload works" and "measured footprint" depend on the precache being
+   complete. A silent drop breaks both, and breaks them at the user's first offline attempt rather than at
+   build. A build-time completeness assertion catches the omission where it is still cheap.
+2. **W4 puts the protocol in the page, so the worker is thin.** "Workbox buys about forty lines" is accurate
+   *because* the update protocol, the verification gate and the pointer all live outside the worker. The
+   convenience argument that normally makes Workbox the right default does not apply to a worker that has
+   become an adapter over `decideServing`.
+3. **It is consistent with the pattern the project has followed for sixteen tickets** — the codec, the item
+   matcher, the validator, the split engine, the migration rig: hand-written control where the behaviour is the
+   product, rather than a dependency for convenience.
+
+**The "nothing third-party runs" argument is withdrawn, and is not to be reinstated.** It appeared in the
+checkpoint-2 draft as reason number one and the owner struck it: the product claim in §1 is about **data
+flow** — receipt images and OCR text are processed locally and never uploaded — not about the count of
+packages in the dependency tree. Workbox in the tree would not violate that claim, so citing it to justify
+dropping Workbox misdescribes the claim in order to win the argument, and it would have set a precedent for
+the ticket 18 audit to over-claim with. D6's *"a runtime audit is still required"* stays true of whatever is
+shipped; it is not a reason to prefer one tooling choice. Reasons 1 and 2 above are the honest ones.
+
+### W1.3 Conditions attached to the ruling
+
+**Condition 1 — the standard service-worker lifecycle is pinned explicitly, not assumed.** Hand-written
+worker bugs live in the install/activate/fetch/update transitions, so each is a named assertion:
+
+- `install` populates the shell cache with **exactly** the precache manifest's entries, nothing more;
+- `activate` does **not** delete caches as a side effect of the lifecycle — deletion is triggered by W7.1's
+  pointer move, never by the event;
+- `fetch` serves a cache hit for a precached URL and falls through for anything not precached;
+- the update flow has at least one pin per step (W5's eight steps, already in the suite);
+- **the W13 controller race has a pin that runs two workers with the tab controlled by the old one while the
+  new one claims** — and that pin is run in a real browser under `serviceWorkers: "allow"` with slow-network
+  emulation, **not** against mocks that skip the event ordering. W13 itself says the race is the likeliest
+  place for this ticket to lose its time; a mocked test of a race is a test of the mock. The class of bug that
+  only shows on a slow link or after a laptop sleeps is exactly the class mocks cannot see.
+
+**Condition 2 — W1.1's completeness guard is a build-time assertion, not a runtime check and not
+documentation.** Both directions are checked when `dist/app` is written, before anything can ship (W1.1).
+
+**Condition 3 — this amendment lands in `DECISIONS/0027` as its own commit, before any implementation
+commit**, so a future session reads W1.0–W1.3 and understands why Workbox is absent rather than finding an
+unexplained omission.
+
+`vite-plugin-pwa` was never a *decided* dependency — D5's own framing is "this dimension cannot discriminate",
+and it was measured only to find the friction. Nothing here contradicts a measurement. **This is the one place
+where ticket 17 goes past `docs/pwa-design.md`, and it is the only one in this record.**
 
 ## W2 — What is precached on install, and what is prepared afterwards
 
@@ -392,6 +450,15 @@ The order is the contract, and each step is separately falsifiable.
      core's helper and delete the protocol's copy, and the tests stay valid either way.
    **Verification precedes any write**, so nothing unverified is ever in a cache, and a partial download
    cannot be mistaken for a model set.
+   - **Forward note on the duplication, added with the checkpoint-2 ruling.** If core ever exports
+     `fetchVerifiedAsset` and `sha256Hex`, the PWA protocol delegates and the duplication is removed. Until
+     then, the drift that matters would be caught by running a known-corrupt fixture — the same asset, the
+     same malformed input — through both implementations and requiring the same classification. **Not required
+     for v1;** note it as a future concern if either implementation changes. The reason it is worth naming is
+     that the `download_incomplete` / `hash_mismatch` distinction is exactly what a drift test would catch: if
+     core's implementation later normalizes both into one code and the PWA's stays at two, the user-facing
+     errors become inconsistent between "the app downloaded the models" and "the update protocol downloaded the
+     models" — two paths to the same bytes describing the same failure differently.
 4. **write candidate** — `caches.open(candidateName)` and `cache.put` for the manifest and the three assets.
    The candidate is opened under its final name from the start, so there is no rename step to get wrong and
    a crash leaves an unreferenced cache rather than a half-active one.
@@ -734,6 +801,29 @@ for when it says the fragment "must never be copied somewhere that outlives the 
    a timeout. The install-activate-waiting-for-controller race is where ticket 17's time is most likely to
    burn; waiting on `controller` is the deterministic answer and it is the pattern `offline.spec.ts` already
    uses for a different readiness signal.
+3. **The two-worker race is pinned in a real browser, not against mocks** (owner ruling, W1.3 Condition 1).
+   `playwright/offline-reload.spec.ts` runs with `serviceWorkers: "allow"` under slow-network emulation and
+   exercises the state where **an old worker still controls the tab while a new one installs and claims**: the
+   document keeps serving from the old shell cache, the new worker activates, `clientsClaim()` hands the tab
+   over, and the model cache the reader resolves is the one the pointer names at the moment of each request —
+   never a mixture of the two shells. The reason this must be a browser test is stated in the ruling: *a
+   mocked test of a race is a test of the mock.* `install`/`activate`/`fetch` ordering, `skipWaiting`
+   visibility and the point at which a controlled document stops using the previous cache are Chromium
+   behaviours, and they are the behaviours that break on a slow link or after a laptop sleeps — which is to
+   say, in exactly the conditions a unit test simulates worst.
+
+### W13.1 The lifecycle, as five named assertions (W1.3 Condition 1)
+
+Hand-written worker bugs live in the transitions, so each transition is an assertion rather than a review
+note:
+
+| | Pin |
+|---|---|
+| `install` | populates the shell cache with **exactly** the precache manifest's entries — no more (an install that fetches anything else is fetching something nobody declared), no fewer, and a single failed entry fails the install rather than logging |
+| `activate` | deletes nothing *because it is `activate`*. Shell-cache cleanup is W7.2's rule about superseded caches, and model-cache deletion is W7.1's rule about the pointer; neither may be smuggled into a lifecycle handler that runs on every deploy. Pinned as: an activate with no superseded cache performs **zero** deletions |
+| `fetch` | a precached URL is served from the shell cache; anything not precached falls through to the network; the worker writes nothing (W2.2) |
+| update flow | at least one pin per step of W5's eight — the journal-ordered suite in `tests/sw/pins.test.ts` already discharges this |
+| controller hand-off | W13's item 3, in Chromium under slow-network emulation |
 
 ---
 
@@ -781,6 +871,29 @@ thread count and *not* on the fix. `render-footprint-table.mjs` emits that sente
 `measurement.deployment.threads`, so it is generated rather than hand-written, and `verify:footprint` still
 fails on drift.
 
+### W14.1 What the harness numbers become
+
+The current artifact is copied to `benchmarks/results/footprint-2026-11-05-<rev>.json` before it is
+overwritten — the dated-archive pattern ticket 08 itself established with
+`footprint-2026-11-04-16ae8de.json` and ticket 09b reused for the accuracy artifacts. The old
+`deployment.scope` text is retained inside the archive; it is the evidence for the claims in
+`DECISIONS/0012` F1 and F10 and it must stay findable.
+
+### W14.2 The parts of `measure-footprint.mjs` that change
+
+`ROLES` is re-keyed to the PWA's emitted names, with `/assets/index-*.js` as the entry,
+`/assets/ort.wasm.bundle.min-*.js` as the runtime loader and `/assets/ort-wasm-simd-threaded-*.wasm` as the
+runtime WASM. The `measurement.deployment` block is rewritten — and notably its
+`remeasureRequiredAfter: "tickets 10a, 10"` sentence becomes the date this measurement was taken, because
+that condition is now discharged.
+
+Byte counting stays exactly where F5 put it: the origin's own request log. That is what makes the
+warm-visit claim checkable — an HTTP cache that cannot hold the WASM leaves a 14,848,852 B line in the log,
+and a worker that can holds the line down. `scripts/serve-app.mjs` does not currently record requests, so it
+gains an opt-in log (W17) and nothing else changes.
+
+---
+
 ### W14.3 Escape hatch — a recorded deferral, never a silent one
 
 **Ruled at checkpoint 1:** the full re-derivation is the deliverable, because the table is §1's "measured
@@ -803,27 +916,6 @@ into the driver rewrite and still not converging — then:
 
 The condition on that last point is what makes the hatch safe: the deferral is a ticket, the artifact says
 which deployment it describes either way, and no intermediate state publishes a PWA claim from harness bytes.
-
-### W14.1 What the harness numbers become
-
-The current artifact is copied to `benchmarks/results/footprint-2026-11-05-<rev>.json` before it is
-overwritten — the dated-archive pattern ticket 08 itself established with
-`footprint-2026-11-04-16ae8de.json` and ticket 09b reused for the accuracy artifacts. The old
-`deployment.scope` text is retained inside the archive; it is the evidence for the claims in
-`DECISIONS/0012` F1 and F10 and it must stay findable.
-
-### W14.2 The parts of `measure-footprint.mjs` that change
-
-`ROLES` is re-keyed to the PWA's emitted names, with `/assets/index-*.js` as the entry,
-`/assets/ort.wasm.bundle.min-*.js` as the runtime loader and `/assets/ort-wasm-simd-threaded-*.wasm` as the
-runtime WASM. The `measurement.deployment` block is rewritten — and notably its
-`remeasureRequiredAfter: "tickets 10a, 10"` sentence becomes the date this measurement was taken, because
-that condition is now discharged.
-
-Byte counting stays exactly where F5 put it: the origin's own request log. That is what makes the
-warm-visit claim checkable — an HTTP cache that cannot hold the WASM leaves a 14,848,852 B line in the log,
-and a worker that can holds the line down. `scripts/serve-app.mjs` does not currently record requests, so it
-gains an opt-in log (W17) and nothing else changes.
 
 ---
 
@@ -1043,6 +1135,9 @@ Every pin below is discharged by a named test, and the pins commit red against t
 | W11 manifest fields, scope agreement, icon reproducibility | `tests/sw/pins.test.ts` + `pnpm verify:icons` |
 | W12 banner and 7-day suppression, `localStorage` single-key rule | `tests/sw/pins.test.ts` + `scripts/scan-egress.mjs` sibling check |
 | W8/W9.1 offline reload and offline capture | `playwright/offline-reload.spec.ts` tests 2, 3 |
+| W1.3 Condition 1 / W13.1 lifecycle transitions: install populates exactly, activate deletes nothing, fetch hits and falls through | `packages/pwa/tests/sw/lifecycle.test.ts` (pure handlers) + `playwright/offline-reload.spec.ts` (controller race in Chromium) |
+| W1.3 Condition 2 / W1.1 build-time completeness in both directions | inside `pnpm build` (`vite.sw-plugin.ts` `writeBundle`) + `playwright/smoke.spec.ts` on the built worker |
+| W13 item 3 two-worker controller hand-off, slow network, no mixture of shells | `playwright/offline-reload.spec.ts` |
 | W14/W15 re-derived artifact, exception set gone, README table | `pnpm measure:footprint` + `pnpm verify:footprint` |
 
 A claim that cannot be re-derived from a committed artifact is not reported. `HANDOFF`'s ticket 06 lesson
