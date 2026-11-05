@@ -1287,12 +1287,17 @@ describe("DECISIONS/0023 P9 — the fixture is the before state", () => {
 
     const [image] = fixtureStore("retainedImages");
     expect(Object.keys(image!).sort()).toEqual(["billId", "bytes", "mediaType", "retainedAt"]);
-    // `{ __bytes: … }` is the generator's marker that a binary value was digested, in the page, before it
-    // crossed to Node — `page.evaluate` would otherwise have returned an ArrayBuffer as `{}`.
-    const bytes = image!.bytes as { __bytes: { byteLength: number; fnv1a: string } };
-    expect(Object.keys(bytes)).toEqual(["__bytes"]);
-    expect(bytes.__bytes.byteLength).toBeGreaterThan(0);
-    expect(typeof bytes.__bytes.fnv1a).toBe("string");
+    // The bytes are the generator's normalization marker, not a photo. Size and content of a JPEG vary
+    // between encoders, so the committed artifact says "an image was here" and `persistence.spec.ts` —
+    // where the bytes are real — asserts they are non-empty. Committing photo pixels would also break the
+    // standing rule that fixtures are PII-clean.
+    expect(image!.bytes).toEqual({ __normalized: "image bytes" });
+    expect(typeof image!.mediaType).toBe("string");
+    // P6's ordering rule, readable straight off the committed artifacts: an image row names a bill that is
+    // itself in the corpus. An orphan photo could not be produced by the save path, and would not survive
+    // `putRetainedImage`'s existence check either.
+    const bills = fixtureBills().map((record) => record.billId);
+    expect(bills).toContain(image!.billId);
     expect(JSON.stringify(image)).not.toContain("data:image");
   });
 });

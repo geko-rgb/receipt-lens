@@ -8,7 +8,6 @@
       "retainedImages"
     ],
     "frozenAt": "2026-11-05T00:00:02.000Z",
-    "bytesAreDigests": true,
     "syntheticVocabulary": [
       "100.00",
       "4.50",
@@ -24,7 +23,25 @@
       "TOTAL 100.00",
       "albus@okhdfc"
     ],
-    "note": "Raw IndexedDB contents after the app's own save path wrote them, in Chromium. Binary values are {__bytes:{byteLength,fnv1a}} because JSON cannot hold an ArrayBuffer. DECISIONS/0023 P9: the before-state of a migration test is evidence, not a sketch.",
+    "normalized": [
+      {
+        "keys": [
+          "box",
+          "sourceBox",
+          "wordBoxes"
+        ],
+        "becomes": "{\"__normalized\":\"geometry\"}",
+        "because": "OCR geometry depends on the runner's font rendering; pixels differ between machines"
+      },
+      {
+        "keys": [
+          "bytes"
+        ],
+        "becomes": "{\"__normalized\":\"image bytes\"}",
+        "because": "JPEG output size and content vary with the browser's encoder; presence and byte length are asserted in playwright/persistence.spec.ts instead"
+      }
+    ],
+    "vocabularyRule": "pnpm scan:pii fails if a free-text value here is not in syntheticVocabulary or an app-written constant",
     "purpose": "the one-row creator profile, and the retained-image row that only exists because it was opted into"
   },
   "bills": [
@@ -67,10 +84,7 @@
                 ],
                 "sourceText": "COFFEE 4.50",
                 "sourceBox": {
-                  "x": 56.64812942366026,
-                  "y": 327.906976744186,
-                  "width": 375.83417593528816,
-                  "height": 60.43604651162792
+                  "__normalized": "geometry"
                 }
               }
             ],
@@ -98,10 +112,7 @@
             "id": "u1",
             "text": "NAAN 60.00",
             "box": {
-              "x": 54.316073960302454,
-              "y": 488.02309782608694,
-              "width": 345.03633034026467,
-              "height": 60.203804347826065
+              "__normalized": "geometry"
             },
             "sourceLineIds": [
               "l3"
@@ -134,10 +145,7 @@
                   ],
                   "sourceText": "COFFEE 4.50",
                   "sourceBox": {
-                    "x": 56.64812942366026,
-                    "y": 327.906976744186,
-                    "width": 375.83417593528816,
-                    "height": 60.43604651162792
+                    "__normalized": "geometry"
                   }
                 }
               ]
@@ -148,10 +156,7 @@
               "id": "u1",
               "text": "NAAN 60.00",
               "box": {
-                "x": 54.316073960302454,
-                "y": 488.02309782608694,
-                "width": 345.03633034026467,
-                "height": 60.203804347826065
+                "__normalized": "geometry"
               },
               "sourceLineIds": [
                 "l3"
@@ -179,10 +184,7 @@
               ],
               "sourceText": "NAAN 60.00",
               "sourceBox": {
-                "x": 54.316073960302454,
-                "y": 488.02309782608694,
-                "width": 345.03633034026467,
-                "height": 60.203804347826065
+                "__normalized": "geometry"
               }
             },
             {
@@ -194,10 +196,7 @@
               ],
               "sourceText": "COFFEE 4.50",
               "sourceBox": {
-                "x": 56.64812942366026,
-                "y": 327.906976744186,
-                "width": 375.83417593528816,
-                "height": 60.43604651162792
+                "__normalized": "geometry"
               }
             }
           ]
@@ -247,10 +246,7 @@
                   ],
                   "sourceText": "COFFEE 4.50",
                   "sourceBox": {
-                    "x": 56.64812942366026,
-                    "y": 327.906976744186,
-                    "width": 375.83417593528816,
-                    "height": 60.43604651162792
+                    "__normalized": "geometry"
                   }
                 }
               ]
@@ -275,10 +271,7 @@
       "retainedAt": "2026-11-05T00:00:02.000Z",
       "mediaType": "image/jpeg",
       "bytes": {
-        "__bytes": {
-          "byteLength": 39877,
-          "fnv1a": "935b1cd0"
-        }
+        "__normalized": "image bytes"
       }
     }
   ]

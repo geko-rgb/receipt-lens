@@ -100,28 +100,30 @@ async function upload(page, { keepPhoto = false } = {}) {
 }
 
 /**
- * Reads every record out of the app's database, verbatim, through the browser's own serializer. Binary fields
- * are digested *in the page*: `page.evaluate` returns a structured-cloned value, and an `ArrayBuffer` that
- * crosses to Node as `{}` cannot be recovered afterwards — a replacer on this side would silently write an
- * empty object and the fixture would claim a photo of nothing.
+ * Reads every record out of the app's database through the browser's own serializer, normalizing the two
+ * things a second machine cannot reproduce (see `encodeBinary`). The normalization happens **in the page**:
+ * `page.evaluate` returns a structured clone, and an `ArrayBuffer` that arrives in Node as `{}` cannot be
+ * inspected afterwards — a replacer on this side would silently write a 39 KB photo as nothing, which is
+ * exactly what the first version of this script did.
  */
 async function dumpStores(page) {
   return page.evaluate(async () => {
-    const digest = (bytes) => {
-      let value = 0;
-      for (const byte of bytes) value = (value * 31 + byte) >>> 0;
-      return value.toString(16);
-    };
-    const encodeBinary = (item) => {
-      if (item instanceof ArrayBuffer) return { __bytes: { byteLength: item.byteLength, fnv1a: digest(new Uint8Array(item)) } };
-      if (ArrayBuffer.isView(item)) {
-        const view = item;
-        return { __bytes: { byteLength: view.byteLength, fnv1a: digest(new Uint8Array(view.buffer, view.byteOffset, view.byteLength)) } };
-      }
-      if (Array.isArray(item)) return item.map(encodeBinary);
+    /**
+     * The two things in a real record that a runner cannot reproduce byte-for-byte. Both are replaced by a
+     * marker rather than rounded, because the values themselves move, not just their last digits: font
+     * hinting shifts an OCR box by a couple of pixels and libjpeg's encoder changes a photograph's size by a
+     * hundred bytes — CI measured 56.65 → 58.61 px and 39,877 → 39,761 B between two machines running the
+     * same build. The fixture's job is to be evidence of what the *save path* wrote, and the save path wrote
+     * the same text, prices, provenance, ids and structure on both.
+     */
+    const GEOMETRY_KEYS = new Set(["box", "sourceBox", "wordBoxes"]);
+    const encodeBinary = (item, key) => {
+      if (item instanceof ArrayBuffer || ArrayBuffer.isView(item)) return { "__normalized": "image bytes" };
+      if (Array.isArray(item)) return item.map((entry) => encodeBinary(entry, key));
       if (item && typeof item === "object") {
+        if (GEOMETRY_KEYS.has(key)) return { "__normalized": "geometry" };
         const copy = {};
-        for (const [key, value] of Object.entries(item)) copy[key] = encodeBinary(value);
+        for (const [childKey, value] of Object.entries(item)) copy[childKey] = encodeBinary(value, childKey);
         return copy;
       }
       return item;
@@ -137,7 +139,7 @@ async function dumpStores(page) {
       stores[name] = await new Promise((resolve, reject) => {
         const transaction = database.transaction(name);
         const all = transaction.objectStore(name).getAll();
-        all.onsuccess = () => resolve(encodeBinary(all.result));
+        all.onsuccess = () => resolve(encodeBinary(all.result, name));
         all.onerror = () => reject(all.error);
       });
     }
@@ -146,16 +148,6 @@ async function dumpStores(page) {
     database.close();
     return { version, names, stores };
   });
-}
-
-/**
- * Binary values arrive from the page already digested to `{ byteLength, fnv1a }` (see `dumpStores`). The
- * digest is what makes the substitution checkable rather than lossy: a different photo produces a different
- * digest, so nothing can drift through it unnoticed — the same reasoning as `Units.svelte`'s token
- * fingerprint, which shows equality without revealing the secret.
- */
-function encodeForJson(value) {
-  return value;
 }
 
 const scenarios = [
@@ -212,9 +204,13 @@ const meta = {
   dbVersion: 1,
   storeNames: ["bills", "creatorProfile", "retainedImages"],
   frozenAt: FROZEN_AT.toISOString(),
-  bytesAreDigests: true,
   syntheticVocabulary: SYNTHETIC_VOCABULARY,
-  note: "Raw IndexedDB contents after the app's own save path wrote them, in Chromium. Binary values are {__bytes:{byteLength,fnv1a}} because JSON cannot hold an ArrayBuffer. DECISIONS/0023 P9: the before-state of a migration test is evidence, not a sketch.",
+  normalized: [
+    { keys: ["box", "sourceBox", "wordBoxes"], becomes: "{\"__normalized\":\"geometry\"}", because: "OCR geometry depends on the runner's font rendering; pixels differ between machines" },
+    { keys: ["bytes"], becomes: "{\"__normalized\":\"image bytes\"}", because: "JPEG output size and content vary with the browser's encoder; presence and byte length are asserted in playwright/persistence.spec.ts instead" },
+  ],
+  vocabularyRule: "pnpm scan:pii fails if a free-text value here is not in syntheticVocabulary or an app-written constant",
+
 };
 
 mkdirSync(fixturesDir, { recursive: true });
@@ -234,7 +230,7 @@ for (const [index, scenario] of scenarios.entries()) {
   const file = path.join(fixturesDir, scenario.file);
   writeFileSync(
     file,
-    `${JSON.stringify({ _meta: { ...meta, frozenAt: frozen, purpose: scenario.purpose }, ...encodeForJson(dump.stores) }, null, 2)}\n`,
+    `${JSON.stringify({ _meta: { ...meta, frozenAt: frozen, purpose: scenario.purpose }, ...dump.stores }, null, 2)}\n`,
     "utf8",
   );
   written.push(file);
