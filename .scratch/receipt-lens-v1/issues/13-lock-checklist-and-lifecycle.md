@@ -19,18 +19,20 @@
 
 ## Notes from the e2e run (2026-11-05)
 
-- **Roster is unreachable while a bill is in `draft` — UX, not blocking.** `Bill.svelte` renders `<Units>` inside
-  the `{:else}` of `{#if working.items.length === 0}`, so the participants section — the roster, the payer select,
-  the per-unit assignment checkboxes and the acknowledge button — does not exist in the DOM until the first item
-  is finalized. A creator who wants to add people before touching the lines has no control to add them with, and
-  the only way in is Finalize all resolved. `playwright/lock-lifecycle.spec.ts` now asserts the constraint
-  (`participant-name` absent in draft) rather than fighting it. Worth a product call: either an empty-state hint
-  pointing at finalization, or hoisting the roster out of the items branch. Follow-up, not a ticket 13 gate.
-- **A refused assignment left the checkbox visually checked (fixed here).** `Units.svelte`'s `toggle` published
-  `assignUnit`/`unassignUnit` and ignored the result, while `checked` is bound one-way — so after a `bill_locked`
-  refusal the box stayed ticked with no assignment in the document, against the component's own §6-line-400
-  header rule. `onPaid` and `onPayer` already rolled back; `toggle` now does the same. Only reachable through the
-  lock flow, which is why ticket 12 did not surface it.
-- **A refused removal deliberately keeps its dialog open** (`confirmRemoval` clears `removing` only on `ok`), and
-  the modal backdrop then swallows every pointer event on the page. Correct as behaviour, but it means
-  `removeParticipant`'s e2e has to click `remove-cancel` before touching anything else.
+- **Roster is unreachable while a bill is in `draft` — forwarded to ticket 14 by owner ruling.** `Bill.svelte`
+  renders `<Units>` inside the `{:else}` of `{#if working.items.length === 0}`, so the participants section — the
+  roster, the payer select, the per-unit assignment checkboxes and the acknowledge button — does not exist in the
+  DOM until the first item is finalized. A creator who wants to add people before touching the lines has no
+  control to add them with, and the only way in is Finalize all resolved.
+  `playwright/lock-lifecycle.spec.ts` asserts the constraint (`participant-name` absent in draft) rather than
+  fighting it. Not a bug: a UX decision, handed to ticket 14 because persistence may require it.
+- **A refused assignment left the checkbox visually checked (fixed in ticket 13 by owner ruling).**
+  `Units.svelte`'s `toggle` published `assignUnit`/`unassignUnit` and ignored the result, while `checked` is bound
+  one-way — so after a `bill_locked` refusal the box stayed ticked with no assignment in the document, against the
+  component's own §6-line-400 header rule. `onPaid` and `onPayer` already rolled back; `toggle` now does the same.
+  Found by the lock e2e's `expect(box).not.toBeChecked()`; ticket 12 never exercised a `bill_locked` rejection
+  because that state did not exist until ticket 13.
+- **A refused removal keeps its modal backdrop up — accepted as-is by owner ruling, not a bug.**
+  `confirmRemoval` clears `removing` only on `ok`, so the dialog stays open while the user reads why the removal
+  failed, and its backdrop then swallows every pointer event on the page. Correct UX: read the error, dismiss to
+  continue. Tests must click `remove-cancel` after asserting the rejection before touching anything else.

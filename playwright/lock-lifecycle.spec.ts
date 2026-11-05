@@ -289,29 +289,44 @@ test("lock: draft items surface the finalize-first path instead of locking atomi
   await expectLockSucceeds(page);
 });
 
-test("locked bill rejects edits: price, assignment and removal each surface bill_locked", async ({ page }) => {
+test("locked bill rejects edits: price, quantity, assignment and removal each surface bill_locked", async ({ page }) => {
   await makeReady(page, RECEIPT);
   await assignAllUnitsTo(page, "P1");
   await page.getByTestId("lock-button").click();
   await expect(page.getByTestId("lifecycle-state")).toHaveText("locked");
 
+  // The alert is one persistent element and every leg refuses with the same code, so the assertions that carry
+  // each leg are the ones on the control's own state: a leg whose transaction were missing would leave its
+  // edit applied (a new price, a second unit, a ticked box, a shorter roster) and fail there.
+  const refused = async (): Promise<void> => {
+    await expect(page.getByTestId("transaction-rejected")).toContainText("bill_locked");
+  };
+
   // leg 1 — price
   const price = page.getByTestId("item-price").first();
   await price.fill("70.00");
   await price.press("Tab");
-  await expect(page.getByTestId("transaction-rejected")).toContainText("bill_locked");
+  await refused();
   await expect(price).toHaveValue(/60\.00/);
 
-  // leg 2 — assignment (the creator's checkbox, unchecked before the click)
+  // leg 2 — quantity (grow, so it reaches the transaction rather than the shrink confirmation dialog)
+  const qty = page.getByTestId("item-qty").first();
+  await qty.fill("2");
+  await qty.press("Tab");
+  await refused();
+  await expect(qty).toHaveValue("1");
+  await expect(page.getByTestId("unit")).toHaveCount(1);
+
+  // leg 3 — assignment (the creator's checkbox, unchecked before the click)
   const box = firstAssignmentBox(page);
   await box.click();
-  await expect(page.getByTestId("transaction-rejected")).toContainText("bill_locked");
+  await refused();
   await expect(box).not.toBeChecked();
 
-  // leg 3 — participant removal
+  // leg 4 — participant removal
   await page.getByTestId("remove-participant").first().click();
   await page.getByTestId("remove-confirm").click();
-  await expect(page.getByTestId("transaction-rejected")).toContainText("bill_locked");
+  await refused();
   await expect(page.getByTestId("participant-row").filter({ hasText: "P1" })).toHaveCount(1);
 });
 
