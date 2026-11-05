@@ -177,5 +177,8 @@ export function createWorkingBill(
     unclassifiedRows: parse.unclassifiedRows.map((row) => ({ ...row, sourceLineIds: [...row.sourceLineIds] })),
     parseResult: parse,
     parseValidation,
+    // DECISIONS/0022 L1/L6: review and share state start empty; only ticket 13's operations write them.
+    excludedRowIds: [],
+    staleLinkCutoffAt: null,
   };
 }
