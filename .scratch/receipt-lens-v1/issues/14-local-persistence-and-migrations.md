@@ -4,7 +4,7 @@
 
 **Blocked by:** 11 (bill editor transactions)
 
-**Status:** in-review (branch `ticket/14-local-persistence-and-migrations`, implementation complete, awaiting the checkpoint 3 gate)
+**Status:** in-review (branch `ticket/14-local-persistence-and-migrations`, pushed, CI green, PR open awaiting merge)
 
 **Effort:** ~32 h · **Roadmap:** workstream 3A (tasks 3A.2–3A.4) · **Week:** W12–13 · **Milestone:** M3
 **Verify:** migration rig green from every supported prior schema version, including abort/recovery fixtures
@@ -49,6 +49,32 @@ plus the store-creation step, so the rig is built and gated *now* and the chain'
   what the real save path wrote in Chromium. The gate has already earned its keep: it caught a save-path
   change my own P8 fix introduced.
 
+Implementation surfaced **five sequential P3 failures** (gate order, `put` signature, `blocked` holder,
+profile read timing, fixture byte-stability). Each was diagnosed and fixed in order; nothing was reported
+green until all 60 pins passed. This is the expected cascade for a ticket with five nested stubs — not a
+problem, the process working.
+
+**Four more rounds belonged to CI, and the push was worth every one.** `pnpm test` was green on the first
+run and the fixture gate failed there while passing locally — which is precisely what a machine-specific
+artifact looks like until it is not alone:
+
+| CI run | found | treatment |
+|---|---|---|
+| `42040764600` | OCR box geometry (`x: 56.65` → `58.61`) and JPEG bytes (`39,877` → `39,761 B`) | `{ "__normalized": … }` markers, declared with reasons in `_meta.normalized` |
+| `42041982968` | OCR confidence (`0.99544` → `0.99397`) | rounded to two decimals — **the wrong theory, kept here so nobody retries it** |
+| `42042814720` | rounding still split: `1` against `0.99`. A continuous measurement of a raster has no stable precision | confidence nulled (§10 types it `number | null`, core reports `confidence_unavailable`), and `working.parseValidation` with it — confidence-derived *and* recomputed on load by P1 |
+| `42043979920` | — | **green**: install, build, `build:rig`, typecheck, test, `scan:pii`, `verify:results`, `verify:accuracy`, `verify:accuracy-table`, fixture budget, `verify:footprint`, `verify:storage-fixtures`, Playwright |
+
+The third round also exposed a bad assertion of mine, which is the more interesting failure: P9's
+no-op-reopen pin compared the restored `working` to the stored one *whole*, and it had only been passing
+because the stored `parseValidation` happened to agree with the recomputed one on my machine. It now asserts
+the rule — every field the save path *chose* survives byte-for-byte, and `parseValidation` is compared
+against a fresh `validate(parseResult)`. Pin 2 remains the proof the stored value is never trusted.
+
+CI's final numbers on `690396e`: core **222**, pwa **259**, **benchmarks 214 in the CI log** (the one
+criterion only a push could settle), `svelte-check 0 errors and 0 warnings`, Playwright **48 passed** — the
+50 minus the two `@offline` cases that job excludes by design; `privacy.yml` owns those.
+
 Box-by-box: **1** one database `receipt-lens`, `DB_SCHEMA_VERSION = 1`, one sequential step
 (`MIGRATIONS[0]`) inside `onupgradeneeded`, and one `BillDocument` record per bill rather than §1.1's ten
 stores (P2's reason, with the cost named). **2** a throwing step aborts the `versionchange` transaction and
@@ -71,4 +97,6 @@ commit, and the two notes ticket 14 could not answer — revision-0 ledger pruni
 convention on a refused removal — are written into ticket 15's file.
 
 Not done, on purpose: restore-from-export, a participant rename, any cross-tab sync, and a photo viewer (P13).
-**Nothing pushed and no PR** — the checkpoint 3 gate is the owner's.
+
+**Pushed and CI-green at the owner's direction** (`690396e`, run `42043979920`); PR open, merge is the
+owner's call.
