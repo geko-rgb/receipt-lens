@@ -26,6 +26,19 @@ const BANNED = [
   { pattern: /fetch\s*\(\s*["'`]https?:\/\//, label: "fetch of a remote URL literal" },
 ];
 
+/**
+ * Deliberate external actions, pinned by a `// egress-allowed: <id>` marker on the line above the literal.
+ * §15 rule 6: opening WhatsApp or sharing a bill is a user action, not inference egress — but the scan still
+ * has to name it, so an unmarked remote URL remains a violation.
+ */
+const DELIBERATE_EXTERNAL_ACTIONS = [
+  {
+    id: "whatsapp-intent",
+    justification:
+      "settlement-links.ts — a wa.me click-to-chat link the user must press. Deliberate external action (§15 rule 6, DECISIONS/0024 S5); never fetched by the app.",
+  },
+];
+
 /** The one expected egress site, pinned with its justification (DECISIONS/0013 T7). */
 const PINNED_PROVIDER_FETCH = {
   marker: "this.options.fetch ??" ,
@@ -65,7 +78,18 @@ for (const file of files) {
       }
     }
     if (/["'`]https?:\/\/[^"'`]+["'`]/.test(line)) {
-      violations.push({ file: relative, line: index + 1, label: "absolute URL literal", text: trimmed });
+      const markerText = `${lines[index - 1] ?? ""} ${line}`;
+      const marker = /egress-allowed:\s*([a-z-]+)/.exec(markerText)?.[1];
+      const pinnedAction = DELIBERATE_EXTERNAL_ACTIONS.find((action) => action.id === marker);
+      if (pinnedAction) {
+        allowed.push({
+          file: relative,
+          line: index + 1,
+          text: pinnedAction.justification.replace("settlement-links.ts", `${path.basename(relative)}:${index + 1}`),
+        });
+      } else {
+        violations.push({ file: relative, line: index + 1, label: "absolute URL literal", text: trimmed });
+      }
     }
     if (/\bfetch\s*\(/.test(line) && !/fetch\s*\(\s*["'`]/.test(line)) {
       if (line.includes(PINNED_PROVIDER_FETCH.marker)) {
