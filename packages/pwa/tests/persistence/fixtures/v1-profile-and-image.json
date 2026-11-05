@@ -1,0 +1,241 @@
+{
+  "_meta": {
+    "generator": "scripts/storage-fixtures.mjs",
+    "dbVersion": 1,
+    "storeNames": [
+      "bills",
+      "creatorProfile",
+      "retainedImages"
+    ],
+    "frozenAt": "2026-11-05T00:00:02.000Z",
+    "syntheticVocabulary": [
+      "100.00",
+      "4.50",
+      "60.00",
+      "Albus",
+      "COFFEE",
+      "COFFEE 4.50",
+      "NAAN",
+      "NAAN 60.00",
+      "P1",
+      "RECEIPT",
+      "TOTAL",
+      "TOTAL 100.00",
+      "albus@okhdfc"
+    ],
+    "normalized": [
+      {
+        "keys": [
+          "box",
+          "sourceBox",
+          "wordBoxes"
+        ],
+        "becomes": "{\"__normalized\":\"geometry\"}",
+        "because": "OCR geometry depends on the runner's font rendering; pixels differ between machines"
+      },
+      {
+        "keys": [
+          "bytes"
+        ],
+        "becomes": "{\"__normalized\":\"image bytes\"}",
+        "because": "JPEG output size and content vary with the browser's encoder; presence and byte length are asserted in playwright/persistence.spec.ts instead"
+      },
+      {
+        "keys": [
+          "parseValidation"
+        ],
+        "becomes": "null",
+        "because": "the load path discards and recomputes it (P1), and its findings are confidence-derived — storing it would commit a second, raster-dependent answer to one question"
+      },
+      {
+        "keys": [
+          "confidence"
+        ],
+        "becomes": "null",
+        "because": "a continuous measurement of a rastered glyph has no byte-stable precision — rounding to 2 decimals still split 1 against 0.99 between machines; §10 allows null, core reports confidence_unavailable for it, and P1 recomputes parseValidation on load so nothing downstream trusts the stored value"
+      }
+    ],
+    "vocabularyRule": "pnpm scan:pii fails if a free-text value here is not in syntheticVocabulary or an app-written constant",
+    "purpose": "the one-row creator profile, and the retained-image row that only exists because it was opted into"
+  },
+  "bills": [
+    {
+      "billId": "bill:2026-11-05T00:00:02.000Z",
+      "revision": 1,
+      "savedAt": "2026-11-05T00:00:02.000Z",
+      "working": {
+        "bill": {
+          "id": "bill:2026-11-05T00:00:02.000Z",
+          "title": "Receipt",
+          "creatorId": "bill:2026-11-05T00:00:02.000Z:creator",
+          "payerId": "bill:2026-11-05T00:00:02.000Z:creator",
+          "createdAt": "2026-11-05T00:00:02.000Z",
+          "isLocked": false,
+          "taxIncluded": null,
+          "taxIncludedSource": "unresolved",
+          "grandTotal": 10000,
+          "grandTotalSource": "detected",
+          "adjustmentLines": []
+        },
+        "draftItems": [
+          {
+            "id": "i1",
+            "parsedRef": "i1",
+            "name": "COFFEE",
+            "qty": 1,
+            "quantitySource": "assumed",
+            "unitPrice": 999,
+            "priceSource": "user_confirmed",
+            "lineTotal": 450,
+            "confidence": null,
+            "warnings": [
+              {
+                "code": "qty_assumed",
+                "message": "Item i1 prints no quantity, so 1 is assumed and needs review before lock",
+                "itemRef": "i1",
+                "sourceLineIds": [
+                  "l2"
+                ],
+                "sourceText": "COFFEE 4.50",
+                "sourceBox": {
+                  "__normalized": "geometry"
+                }
+              }
+            ],
+            "assumedQtyReviewed": false,
+            "manuallyAdded": false
+          }
+        ],
+        "items": [],
+        "draftCharges": [],
+        "charges": [],
+        "participants": [
+          {
+            "id": "bill:2026-11-05T00:00:02.000Z:creator",
+            "billId": "bill:2026-11-05T00:00:02.000Z",
+            "name": "Albus",
+            "paid": false,
+            "token": "",
+            "tokenExpiresAt": ""
+          }
+        ],
+        "itemUnits": [],
+        "assignments": [],
+        "unclassifiedRows": [
+          {
+            "id": "u1",
+            "text": "NAAN 60.00",
+            "box": {
+              "__normalized": "geometry"
+            },
+            "sourceLineIds": [
+              "l3"
+            ],
+            "reason": "ambiguous",
+            "warningCode": "ambiguous_row"
+          }
+        ],
+        "parseResult": {
+          "items": [
+            {
+              "id": "i1",
+              "name": "COFFEE",
+              "qty": 1,
+              "quantitySource": "assumed",
+              "unitPrice": 450,
+              "priceSource": "detected",
+              "lineTotal": 450,
+              "confidence": null,
+              "sourceLineIds": [
+                "l2"
+              ],
+              "warnings": [
+                {
+                  "code": "qty_assumed",
+                  "message": "Item i1 prints no quantity, so 1 is assumed and needs review before lock",
+                  "itemRef": "i1",
+                  "sourceLineIds": [
+                    "l2"
+                  ],
+                  "sourceText": "COFFEE 4.50",
+                  "sourceBox": {
+                    "__normalized": "geometry"
+                  }
+                }
+              ]
+            }
+          ],
+          "unclassifiedRows": [
+            {
+              "id": "u1",
+              "text": "NAAN 60.00",
+              "box": {
+                "__normalized": "geometry"
+              },
+              "sourceLineIds": [
+                "l3"
+              ],
+              "reason": "ambiguous",
+              "warningCode": "ambiguous_row"
+            }
+          ],
+          "taxes": [],
+          "serviceCharge": null,
+          "tip": null,
+          "discount": null,
+          "roundOff": null,
+          "otherCharges": [],
+          "subtotal": null,
+          "subtotalSource": "unresolved",
+          "grandTotal": 10000,
+          "grandTotalSource": "detected",
+          "warnings": [
+            {
+              "code": "ambiguous_row",
+              "message": "Row u1 could not be classified as an item, a continuation or header noise, and is preserved for review",
+              "sourceLineIds": [
+                "l3"
+              ],
+              "sourceText": "NAAN 60.00",
+              "sourceBox": {
+                "__normalized": "geometry"
+              }
+            },
+            {
+              "code": "qty_assumed",
+              "message": "Item i1 prints no quantity, so 1 is assumed and needs review before lock",
+              "itemRef": "i1",
+              "sourceLineIds": [
+                "l2"
+              ],
+              "sourceText": "COFFEE 4.50",
+              "sourceBox": {
+                "__normalized": "geometry"
+              }
+            }
+          ]
+        },
+        "parseValidation": null,
+        "excludedRowIds": [],
+        "staleLinkCutoffAt": null
+      }
+    }
+  ],
+  "creatorProfile": [
+    {
+      "id": "self",
+      "displayName": "Albus",
+      "upiId": "albus@okhdfc"
+    }
+  ],
+  "retainedImages": [
+    {
+      "billId": "bill:2026-11-05T00:00:02.000Z",
+      "retainedAt": "2026-11-05T00:00:02.000Z",
+      "mediaType": "image/jpeg",
+      "bytes": {
+        "__normalized": "image bytes"
+      }
+    }
+  ]
+}

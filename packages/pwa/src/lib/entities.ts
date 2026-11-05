@@ -28,6 +28,18 @@ export interface Bill {
   adjustmentLines: AdjustmentLine[];
 }
 
+/**
+ * §10 lines 602–605, verbatim. The creator's local profile, reusable across bills (§13 line 923:
+ * "May store `CreatorProfile` (`displayName`, `upiId`) locally for reuse"). Its home is here, beside every
+ * other §10 entity: `lib/storage/records.ts` wraps it in the row it persists and ticket 15 imports the same
+ * type for the UPI builder, so one definition keeps the stored shape and its consumer in agreement
+ * (DECISIONS/0023 P2).
+ */
+export interface CreatorProfile {
+  displayName: string;
+  upiId: string;
+}
+
 export interface Participant {
   id: string;
   billId: string;

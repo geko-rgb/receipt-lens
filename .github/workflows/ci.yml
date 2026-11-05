@@ -19,6 +19,10 @@ jobs:
       # built SHAPE is asserted later in this job by playwright/smoke.spec.ts, which reads
       # packages/pwa/dist/app and fails if the OCR runtime appears in the shell bundle.
       - run: pnpm build
+      # Ticket 14's migration rig: a second Vite entry, deliberately outside the shipped bundle
+      # (DECISIONS/0023 S1). Built here so playwright/persistence.spec.ts can drive the gate and abort
+      # screens against a synthetic step, and smoke.spec.ts fails if any of it leaked into dist/app.
+      - run: pnpm build:rig
       - run: pnpm typecheck
       - run: pnpm test
       # Ticket 03a gates. The null-parser bootstrap itself runs inside `pnpm test`
@@ -46,6 +50,12 @@ jobs:
       # publish a table whose declared device class is "whatever pod hosted the job".
       - run: pnpm verify:footprint
       - run: pnpm exec playwright install --with-deps chromium
+      # Ticket 14's fixture gate (DECISIONS/0023 P9). `verify:storage-fixtures` re-runs the generator — which
+      # drives the real app in Chromium, through the real save path — and then fails on `git diff --exit-code`
+      # over packages/pwa/tests/persistence/fixtures. That is what makes a migration test's "before" state
+      # evidence rather than a story: if the save path changes what it serializes, a human has to commit the
+      # new bytes deliberately. Needs Chromium, so it sits below the browser install and above the suite.
+      - run: pnpm verify:storage-fixtures
       # The @offline suite (ticket 09a) has exactly one owner: .github/workflows/privacy.yml.
       # Running it here too would double the browser OCR cost without adding a guarantee.
       - run: pnpm exec playwright test --config playwright/playwright.config.ts --grep-invert @offline
