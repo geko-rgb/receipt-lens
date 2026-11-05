@@ -21,3 +21,9 @@ allowBuilds:
   # need. onnxruntime-web itself ships prebuilt dist/ + .wasm files and has no
   # install hook, so WASM setup does not depend on this script.
   protobufjs: false
+  # fake-indexeddb is ticket 14's test-only IndexedDB (devDependency of @receipt-lens/pwa, never imported
+  # from src/, so it cannot reach the bundle). Its only lifecycle script is `prepare: husky` — a git-hook
+  # installer that does not run for a registry tarball, and it has zero dependencies. Same posture as
+  # hyparquet above: decline it explicitly so a republish that *did* ship a working install hook cannot
+  # slip past the script-free frozen-install check in CI, which is what these entries exist for.
+  fake-indexeddb: false

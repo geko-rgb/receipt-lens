@@ -1,5 +1,5 @@
 import type { ParseResult, ParseValidationResult, ParsedItem } from "@receipt-lens/core";
-import type { Bill, ChargeType, Participant } from "../entities.js";
+import type { Bill, ChargeType, CreatorProfile, Participant } from "../entities.js";
 import type { DraftCharge, DraftItem, WorkingBill } from "./working-bill.js";
 
 /**
@@ -18,6 +18,20 @@ export interface NewBillOptions {
   createdAt: string;
   title?: string;
   creatorName?: string;
+}
+
+/**
+ * DECISIONS/0023 P8: the creator participant's name is seeded from the stored `CreatorProfile.displayName`,
+ * and `"Creator"` — the literal `createWorkingBill` already defaults to — is the fallback when there is no
+ * profile yet or its display name is blank. Blank is treated as absent because §10's `Participant.name`
+ * reaches the share link (16) and the settlement list (15), and 0021 A3 rejects a blank participant name for
+ * exactly that reason; the seeded one is no different.
+ *
+ * Later profile edits never rewrite a stored bill: a bill records what it said when it was made, and
+ * rewriting bills to track a setting is a derived-value write P1 forbids.
+ */
+export function creatorNameFor(profile: CreatorProfile | null): string {
+  throw new Error("not implemented: DECISIONS/0023 P8");
 }
 
 export function draftItemFromParsed(item: ParsedItem): DraftItem {

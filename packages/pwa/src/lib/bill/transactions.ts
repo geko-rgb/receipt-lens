@@ -224,6 +224,26 @@ export function beginFrom(
   return commit({ revision: 0, working: fresh, derived: recomputed.derived, billValidation: s.validateWorking(fresh) });
 }
 
+/**
+ * DECISIONS/0019 S9's promise to ticket 14, and DECISIONS/0023 P1's load path: rebuild the committed
+ * document from a stored `working` and its `revision`, by running the *same* steps a transaction runs —
+ * recompute, then core `validate`, then `validateWorkingBill` — so a reload cannot disagree with an edit.
+ *
+ * It is the second and last way a document is minted outside a transaction (`beginFrom` is the first), and
+ * like `beginFrom` it is not one: there is no previous state to roll back to, and it does not bump
+ * `revision`. The stored `working.parseValidation` is discarded and overwritten, never trusted: §10 line 745
+ * says shares and derived values are recomputed on load, and 0019 S5 says the same of the parse validation —
+ * a pure function of `parseResult`, so keeping its stored copy would be keeping a second answer to one
+ * question.
+ */
+export function rebuildDocument(
+  working: WorkingBill,
+  revision: number,
+  steps: Partial<TransactionSteps> = {},
+): BillDocument {
+  throw new Error("not implemented: DECISIONS/0023 P1");
+}
+
 /** The leaf predicates, re-exported so the seam's whole API is one module. */
 export { isChargeAmountPaise, isCountableQuantity, isIntegerPaise, isUnitPricePaise };
 
