@@ -17,3 +17,10 @@
 - [ ] The participant view renders a locked bill from a link with no network access, and states that showing one person their share is a view default, not access control
 - [ ] Opening a link for a stale snapshot identifies it as stale rather than presenting it as current
 - [ ] Round-trip, budget-boundary and malformed-input behaviour is exercised through the codec seam
+
+## Next session starting point (2026-11-05)
+
+- Codec merged and green: `packages/pwa/src/lib/share/codec.ts` — `encodeSnapshot`, `decodeSnapshot`, `deriveKey`. 12/12 pins green.
+- Not implemented: snapshot assembly (`BillShareSnapshot` from locked bill per §10), `/share` route (decode fragment on load), stale detection UI, bearer-secret disclosure copy, the WhatsApp link placeholder replacement (currently `#v1.<token>` is placeholder until `/share` route lands).
+- Read `DECISIONS/0025` (updated with codec deviations) and this file before starting.
+- Next ticket subtask: snapshot assembly pins first (snapshot from locked bill, size budget check, excluded content assertions), then `/share` route, then stale detection, then disclosure.

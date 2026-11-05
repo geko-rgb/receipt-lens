@@ -733,3 +733,7 @@ gate.
 fractional/weight-quantity v1 limit (with the matching `docs/business.md` §16 entry), by explicit owner
 instruction at the merge gate. The standing rule still means *an agent does not edit the spec on its own
 initiative*.
+
+## Ticket 15 G5 deviation (2026-11-05)
+
+Ticket 15 G5 deviation: the primary NPCI spec 1.6 (2017) publishes no `pn`/`tn`/`tr` limits; the 40/50/35 constants are unverified against primary. Secondary sources only. A future ticket should verify against a newer NPCI specification or accept secondary-source authority. Recorded in `DECISIONS/0024` S7; ticket 16's pins are `DECISIONS/0025`.
