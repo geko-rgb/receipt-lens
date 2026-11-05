@@ -3,6 +3,9 @@ import { validate } from "@receipt-lens/core";
 import type { ParsedItem, ParseResult, UnclassifiedRow } from "@receipt-lens/core";
 
 import type { BillDocument } from "../../src/lib/bill/document.js";
+import type { FinalPriceSource, FinalQuantitySource } from "../../src/lib/bill/working-bill.js";
+import type { SplittableBill } from "../../src/lib/entities.js";
+import { computeExactShares } from "../../src/lib/splitting.js";
 import {
   acknowledgeUnassignedUnit,
   addParticipant,
@@ -244,6 +247,38 @@ const FORBIDDEN_KEYS = [
   "upiId",
   "displayName",
   "grandTotalSource",
+];
+
+/**
+ * DECISIONS/0026 A6's amendment: the fields `splittableFromSnapshot` must fill because §10's snapshot
+ * deliberately carries no provenance for the printed total, no lock flag, and no item-level sources or
+ * calculated line total. Each is varied to a *different* no-claim value; the pin below shows the split engine
+ * does not read any of them.
+ */
+const SYNTHESIZED_FIELDS: ReadonlyArray<{
+  readonly field: string;
+  readonly change: (state: SplittableBill) => SplittableBill;
+}> = [
+  { field: "bill.grandTotalSource", change: (state) => ({ ...state, bill: { ...state.bill, grandTotalSource: "detected" } }) },
+  { field: "bill.isLocked", change: (state) => ({ ...state, bill: { ...state.bill, isLocked: false } }) },
+  {
+    field: "item.quantitySource",
+    change: (state) => ({
+      ...state,
+      items: state.items.map((item) => ({ ...item, quantitySource: "assumed" as FinalQuantitySource })),
+    }),
+  },
+  {
+    field: "item.priceSource",
+    change: (state) => ({
+      ...state,
+      items: state.items.map((item) => ({ ...item, priceSource: "user_confirmed" as FinalPriceSource })),
+    }),
+  },
+  {
+    field: "item.lineTotal",
+    change: (state) => ({ ...state, items: state.items.map((item) => ({ ...item, lineTotal: 0 })) }),
+  },
 ];
 
 describe("ticket 16 — assembly reads a locked bill (DECISIONS/0026 A1, A2)", () => {
@@ -557,6 +592,24 @@ describe("ticket 16 — the recipient re-derives the shares (DECISIONS/0026 A6)"
     expect(state.bill.adjustmentLines).toHaveLength(snapshot.adjustmentLines.length);
     expect(state.items[0]!.unitPrice).toBe(10_000);
   });
+
+  // DECISIONS/0026 A6's amendment. `splittableFromSnapshot` must hand the engine a complete `Bill` and a
+  // complete `Item`, and §10's snapshot deliberately carries no provenance for the total, no lock flag, and no
+  // quantity/price sources or calculated line total. Those fields are filled with values that make no claim
+  // about origin; these pins are what turns "the engine does not read them" from an inspection into evidence —
+  // one case per field, so a future §11 change names the field it broke.
+  for (const { field, change } of SYNTHESIZED_FIELDS) {
+    it(`the split engine does not read ${field}: varying it changes no share`, () => {
+      const base = splittableFromSnapshot(assembleSnapshot(locked(), { now: NOW }));
+      const mutated = change(base);
+
+      // Not vacuous, in either direction: the input really differs, and the base really splits ₹100 three ways.
+      expect(JSON.stringify(mutated)).not.toBe(JSON.stringify(base));
+      expect(computeExactShares(base).shares).toHaveLength(3);
+
+      expect(JSON.stringify(computeExactShares(mutated))).toBe(JSON.stringify(computeExactShares(base)));
+    });
+  }
 });
 
 describe("ticket 16 — links are a lock-time action (DECISIONS/0026 A7)", () => {

@@ -223,6 +223,23 @@ refuse to render, because 0025 P4's own reasoning is that a link holder can forg
 is expected behaviour, not corruption. `decodeSnapshot`'s schema check still guarantees the cache is
 *well-formed*; the recomputation is what makes it not *authoritative*.
 
+**A6 amendment (2026-11-05): the adapter's synthesized fields, and how their non-dependence is proved.**
+`splittableFromSnapshot` must hand §11's engine a complete `Bill` and a complete `Item`, and §10's snapshot
+deliberately carries no provenance for the printed total, no lock flag, and no item-level `quantitySource`,
+`priceSource` or calculated `lineTotal`. Those are filled with values that make no claim about origin —
+`grandTotalSource: "unresolved"`, `isLocked` derived from the snapshot's own existence (a snapshot exists only for
+a locked bill, A1), and per item the resolved-only sources with `lineTotal = qty × unitPrice`. The snapshot is
+source-of-truth for its own contents and for every arithmetic field it does carry; it is not a place where
+provenance is invented.
+
+Non-dependence is proven by test, not by inspection. Five pins — one per field, so a future §11 change names the
+field it broke — build two `SplittableBill` objects differing in exactly one of those values, run
+`computeExactShares` on both, and assert the output is identical. Each pin also asserts the two inputs really do
+differ, so the case cannot pass by mutating nothing, and that the base really splits ₹100 three ways, so it
+cannot pass by computing nothing. This converts the judgment "these fields are unread" into evidence: the engine
+reads ids, prices, quantities, units, assignments, charge amounts, inclusion flags and adjustment lines, and §11
+has it reading nothing else.
+
 ## A7 — Generating links is a lock-time action, in the view
 
 ```ts
@@ -484,6 +501,12 @@ UPI intent on the participant view" obeys for a second reason (there is no payee
   removal would silently change what the recipient reads, which is the opposite of the freeze the snapshot
   exists to provide. The refusal names the remedy and leaves the choice to the creator.
 - **G8 — `PROJECT(1).md` is unedited by this record**, as with 0025.
+- **G9 — the empty-state copy is lowercased to match an existing assertion.** `/share` with no fragment renders
+  "this view is ticket 16's", because `playwright/shell.spec.ts:263` asserts the placeholder contains the
+  lowercase string `ticket 16`. This is a capitalization choice made to preserve ticket 10a's assertion, not a
+  substantive change: the alternative was editing another ticket's e2e to read a sentence I had just written,
+  which weakens a D3a owner condition for the sake of a capital T. Recorded so nobody later reads the lower-case
+  "ticket 16" in that view as a leftover placeholder — the sentence beside it is this ticket's real copy.
 
 ## A13 — The browser proof
 
