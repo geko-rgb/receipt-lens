@@ -196,7 +196,10 @@ export function validateWorkingBill(workingBill: WorkingBill): BillValidationRes
     if (!liveIds.has(parsed.id)) continue;
     for (const lineId of parsed.sourceLineIds) claimedLineIds.add(lineId);
   }
+  // DECISIONS/0022 L1: an excluded row is reviewed-by-exclusion, so it no longer blocks.
+  const excludedRowIds = new Set(workingBill.excludedRowIds);
   const unreviewedRowRefs = workingBill.unclassifiedRows
+    .filter((row) => !excludedRowIds.has(row.id))
     .filter((row) => !row.sourceLineIds.some((lineId) => claimedLineIds.has(lineId)))
     .map((row) => row.id);
 
@@ -211,7 +214,10 @@ export function validateWorkingBill(workingBill: WorkingBill): BillValidationRes
   if (pendingUnits.length > 0) lock("units_unassigned", pendingUnits);
   if (unreviewedAssumedRefs.length > 0) lock("assumed_qty_unreviewed", unreviewedAssumedRefs);
   if (workingBill.bill.grandTotal === null) lock("grand_total_missing");
-  if (!participantIds.has(workingBill.bill.payerId)) lock("payer_missing", [workingBill.bill.payerId]);
+  if (!participantIds.has(workingBill.bill.payerId)) {
+    // `""` is the UI's "not chosen yet" (DECISIONS/0022 L11): a real blocker, but there is no id to name.
+    lock("payer_missing", workingBill.bill.payerId === "" ? undefined : [workingBill.bill.payerId]);
+  }
   if (unreviewedRowRefs.length > 0) lock("unclassified_rows_unreviewed", unreviewedRowRefs);
   if (negativeShareRefs.length > 0) lock("negative_share_after_discount", negativeShareRefs);
 

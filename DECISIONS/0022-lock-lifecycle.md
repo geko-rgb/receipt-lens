@@ -500,3 +500,33 @@ and `packages/pwa/tests/lock/pins.test.ts` is the artifact that asserts it; a pi
 the code or in this record, never a reason to move the test. L3's finding — that a lock attempt which
 finalizes an item cannot succeed, because finalization creates pending units — is a claim about §10 and §13
 read together, and it is discharged by pins 5 and 6 rather than asserted as behaviour that exists.
+
+## A17–A20 — amendments made while implementing 13 (2026-11-05)
+
+Four decisions could only be taken once the UI and the e2e suite existed. Each supersedes the line it names.
+
+- **A17 (supersedes L7's single exception).** Three writes are permitted on a locked bill: `unlockBill`,
+  `setParticipantPaid`, and nothing else. The distinction is *bill content* versus *settlement metadata*: §13's
+  settlement step happens after the lock, so a guard that also froze `paid` would make the lifecycle's own
+  `settled` state unreachable. `setParticipantPaid` therefore commits through the `requireUnlocked: false`
+  path, and every content operation still rejects with `bill_locked`.
+- **A18 (L10).** `settled` requires at least one *relevant* participant — not the payer, not owed exactly zero.
+  A locked bill with nobody to pay stays `locked`: a vacuous "settled" would claim a settlement that never
+  happened. (The one-person bill is the case that forced this.)
+- **A19 (L11).** `setPayer(document, null)` stores `payerId: ""`. §10's `payer_missing` blocker presupposes an
+  unresolved payer, but `Bill.payerId` has no `null`, so `""` is the representation of "not chosen yet"; it
+  names no participant, which is exactly the blocker's condition. The blocker carries no ref in that state,
+  because there is no id to name. A non-empty non-participant is still `unknown_entity`.
+- **A20 (scope note for ticket 15).** Checkpoint 3's e2e requirements include proving a paid participant is
+  refused removal and that paid survives unlock; both need a way to set `paid` from the screen. The roster
+  therefore carries the `paid` checkbox and `setParticipantPaid` — a UI for §10's existing field, not new
+  accounting. Ticket 15 still owns settlement *presentation* (amounts owed, payment links, messages) and may
+  replace this toggle as it sees fit. The contributor is told to extend, not duplicate.
+
+Two implementation notes recorded here rather than in a component comment:
+
+- `lifecycle.ts` imports `exact-money`, because "owed exactly zero" is an exact comparison, never a float one.
+- The roster exposes a **fingerprint** of each token (`data-token-fingerprint`, an FNV-1a digest), never the
+  token. Without it, the browser cannot show that unlock produced a new share-link generation; with the token
+  itself in the DOM, the bearer secret would be readable by any script on the page. The digest reveals equality
+  between generations, not the material.

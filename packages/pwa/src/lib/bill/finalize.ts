@@ -9,6 +9,7 @@ import type {
 import { isCountableQuantity, isUnitPricePaise } from "./working-bill.js";
 import type { FinalPriceSource, FinalQuantitySource } from "@receipt-lens/core";
 import { INCLUSION_AFFECTING_CHARGE_TYPES } from "./mapping.js";
+import { materializeUnits } from "./units.js";
 
 /**
  * Draft → finalized (ROADMAP 3C.2). §10 line 764 is the whole point of the two tiers: a draft may hold
@@ -108,4 +109,60 @@ export function toFinalizedCharge(draft: DraftCharge, billId: string): BillCharg
     charge.otherSign = draft.otherSign;
   }
   return charge;
+}
+
+/**
+ * DECISIONS/0020 T6's bulk form, split so the lock operation can use the half that creates no units.
+ * `finalizeResolvableCharges` is what `lockBill` calls (DECISIONS/0022 L3): a charge has no quantity, so
+ * finalizing it cannot materialize a unit the creator has not assigned.
+ */
+export function finalizeResolvableCharges(working: WorkingBill): {
+  working: WorkingBill;
+  finalizedChargeIds: string[];
+} {
+  const ready = working.draftCharges.filter((draft) => checkDraftChargeFinalizable(draft).ok);
+  if (ready.length === 0) return { working, finalizedChargeIds: [] };
+
+  const done = new Set(ready.map((draft) => draft.id));
+  const charges = ready.map((draft) => toFinalizedCharge(draft, working.bill.id));
+  return {
+    working: {
+      ...working,
+      draftCharges: working.draftCharges.filter((draft) => !done.has(draft.id)),
+      charges: [...working.charges, ...charges],
+    },
+    finalizedChargeIds: charges.map((charge) => charge.id),
+  };
+}
+
+export interface BulkFinalizeResult {
+  readonly working: WorkingBill;
+  readonly finalizedItemIds: string[];
+  readonly finalizedChargeIds: string[];
+  readonly changed: boolean;
+}
+
+/** Every entity whose §10 gates are met, in one state. `finalizeAllResolvable` and the pins use this. */
+export function finalizeResolvable(working: WorkingBill): BulkFinalizeResult {
+  const readyItems = working.draftItems.filter((draft) => checkDraftItemFinalizable(draft, working).ok);
+  const items = readyItems.map((draft) => toFinalizedItem(draft, working.bill.id));
+  const units = readyItems.flatMap((draft) => materializeUnits(draft.id, draft.qty as number));
+
+  const withItems: WorkingBill =
+    readyItems.length === 0
+      ? working
+      : {
+          ...working,
+          draftItems: working.draftItems.filter((draft) => !items.some((item) => item.id === draft.id)),
+          items: [...working.items, ...items],
+          itemUnits: [...working.itemUnits, ...units],
+        };
+
+  const charges = finalizeResolvableCharges(withItems);
+  return {
+    working: charges.working,
+    finalizedItemIds: items.map((item) => item.id),
+    finalizedChargeIds: charges.finalizedChargeIds,
+    changed: readyItems.length > 0 || charges.finalizedChargeIds.length > 0,
+  };
 }
