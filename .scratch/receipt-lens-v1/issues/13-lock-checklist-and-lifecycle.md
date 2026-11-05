@@ -16,3 +16,21 @@
 - [ ] Payer defaults to the creator, both are participants, and a non-participant payer is rejected
 - [ ] Unlocking requires an explicit confirmation, regenerates share links, and marks previously issued links as stale snapshots rather than leaving them silently contradicting the bill
 - [ ] Contradicts nothing in the split-engine decisions: unlock never mutates a locked bill in place without regenerating its shares
+
+## Notes from the e2e run (2026-11-05)
+
+- **Roster is unreachable while a bill is in `draft` — UX, not blocking.** `Bill.svelte` renders `<Units>` inside
+  the `{:else}` of `{#if working.items.length === 0}`, so the participants section — the roster, the payer select,
+  the per-unit assignment checkboxes and the acknowledge button — does not exist in the DOM until the first item
+  is finalized. A creator who wants to add people before touching the lines has no control to add them with, and
+  the only way in is Finalize all resolved. `playwright/lock-lifecycle.spec.ts` now asserts the constraint
+  (`participant-name` absent in draft) rather than fighting it. Worth a product call: either an empty-state hint
+  pointing at finalization, or hoisting the roster out of the items branch. Follow-up, not a ticket 13 gate.
+- **A refused assignment left the checkbox visually checked (fixed here).** `Units.svelte`'s `toggle` published
+  `assignUnit`/`unassignUnit` and ignored the result, while `checked` is bound one-way — so after a `bill_locked`
+  refusal the box stayed ticked with no assignment in the document, against the component's own §6-line-400
+  header rule. `onPaid` and `onPayer` already rolled back; `toggle` now does the same. Only reachable through the
+  lock flow, which is why ticket 12 did not surface it.
+- **A refused removal deliberately keeps its dialog open** (`confirmRemoval` clears `removing` only on `ok`), and
+  the modal backdrop then swallows every pointer event on the page. Correct as behaviour, but it means
+  `removeParticipant`'s e2e has to click `remove-cancel` before touching anything else.

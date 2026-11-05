@@ -662,6 +662,21 @@ independent failure feedback. Continuous flow is fine when the flow is bounded a
 is better when the flow is long or the state space is complex. Rationale: a broken split test tells you which
 transition broke; a broken continuous flow tells you only that something in the flow broke.
 
+**Timeouts (added by ticket 13, 2026-11-05).** E2E specs that require full OCR capture must fail fast, not
+hang: the timeout lives in `playwright/playwright.config.ts` as `timeout: 30_000` + `expect.timeout: 5_000` +
+`use.actionTimeout: 5_000`, and specs carry **no** `test.setTimeout(420_000)` overrides. A spec that genuinely
+needs longer overrides per test; the default is what protects every future spec. The reason is measured, not
+theoretical: OCR is ~1 s per pass (4 captured tests ran in 4.0 s), so the 420 s budgets were never protecting
+slow inference — a locator that never resolves simply waited out its own budget, which turned one typo into a
+7.0-minute test and a 7.1-minute "slow" run. `actionTimeout` is the load-bearing part: without it Playwright
+waits on a missing element until the test timeout.
+
+**`assumed_qty_unreviewed` is on every captured receipt.** §7's tentative 1 (`quantitySource: "assumed"`) is set
+by `parse()` for any row whose quantity was not printed, so the blocker is present from the first capture and
+**survives finalization** — `validate-bill.ts` reads `[...draftItems, ...items]`. Any test that reaches a lock
+must clear it through the review buttons (`review-assumed` on a draft, `review-item` on an item; both call
+`reviewAssumedQuantity`). It was invisible before ticket 13 because no earlier spec asserted a clear checklist.
+
 ## Open items / owner decisions pending
 - **`@receipt-lens/core` is packable but not published, and declares no licence.** Ticket 07 made it
   publishable (`private` removed, `publishConfig.access: "public"`, `files` covers `dist` + `README.md`;
