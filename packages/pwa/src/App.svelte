@@ -3,6 +3,8 @@
   import { resolveLocation, targetUrl, ROUTE_PATHS, type RouteName } from "./lib/router.js";
   import Capture from "./routes/Capture.svelte";
   import Bill from "./routes/Bill.svelte";
+  import Bills from "./routes/Bills.svelte";
+  import StorageStatus from "./components/StorageStatus.svelte";
   import Share from "./routes/Share.svelte";
   import NotFound from "./routes/NotFound.svelte";
 
@@ -48,14 +50,23 @@
 <nav aria-label="Views" id="shell-nav">
   <a href={ROUTE_PATHS.capture} data-nav="capture" onclick={(e) => onNavClick(e, ROUTE_PATHS.capture)}>Capture</a>
   <a href={ROUTE_PATHS.bill} data-nav="bill" onclick={(e) => onNavClick(e, ROUTE_PATHS.bill)}>Bill</a>
+  <a href={ROUTE_PATHS.bills} data-nav="bills" onclick={(e) => onNavClick(e, ROUTE_PATHS.bills)}>Past bills</a>
   <a href={ROUTE_PATHS.share} data-nav="share" onclick={(e) => onNavClick(e, ROUTE_PATHS.share)}>Share</a>
 </nav>
+
+{#if route !== "share"}
+  <!-- Ticket 14: the storage screens are shell-level, because a migration gate or a full disk is not a
+       condition of any one view — and /share must not show them (a recipient has no ledger on this device). -->
+  <StorageStatus />
+{/if}
 
 <main id="shell-view" data-route={route} data-renders={renders} data-fragment-length={fragment.length}>
   {#if route === "capture"}
     <Capture />
   {:else if route === "bill"}
     <Bill />
+  {:else if route === "bills"}
+    <Bills />
   {:else if route === "share"}
     <Share {fragment} />
   {:else}

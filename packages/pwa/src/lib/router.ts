@@ -12,7 +12,7 @@
  *     re-encodes the fragment it is carrying.
  */
 
-export type RouteName = "capture" | "bill" | "share" | "notFound";
+export type RouteName = "capture" | "bill" | "bills" | "share" | "notFound";
 
 export interface LocationLike {
   readonly pathname: string;
@@ -23,6 +23,10 @@ export interface LocationLike {
 export const ROUTE_PATHS: Record<Exclude<RouteName, "notFound">, string> = {
   capture: "/capture",
   bill: "/bill",
+  // DECISIONS/0023 P7: the creator's local ledger (§13 line 922 — "sole access to the creator-only local
+  // ledger of past bills"). It is a route, not a panel inside /bill, so a restored bill and a list of past
+  // ones are two different things on screen.
+  bills: "/bills",
   share: "/share",
 };
 
@@ -30,6 +34,7 @@ const PATHS: Record<string, RouteName> = {
   "/": "capture",
   "/capture": "capture",
   "/bill": "bill",
+  "/bills": "bills",
   "/share": "share",
 };
 

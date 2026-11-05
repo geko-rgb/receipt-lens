@@ -50,6 +50,40 @@ test("the shell entry document mounts the app from relative build assets only", 
   }
 });
 
+test("the migration rig stays out of the shipped bundle entirely", () => {
+  // DECISIONS/0023 S1: `packages/pwa/rig/` is a second Vite entry precisely because the shipped storage layer
+  // must not be able to run a migration that throws. "Not shipped" is an artifact property, so it is asserted
+  // against the artifact — three ways, because the three ways it could leak are different: built into the
+  // wrong directory, imported by app source, or referenced from the entry document.
+  //
+  // Marker-based rather than a bare `grep rig`, which would trip over `text-align:right` in the app's own CSS
+  // and miss nothing: these strings exist only in the rig's source.
+  const { html, chunks } = builtShell();
+  const markers = ["rigHalfMadeStore", "rig-result", "bill:rig-half-written", "Rig.svelte", "rig-kind"];
+
+  for (const chunk of chunks) {
+    for (const marker of markers) {
+      expect(chunk.source, `${chunk.name} contains the rig marker ${marker}`).not.toContain(marker);
+    }
+  }
+  expect(readdirSync(path.join(shellDir, "assets")).some((name) => /^rig[-.]/i.test(name))).toBe(false);
+
+  // The manifest is the deploy list; a rig entry in it would put the rig on a user's device through ticket 17's
+  // service-worker precache.
+  const manifestPath = path.join(shellDir, ".vite/manifest.json");
+  if (existsSync(manifestPath)) {
+    expect(readFileSync(manifestPath, "utf8")).not.toMatch(/"rig|rig\.html|rig-/);
+  }
+
+  // And nothing in the app's own source reaches for it, so it cannot come back through a later build.
+  const sources = readdirSync(path.join(repoRoot, "packages/pwa/src"), { recursive: true })
+    .filter((entry): entry is string => typeof entry === "string" && /\.(ts|svelte)$/.test(entry))
+    .map((entry) => readFileSync(path.join(repoRoot, "packages/pwa/src", entry), "utf8"))
+    .join("\n");
+  expect(sources).not.toContain("../rig/");
+  expect(sources).not.toContain("Rig.svelte");
+});
+
 test("the ONNX runtime stays behind the lazy boundary, never in the entry chunk", () => {
   const entry = entryChunks();
   expect(entry.length).toBeGreaterThan(0);

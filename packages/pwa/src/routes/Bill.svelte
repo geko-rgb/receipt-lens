@@ -9,7 +9,9 @@
    * value selects. Values arrive through explicit `onchange` handlers, and a rejected transaction writes the
    * bill's still-true value back into the field, so the screen cannot show a number the data disagrees with.
    */
+  import { onMount } from "svelte";
   import { getDraft } from "../lib/draft.js";
+  import { storage } from "../lib/storage/storage-state.svelte.js";
   import { billStore } from "../lib/bill/bill-document.svelte.js";
   import Units from "../components/Units.svelte";
   import Lock from "../components/Lock.svelte";
@@ -40,11 +42,68 @@
   const INCLUSION_COHERENT: ChargeType[] = ["tax", "service_charge", "tip", "other"];
 
   const draft = getDraft();
-  if (draft && !billStore.document) {
-    // `createdAt` and the bill id come from the caller, so nothing in `lib/bill/` reads a clock
-    // (DECISIONS/0011's determinism rule); the component is the boundary that is allowed to.
-    const createdAt = new Date().toISOString();
-    billStore.begin(draft, { billId: `bill:${createdAt}`, createdAt });
+  const session = storage.session();
+  /** P7: what was read back from this device, so the screen can say which bill it is and when it was saved. */
+  let restored = $state<{ billId: string; revision: number; savedAt: string } | null>(null);
+  /** P6: whether a photo is kept for this bill — presence is the state, so this is a store question. */
+  let keptPhoto = $state(false);
+  let photoDeleted = $state(false);
+
+  /**
+   * The one entry point, in the order the rules require.
+   *
+   * The profile is read *first*: `creatorName` is a synchronous argument to `billStore.begin` (0011: nothing
+   * in `lib/bill/*` reads a clock or a store), so P8's seeding only works if the value is already in hand
+   * when the bill is built. Reading it after the import would seed a bill that already has a name.
+   *
+   * A fresh capture wins over a restore: the handoff is the thing the user just did, and P7's restore exists
+   * for the case where there is no handoff — a reload, a shared route, ticket 17's offline start.
+   */
+  async function start(): Promise<void> {
+    if (billStore.document) return;
+    await storage.guard(() => session.loadProfile());
+    if (draft) {
+      // `createdAt` and the bill id come from the caller, so nothing in `lib/bill/` reads a clock
+      // (DECISIONS/0011's determinism rule); the component is the boundary that is allowed to.
+      const createdAt = new Date().toISOString();
+      billStore.begin(draft, { billId: `bill:${createdAt}`, createdAt });
+      return;
+    }
+    const document = await storage.guard(() => session.restore());
+    if (!document) return;
+    const billId = document.working.bill.id;
+    billStore.attachRestored(document);
+    // `savedAt` is asked for, not carried: it is storage metadata and never bill content (P1).
+    const savedAt = (await storage.guard(() => session.savedAtOf(billId))) ?? "";
+    restored = { billId, revision: document.revision, savedAt };
+  }
+
+  onMount(() => {
+    void start();
+  });
+
+  // P6: the panel asks the store, because presence *is* the state — there is no flag on the bill to read.
+  // It re-asks whenever a save lands, which is also the moment a freshly accepted retention becomes visible.
+  $effect(() => {
+    const billId = bill?.working.bill.id;
+    if (!billId || billStore.saveStatus !== "saved") return;
+    void refreshPhoto(billId);
+  });
+
+  function refreshPhoto(billId: string): Promise<void> {
+    return storage.guard(() => session.hasRetainedImage(billId)).then((kept) => {
+      keptPhoto = kept === true;
+    });
+  }
+
+  /** P6: deleting the photo is not deleting the bill. Every number came from the photo already. */
+  function deletePhoto(): void {
+    const billId = billStore.document?.working.bill.id;
+    if (!billId) return;
+    void storage.guard(() => session.deleteRetainedImage(billId)).then(() => {
+      keptPhoto = false;
+      photoDeleted = true;
+    });
   }
 
   // Named `bill`, not `document`: shadowing the DOM global inside a browser component is how the next
@@ -203,10 +262,38 @@
 <h1>Bill</h1>
 
 {#if !bill}
-  <p data-testid="bill-empty">No draft yet — capture a receipt first.</p>
+  <div data-testid="bill-empty">
+    <p>No bill open.</p>
+    <button
+      type="button"
+      data-testid="empty-capture-cta"
+      onclick={() => {
+        window.history.pushState({}, "", "/capture");
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      }}
+    >
+      Capture a receipt
+    </button>
+    <button
+      type="button"
+      data-testid="empty-ledger-cta"
+      onclick={() => {
+        window.history.pushState({}, "", "/bills");
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      }}
+    >
+      Open a past bill
+    </button>
+  </div>
 {:else}
   {@const working = bill.working}
   {@const derived = bill.derived}
+
+  {#if restored}
+    <p class="notice" data-testid="restored-notice">
+      Restored from this device — revision {restored.revision}, saved {restored.savedAt}.
+    </p>
+  {/if}
 
   {#if draft && billStore.importedFrom !== draft}
     <div class="notice" data-testid="reimport-notice">
@@ -328,8 +415,16 @@
 
   <section data-testid="items-section">
     <h2>Items</h2>
+    <!--
+      DECISIONS/0023 P8, answering ticket 13's forwarded note: the roster renders whenever a bill does, not
+      only once something has been finalized. A zero-item participant is a meaningful participant (§11 rule 5,
+      ADR-001), the payer selector lives in here (0022 L13) and `payer_missing` is a lock blocker, and after
+      P7 a bill can legitimately arrive as a restored draft-only import. What stays gated is the *grid*: units
+      materialize at finalization only (0021 A1), so it says so instead of pretending to be empty.
+    -->
+    <Units {bill} />
     {#if working.items.length === 0}
-      <p class="hint" data-testid="no-items">No finalized items yet.</p>
+      <p class="hint" data-testid="no-items">No finalized items yet — finalize a line to assign its units.</p>
     {:else}
       {#each working.items as item (item.id)}
         <div class="row" data-testid="item-row" data-line-id={item.id}>
@@ -365,7 +460,21 @@
           <button type="button" data-testid="delete-item" onclick={() => apply(deleteItem(bill, item.id))}>Delete</button>
         </div>
       {/each}
-      <Units {bill} />
+    {/if}
+  </section>
+
+  <section class="retention" data-testid="retention-panel">
+    <h2>Receipt photo</h2>
+    {#if keptPhoto}
+      <p data-testid="kept-photo">A photo of this receipt is kept on this device.</p>
+      <button type="button" data-testid="delete-photo" onclick={deletePhoto}>Delete the photo</button>
+    {:else if photoDeleted}
+      <p class="badge badge-ok" data-testid="photo-deleted">Photo deleted. The bill and its numbers are unchanged.</p>
+    {:else}
+      <p class="hint" data-testid="no-kept-photo">
+        No photo is kept for this bill. Keeping one is chosen per capture on the photo screen, and never by
+        default.
+      </p>
     {/if}
   </section>
 

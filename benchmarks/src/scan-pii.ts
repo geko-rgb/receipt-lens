@@ -17,6 +17,9 @@ import { redactWords, type HeaderEntities } from "./fixtures/redact.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "..", "..");
 const fixturesRoot = path.join(repoRoot, "benchmarks", "fixtures");
+// Ticket 14's storage fixtures (DECISIONS/0023 P9) are committed data too, so the standing rule that
+// fixtures are PII-clean reaches them as well.
+const storageFixturesRoot = path.join(repoRoot, "packages", "pwa", "tests", "persistence", "fixtures");
 
 interface Heuristic {
   readonly name: string;
@@ -102,7 +105,72 @@ for (const split of ["dev", "eval"]) {
   }
 }
 
-console.log(`scanned ${receiptsScanned} receipts, ${tokensScanned} tokens (dev + eval)`);
+// ── ticket 14: the storage fixtures, checked by a different mechanism ───────────────────────────────
+//
+// Idempotence means nothing here: these files are not redacted dataset output, they are a dump of what the
+// app's save path wrote from a receipt *this repository draws on a canvas*. The meaningful guarantee is
+// narrower and stronger: every free-text value in them must be one the generator declared, or one the
+// editor itself writes. Anything else appeared out of a real receipt, and that is a failure.
+const STORAGE_TEXT_KEYS = new Set(["name", "text", "label", "title", "displayName", "upiId"]);
+/** App-side constants, not receipt content: `mapping.ts:173`, `:147`, and the canvas blob's own type. */
+const APP_WRITTEN_VALUES = new Set(["Receipt", "Creator", "image/jpeg"]);
+
+function storageTextValues(node: unknown, key: string, into: string[]): void {
+  if (Array.isArray(node)) {
+    for (const item of node) storageTextValues(item, key, into);
+    return;
+  }
+  if (node && typeof node === "object") {
+    for (const [childKey, value] of Object.entries(node as Record<string, unknown>)) {
+      if (typeof value === "string" && STORAGE_TEXT_KEYS.has(childKey)) into.push(value);
+      else storageTextValues(value, childKey, into);
+    }
+    return;
+  }
+}
+
+let storageFilesScanned = 0;
+let storageValuesScanned = 0;
+const storageSeen = new Set<string>();
+
+for (const entry of (await readdir(storageFixturesRoot)).sort()) {
+  if (!entry.startsWith("v1-") || !entry.endsWith(".json")) continue;
+  const file = path.join(storageFixturesRoot, entry);
+  const fixture = JSON.parse(await readFile(file, "utf8")) as {
+    _meta?: { syntheticVocabulary?: string[] };
+  };
+  const declared = new Set(fixture._meta?.syntheticVocabulary ?? []);
+  if (declared.size === 0) {
+    problems.push(`${entry}: no _meta.syntheticVocabulary — regenerate with \`pnpm generate:storage-fixtures\``);
+    continue;
+  }
+  storageFilesScanned += 1;
+  const values: string[] = [];
+  storageTextValues(fixture, "", values);
+  for (const value of values) {
+    storageValuesScanned += 1;
+    storageSeen.add(value);
+    if (declared.has(value) || APP_WRITTEN_VALUES.has(value)) continue;
+    problems.push(`${entry}: free-text value ${JSON.stringify(value)} is in no declared vocabulary`);
+  }
+  // The heuristics still run, because a synthetic handle can be shaped like a real one and the report should
+  // say so rather than a whitelist quietly hiding it.
+  for (const value of values) {
+    for (const heuristic of heuristics) {
+      if (!heuristic.pattern.test(value)) continue;
+      const entry2 = advisories.get(heuristic.name) ?? { count: 0, shapes: [] };
+      entry2.count += 1;
+      if (entry2.shapes.length < 5 && !entry2.shapes.includes(maskShape(value))) entry2.shapes.push(maskShape(value));
+      advisories.set(heuristic.name, entry2);
+    }
+  }
+}
+
+console.log(
+  `scanned ${receiptsScanned} receipts, ${tokensScanned} tokens (dev + eval)` +
+    ` · ${storageFilesScanned} storage fixtures, ${storageValuesScanned} free-text values ` +
+    `(${storageSeen.size} distinct, all from the declared synthetic vocabulary or app constants)`,
+);
 console.log("\nadvisory heuristics (reported, not redacted — DECISIONS/0005):");
 for (const [name, entry] of [...advisories.entries()].sort(([left], [right]) => left.localeCompare(right))) {
   console.log(`  ${name.padEnd(22)} ${String(entry.count).padStart(5)}  e.g. ${entry.shapes.join(" | ")}`);

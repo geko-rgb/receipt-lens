@@ -59,6 +59,15 @@
   let current = $state<ParseState | null>(null);
   let previous = $state<ParseState | null>(null);
 
+  /**
+   * Ticket 14 (DECISIONS/0023 P6): the working copy the accepted parse came from — rotated, cropped,
+   * contrast-adjusted — kept in memory only. The checkbox below decides whether it is *carried* into the
+   * handoff; carrying it is still not storing it, because the byte only reaches IndexedDB after the bill's own
+   * record has been written, and never at all unless this box was ticked.
+   */
+  let workingBlob = $state<Blob | null>(null);
+  let keepPhoto = $state(false);
+
   let fileInput = $state<HTMLInputElement | null>(null);
 
   const fit = $derived.by(() => {
@@ -124,6 +133,7 @@
     crop = null;
     current = null;
     previous = null;
+    workingBlob = null;
     error = null;
     notice = null;
     // The confirm-once working copy §10 describes is the preview; OCR starts from it immediately.
@@ -190,6 +200,7 @@
         browserEnvironment(),
       );
       const result = await extractInBrowser(transformed.blob, VALIDATION_OPTIONS);
+      workingBlob = transformed.blob;
       current = {
         items: result.parse.items ?? [],
         charges: result.parse.otherCharges ?? [],
@@ -315,7 +326,11 @@
 
   function accept(): void {
     if (!current) return;
-    setDraft(current);
+    setDraft(
+      keepPhoto && workingBlob
+        ? { ...current, retainedImage: { blob: workingBlob, mediaType: workingBlob.type || "image/jpeg" } }
+        : current,
+    );
     window.history.pushState({}, "", targetUrl("/bill", window.location.hash));
     window.dispatchEvent(new PopStateEvent("popstate"));
   }
@@ -338,7 +353,8 @@
 <h1>Capture</h1>
 <p data-testid="capture-note">
   Capture a receipt or choose a file, adjust it non-destructively, then review the extracted draft.
-  Nothing leaves the device and no image is stored.
+  Nothing leaves the device, and
+  {#if keepPhoto}this photo will be kept on this device until you delete it{:else}no image is stored{/if}.
 </p>
 
 {#if error}
@@ -404,6 +420,21 @@
     {:else}
       {@render previewImage()}
     {/if}
+
+    <!-- P6: default off, per capture, never remembered — a saved "always keep" would let one click on an
+         unrelated screen flip the privacy default for every future receipt. -->
+    <label class="retention" data-testid="keep-photo-row">
+      <input type="checkbox" data-testid="keep-photo" bind:checked={keepPhoto} />
+      Keep this photo on this device
+    </label>
+    <p class="hint" data-testid="retention-hint">
+      {#if keepPhoto}
+        Stored in this browser only, beside the bill, and deletable from the bill. Never in a share link and
+        never in a backup file.
+      {:else}
+        Off by default: the photo stays in memory for this session and is gone when you leave.
+      {/if}
+    </p>
 
     <div class="controls">
       <button type="button" data-testid="rotate-btn" onclick={rotate} disabled={busy}>
