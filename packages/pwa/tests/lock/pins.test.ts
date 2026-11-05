@@ -22,6 +22,7 @@ import {
   setGrandTotal,
   setItemPrice,
   setItemQuantity,
+  setParticipantPaid,
   setPayer,
   setUnclassifiedRowExcluded,
   unlockBill,
@@ -191,8 +192,14 @@ describe("ticket 13 — locking (DECISIONS/0022 L3)", () => {
     expect(tokens.every((token) => token.length > 0)).toBe(true);
     expect(new Set(tokens).size).toBe(tokens.length);
 
-    const relocked = ok(lock(unlock(locked).document, "relock"));
-    expect(relocked.working.participants.map((participant) => participant.token)).toEqual(tokens);
+    // Unlock re-mints for everyone, so a re-lock has nothing to mint and must leave those tokens alone:
+    // the links a creator sends after re-locking are the ones unlock generated (DECISIONS/0022 L4).
+    const afterUnlock = ok(unlock(locked));
+    const unlockTokens = afterUnlock.working.participants.map((participant) => participant.token);
+    expect(unlockTokens).not.toEqual(tokens);
+
+    const relocked = ok(lock(afterUnlock, "relock"));
+    expect(relocked.working.participants.map((participant) => participant.token)).toEqual(unlockTokens);
   });
 
   it("rejects a second lock with bill_locked", () => {
@@ -204,16 +211,18 @@ describe("ticket 13 — locking (DECISIONS/0022 L3)", () => {
   });
 
   it("rejects with lock_blocked and the blocker codes when the checklist is not clear", () => {
-    const document = begin({
-      items: [parsedItem("i1", { qty: null, quantitySource: "unresolved" })],
-      grandTotal: null,
-      grandTotalSource: "unresolved",
-    });
+    // No draft items: with one present the lock refuses earlier with `items_unfinalized` (0022 L3), and this
+    // pin is about the runner's checklist invariant, not that refusal.
+    const document = ok(
+      finalizeItems(begin({ grandTotal: null, grandTotalSource: "unresolved" }), ["i1"]),
+    );
+    expect([...lockingCodes(document)].sort()).toEqual(["grand_total_missing", "units_unassigned"]);
+
     const attempt = lock(document);
 
     const reject = rejected(attempt);
     expect(reject.code).toBe("lock_blocked");
-    expect(reject.refs).toEqual(["draft_items_unresolved", "grand_total_missing"]);
+    expect(reject.refs).toEqual(["grand_total_missing", "units_unassigned"]);
     expect(attempt.document).toBe(document);
   });
 
@@ -566,5 +575,38 @@ describe("ticket 13 — the blocker matrix: every code produced by its condition
 
     const fixed = ok(setChargeAmount(document, "discount", 5_000));
     expect(blocker(fixed, "negative_share_after_discount")).toBeUndefined();
+  });
+});
+
+describe("ticket 13 — decisions taken at checkpoint 3", () => {
+  it("represents a payer that has not been chosen as `\"\"`, with no ref to name", () => {
+    const cleared = ok(setPayer(lockable(), null));
+
+    expect(cleared.working.bill.payerId).toBe("");
+    expect(blocker(cleared, "payer_missing")).toBeDefined();
+    expect(blocker(cleared, "payer_missing")!.refs).toBeUndefined();
+    expect(rejected(lock(cleared)).refs).toEqual(["payer_missing"]);
+  });
+
+  it("permits the paid flag on a locked bill, because settlement follows the lock", () => {
+    const locked = ok(lock(lockable()));
+    expect(lifecycleOf(locked)).toBe("locked");
+
+    const paid = ok(setParticipantPaid(locked, "p1", true));
+
+    expect(paid.working.bill.isLocked).toBe(true);
+    expect(paid.working.participants.find((participant) => participant.id === "p1")!.paid).toBe(true);
+    expect(paid.revision).toBe(locked.revision + 1);
+    expect(lifecycleOf(paid)).toBe("settled");
+  });
+
+  it("leaves a bill with nobody to pay in `locked`, not a vacuous `settled`", () => {
+    const base = begin();
+    const mine = ok(assignUnit(ok(finalizeItems(base, ["i1"])), "unit:i1:0", base.working.bill.creatorId));
+
+    const locked = ok(lock(mine));
+
+    expect(locked.derived.shares!.every((share) => share.participantId === base.working.bill.payerId)).toBe(true);
+    expect(lifecycleOf(locked)).toBe("locked");
   });
 });

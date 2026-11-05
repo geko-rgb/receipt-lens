@@ -12,6 +12,7 @@
   import { getDraft } from "../lib/draft.js";
   import { billStore } from "../lib/bill/bill-document.svelte.js";
   import Units from "../components/Units.svelte";
+  import Lock from "../components/Lock.svelte";
   import { visibleFindings } from "../lib/bill/document.js";
   import { previewQuantityChange, type QuantityChangePreview } from "../lib/bill/units.js";
   import { formatPaise, formatPaiseOrNull, parsePaiseInput } from "../lib/bill/paise-input.js";
@@ -33,7 +34,6 @@
     setItemQuantity,
     type TransactionResult,
   } from "../lib/bill/transactions.js";
-  import type { LockBlocker } from "../lib/bill/working-bill.js";
   import type { ChargeType } from "../lib/entities.js";
 
   const CHARGE_TYPES: ChargeType[] = ["tax", "service_charge", "tip", "discount", "round_off", "other"];
@@ -51,7 +51,6 @@
   // person to touch this file loses an afternoon.
   const bill = $derived(billStore.document);
   const findings = $derived(bill === null ? [] : visibleFindings(bill));
-  const blockers = $derived(bill === null ? null : bill.billValidation.blockers);
 
   let newItemName = $state("");
   let newItemQty = $state("");
@@ -198,10 +197,6 @@
 
   function participantName(participantId: string): string {
     return bill?.working.participants.find((entry) => entry.id === participantId)?.name ?? participantId;
-  }
-
-  function blockerText(blocker: LockBlocker): string {
-    return blocker.refs && blocker.refs.length > 0 ? `${blocker.code} (${blocker.refs.join(", ")})` : blocker.code;
   }
 </script>
 
@@ -487,26 +482,7 @@
     {/if}
   </section>
 
-  <section data-testid="blockers-section">
-    <h2>Before this bill can lock</h2>
-    {#if blockers === null}
-      <p class="hint">No bill.</p>
-    {:else if blockers.locking.length === 0}
-      <p class="hint" data-testid="no-blockers">No lock blockers — ticket 13 takes it from here.</p>
-    {:else}
-      <ul data-testid="blockers-list">
-        {#each blockers.locking as blocker (blockerText(blocker))}
-          <!-- Coded reasons only: §6 line 401 forbids reading the message text to decide anything. -->
-          <li data-testid="blocker">{blockerText(blocker)}</li>
-        {/each}
-      </ul>
-      {#if derived.sharesUnavailableFor !== null}
-        <p class="hint" data-testid="shares-unavailable">
-          Shares are not computed yet: {derived.sharesUnavailableFor}.
-        </p>
-      {/if}
-    {/if}
-  </section>
+  <Lock {bill} />
 {/if}
 
 <style>
