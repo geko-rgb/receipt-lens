@@ -24,3 +24,4 @@
 - Not implemented: snapshot assembly (`BillShareSnapshot` from locked bill per §10), `/share` route (decode fragment on load), stale detection UI, bearer-secret disclosure copy, the WhatsApp link placeholder replacement (currently `#v1.<token>` is placeholder until `/share` route lands).
 - Read `DECISIONS/0025` (updated with codec deviations) and this file before starting.
 - Next ticket subtask: snapshot assembly pins first (snapshot from locked bill, size budget check, excluded content assertions), then `/share` route, then stale detection, then disclosure.
+- Split e2e coverage: `/share` route e2e tests (open a link with the network off, tampered link fails closed, stale banner) land with the route, not with the codec.
