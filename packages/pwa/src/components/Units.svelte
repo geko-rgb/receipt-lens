@@ -103,10 +103,14 @@
     <label for="payer">Payer</label>
     <select id="payer" data-testid="payer-select" value={bill.working.bill.payerId} onchange={onPayer}>
       <option value="">(no payer yet)</option>
-      {#each participants as participant (participant.id)}
+      <!-- DECISIONS/0024 S1: only the creator can be the payer in v1, so the selector offers only them. -->
+      {#each participants.filter((participant) => participant.id === bill.working.bill.creatorId) as participant (participant.id)}
         <option value={participant.id}>{participant.name}</option>
       {/each}
     </select>
+    <span class="provenance" data-testid="payer-rule">
+      v1: the creator pays and collects; other payers need a stored UPI id.
+    </span>
   </div>
   <ul class="participants" data-testid="participant-list">
     {#each participants as participant (participant.id)}
