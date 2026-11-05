@@ -482,6 +482,42 @@ from the receipt rather than the bill.
   placeholder.
 - **`PROJECT(1).md`, §10's shape, and ADR-007 are unmodified.** This record implements them.
 
+## A15 — Fail-closed amendment to 0025 P6: an impossible-length base64url component
+
+Found while pinning the view, not while writing the codec, and it escapes 0025 P6's closed set of four codes.
+Reproduced against the shipped `packages/pwa/dist/lib/share/codec.js` on 2026-11-05:
+
+| Input | Expected | Actual |
+|---|---|---|
+| `v1.A.A.A` | `ShareCodecError: link_corrupt_or_tampered` | `DOMException: InvalidCharacterError` |
+| `v1.tok.A.AAAA` | `ShareCodecError: link_corrupt_or_tampered` | `DOMException: InvalidCharacterError` |
+| `v1.<36-char-token>.A.AAAA` | `ShareCodecError: link_corrupt_or_tampered` | `DOMException: InvalidCharacterError` |
+
+**The condition.** P6 step 3's charset rule is `[A-Za-z0-9_-]+`, and `fromBase64url` then pads to a multiple of
+four and hands the string to `atob`. An unpadded base64url component can have length 0, 2 or 3 mod 4 — never 1,
+because one leftover character encodes no byte at all. A component of length 1 mod 4 passes the charset test and
+then makes the platform decoder throw. `atob` is called on the nonce and the ciphertext **outside** the
+try/catch that guards decryption, so the exception leaves the codec as neither a `ShareCodecError` nor one of
+the four codes.
+
+**Why it is not academic.** A link truncated by a messenger, a clipboard, a URL shortener or a line wrap is
+exactly the input class this format must fail closed on — ADR-007's sentence is "malformed input must fail
+closed with a user-readable error". A fragment whose last component lost its characters in transit can land at
+1 mod 4, and today it produces an exception the view has to guess about rather than a code it was told to show.
+
+**The fix, pinned.** The charset predicate becomes "base64url **and not 1 mod 4**", checked in the same place as
+the charset, so the classification happens before any platform call and the code is `link_corrupt_or_tampered` —
+no new code, because P6 already assigned this position in the order to that answer. The length rule is exact, not
+heuristic: 1 mod 4 is not a smaller valid encoding of anything, so no real link is affected. The pin lands in
+`packages/pwa/tests/share/codec.test.ts` as a thirteenth case, which is red against the shipped codec and green
+after the change.
+
+**The view keeps its own normalization anyway** (A8), and the reason is defence rather than reachability: the
+`/share` screen is the boundary between a WebCrypto rejection and a person's browser, and 0025 P6's promise is a
+readable message at that boundary even if a future platform says no to something this build did not anticipate.
+Its pins test it by making the codec module itself throw, because no fragment can produce that state — the pin
+asserts what the view does with a thing it cannot name.
+
 ## Reporting discipline
 
 Nothing in this record is a measurement. The 8192-byte cap, the 64 KiB inflate ceiling and §10's field list are

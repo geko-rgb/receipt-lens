@@ -172,6 +172,20 @@ describe("ticket 16 — tamper and malformed input (DECISIONS/0025 P6)", () => {
     });
   });
 
+  it("classifies a base64url component whose length cannot encode any byte array", async () => {
+    // DECISIONS/0026 A15. A component of length 1 mod 4 is not a valid unpadded base64url string, and the
+    // platform's decoder rejects it outright. A DOMException is not one of P6's codes, so a truncated paste of
+    // exactly this shape escaped the codec instead of failing closed inside it: the charset check has to catch
+    // an impossible length too, not only an impossible character.
+    await expect(decodeSnapshot("v1.A.A.A", TOKEN)).rejects.toMatchObject({ code: "link_corrupt_or_tampered" });
+    await expect(decodeSnapshot(`v1.${TOKEN}.A.AAAA`, TOKEN)).rejects.toMatchObject({
+      code: "link_corrupt_or_tampered",
+    });
+    await expect(decodeSnapshot(`v1.${TOKEN}.AAAA.A`, TOKEN)).rejects.toMatchObject({
+      code: "link_corrupt_or_tampered",
+    });
+  });
+
   it("detects the wrong token", async () => {
     const fragment = await encodeSnapshot(snapshot(), TOKEN);
     await expect(decodeSnapshot(fragment, "a-different-token")).rejects.toMatchObject({
