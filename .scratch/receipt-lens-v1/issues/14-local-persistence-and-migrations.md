@@ -15,3 +15,10 @@
 - [ ] A JSON export is produced before any migration that is not provably lossless, and the user is told where it went
 - [ ] Past bills and the payee profile round-trip through storage and are listed on return, with empty-state behaviour defined
 - [ ] Receipt images remain absent from storage unless the creator opted into retention, and opting out or deleting removes them
+
+## Forwarded from ticket 13 (owner ruling, 2026-11-05)
+
+Ticket 13's `<Units>` roster is unreachable until finalization (`Bill.svelte:331-369` renders it inside the
+`{:else}` of `{#if working.items.length === 0}`), so a creator cannot add participants while a bill is still in
+`draft`. Consider whether participants should be addable before any item exists — persistence may require it.
+Not a bug, a UX decision worth revisiting at 14.

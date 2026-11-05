@@ -3,9 +3,9 @@ import type { ParseResult, ParseValidationResult } from "@receipt-lens/core";
 import { validateWorkingBill } from "../validate-bill.js";
 import { deepFreeze, type BillDocument } from "./document.js";
 import {
-  checkDraftChargeFinalizable,
   checkDraftItemFinalizable,
-  toFinalizedCharge,
+  finalizeResolvable,
+  finalizeResolvableCharges,
   toFinalizedItem,
 } from "./finalize.js";
 import { createWorkingBill, type NewBillOptions } from "./mapping.js";
@@ -52,7 +52,14 @@ export type TransactionRejectCode =
   // DECISIONS/0021 A3: two conditions no existing code described, added deliberately rather than squeezed
   // into a code that means something else. The closed union widens per operation kind, not ad hoc.
   | "assignment_duplicate"
-  | "invalid_name";
+  | "invalid_name"
+  // DECISIONS/0022 L12: four conditions no earlier code described, each with its own remedy.
+  | "lock_blocked"
+  | "items_unfinalized"
+  | "unlock_unconfirmed"
+  | "not_locked"
+  | "participant_paid"
+  | "protected_participant";
 
 export interface TransactionReject {
   code: TransactionRejectCode;
@@ -119,19 +126,24 @@ function commit(document: BillDocument): BillDocument {
   return deepFreeze(document);
 }
 
-/**
- * The single entry to the contract. `previous.document` is returned unchanged — the same object — on any
- * failure, so a rolled-back mutation cannot have published derived state anywhere (DECISIONS/0019 S2.2).
- */
-export function runTransaction(
+interface CommitMode {
+  /**
+   * `false` for the writes that must happen on a locked bill: unlock itself, and settlement metadata
+   * (DECISIONS/0022 L4/L7). Every content edit keeps `true`.
+   */
+  readonly requireUnlocked: boolean;
+}
+
+function commitTransaction(
   previous: BillDocument,
   operation: Operation,
-  steps: Partial<TransactionSteps> = {},
+  steps: Partial<TransactionSteps>,
+  mode: CommitMode,
 ): TransactionResult {
   const s: TransactionSteps = { ...defaultSteps, ...steps };
 
-  if (previous.working.bill.isLocked) {
-    // §13: editing a locked bill needs unlock, revision and newly generated links. Ticket 13 owns that action.
+  if (mode.requireUnlocked && previous.working.bill.isLocked) {
+    // §13: editing a locked bill needs unlock, revision and newly generated links.
     return rolledBack(
       previous,
       rejection("bill_locked", [previous.working.bill.id], "the bill is locked, so it cannot be edited"),
@@ -149,13 +161,28 @@ export function runTransaction(
     const parseValidation = s.validateParse(recomputed.working.parseResult);
     // Step 3's output is written into the state step 4 reads, in one direction (§10 line 690's field).
     const working: WorkingBill = { ...recomputed.working, parseValidation };
+    const billValidation = s.validateWorking(working);
+
+    // DECISIONS/0022 L3: no committed document may be locked with a non-empty checklist, and the blockers
+    // that decide it are the ones step 4 just computed — never a second calculation in the operation.
+    if (working.bill.isLocked && billValidation.blockers.locking.length > 0) {
+      return rolledBack(
+        previous,
+        rejection(
+          "lock_blocked",
+          billValidation.blockers.locking.map((blocker) => blocker.code).sort(),
+          "the lock checklist is not clear, so nothing was locked",
+        ),
+      );
+    }
+
     return {
       ok: true,
       document: commit({
         revision: previous.revision + 1,
         working,
         derived: recomputed.derived,
-        billValidation: s.validateWorking(working),
+        billValidation,
       }),
       effects: { finalizedItemIds: [], finalizedChargeIds: [], removedUnitIds: [], removedAssignments: [], ...effects },
     };
@@ -166,6 +193,18 @@ export function runTransaction(
       rejection("recompute_failed", [message], "the recalculation failed, so nothing was written"),
     );
   }
+}
+
+/**
+ * The single edit entry. `previous.document` is returned unchanged — the same object — on any failure, so a
+ * rolled-back mutation cannot have published derived state anywhere (DECISIONS/0019 S2.2).
+ */
+export function runTransaction(
+  previous: BillDocument,
+  operation: Operation,
+  steps: Partial<TransactionSteps> = {},
+): TransactionResult {
+  return commitTransaction(previous, operation, steps, { requireUnlocked: true });
 }
 
 /** Revision 0: the accepted parse becomes a bill. Not a transaction — there is no previous state to roll back to. */
@@ -478,30 +517,12 @@ export function finalizeItems(document: BillDocument, itemIds: readonly string[]
  */
 export function finalizeAllResolvable(document: BillDocument): TransactionResult {
   return runTransaction(document, (working) => {
-    const readyItems = working.draftItems.filter((draft) => checkDraftItemFinalizable(draft, working).ok);
-    const readyCharges = working.draftCharges.filter((draft) => checkDraftChargeFinalizable(draft).ok);
-    if (readyItems.length === 0 && readyCharges.length === 0) return wrap(working);
-
-    const doneItemIds = new Set(readyItems.map((draft) => draft.id));
-    const doneChargeIds = new Set(readyCharges.map((draft) => draft.id));
-    const items = readyItems.map((draft) => toFinalizedItem(draft, working.bill.id));
-    const units = readyItems.flatMap((draft) => materializeUnits(draft.id, draft.qty as number));
-    const charges = readyCharges.map((draft) => toFinalizedCharge(draft, working.bill.id));
-
-    return wrap(
-      {
-        ...working,
-        draftItems: working.draftItems.filter((draft) => !doneItemIds.has(draft.id)),
-        items: [...working.items, ...items],
-        itemUnits: [...working.itemUnits, ...units],
-        draftCharges: working.draftCharges.filter((draft) => !doneChargeIds.has(draft.id)),
-        charges: [...working.charges, ...charges],
-      },
-      {
-        finalizedItemIds: items.map((item) => item.id),
-        finalizedChargeIds: charges.map((charge) => charge.id),
-      },
-    );
+    const result = finalizeResolvable(working);
+    if (!result.changed) return wrap(working);
+    return wrap(result.working, {
+      finalizedItemIds: result.finalizedItemIds,
+      finalizedChargeIds: result.finalizedChargeIds,
+    });
   });
 }
 
@@ -779,6 +800,183 @@ export function addParticipant(document: BillDocument, name: string): Transactio
     };
     return wrap({ ...working, participants: [...working.participants, participant] });
   });
+}
+
+/**
+ * DECISIONS/0022 — the lock lifecycle. `mintToken` and `now` are caller-supplied because `lib/bill/*` reads
+ * no clock and no random source (0011's determinism rule); the component supplies both.
+ */
+export interface LockOptions {
+  readonly mintToken: (participantId: string) => string;
+}
+
+export interface UnlockOptions {
+  /** Only the unlock dialog's confirm handler produces `true` (DECISIONS/0022 L4). */
+  readonly confirmed: true;
+  /** ISO timestamp recorded as `staleLinkCutoffAt`. */
+  readonly now: string;
+  readonly mintToken: (participantId: string) => string;
+}
+
+/**
+ * DECISIONS/0022 L3. Finalizes resolvable draft charges (no units), refuses draft items, sets `isLocked` and
+ * mints missing tokens. The checklist is the runner's post-validation invariant: this operation never
+ * recomputes blockers (0019 S9).
+ */
+export function lockBill(document: BillDocument, options: LockOptions): TransactionResult {
+  return commitTransaction(
+    document,
+    (working) => {
+      if (working.draftItems.length > 0) {
+        return rejection(
+          "items_unfinalized",
+          working.draftItems.map((draft) => draft.id),
+          "draft items must be finalized before the bill can lock",
+        );
+      }
+      const finalized = finalizeResolvableCharges(working);
+      return wrap(
+        {
+          ...finalized.working,
+          bill: { ...finalized.working.bill, isLocked: true },
+          participants: finalized.working.participants.map((participant) =>
+            participant.token === ""
+              ? { ...participant, token: options.mintToken(participant.id) }
+              : participant,
+          ),
+        },
+        { finalizedChargeIds: finalized.finalizedChargeIds },
+      );
+    },
+    {},
+    { requireUnlocked: true },
+  );
+}
+
+/** DECISIONS/0022 L4–L6: explicit confirmation, a fresh token for everyone, the stale-link cutoff. */
+export function unlockBill(document: BillDocument, options: UnlockOptions): TransactionResult {
+  if (options.confirmed !== true) {
+    return rolledBack(document, rejection("unlock_unconfirmed", [], "unlocking needs explicit confirmation"));
+  }
+  return commitTransaction(
+    document,
+    (working) => {
+      if (!working.bill.isLocked) {
+        return rejection("not_locked", [working.bill.id], "this bill is not locked");
+      }
+      return wrap({
+        ...working,
+        participants: working.participants.map((participant) => ({
+          ...participant,
+          token: options.mintToken(participant.id),
+        })),
+        staleLinkCutoffAt: options.now,
+        bill: { ...working.bill, isLocked: false },
+      });
+    },
+    {},
+    { requireUnlocked: false },
+  );
+}
+
+/** DECISIONS/0022 L1: one operation for both directions, so a mistaken exclusion is fixable. */
+export function setUnclassifiedRowExcluded(
+  document: BillDocument,
+  rowId: string,
+  excluded: boolean,
+): TransactionResult {
+  return runTransaction(document, (working) => {
+    if (!working.unclassifiedRows.some((row) => row.id === rowId)) {
+      return rejection("unknown_entity", [rowId], "no ambiguous row in this bill has that id");
+    }
+    const chosen = new Set(working.excludedRowIds);
+    if (excluded) chosen.add(rowId);
+    else chosen.delete(rowId);
+    return wrap({
+      ...working,
+      // Row order, so the persisted set stays deterministic rather than following click order (0011).
+      excludedRowIds: working.unclassifiedRows.filter((row) => chosen.has(row.id)).map((row) => row.id),
+    });
+  });
+}
+
+/**
+ * DECISIONS/0022 L11. `null` stores `""`, which names no participant — the state `payer_missing` already
+ * reports. It is the UI's "not chosen yet", never a payer for a locked bill.
+ */
+export function setPayer(document: BillDocument, participantId: string | null): TransactionResult {
+  return runTransaction(document, (working) => {
+    if (participantId === null) {
+      return wrap({ ...working, bill: { ...working.bill, payerId: "" } });
+    }
+    if (!working.participants.some((participant) => participant.id === participantId)) {
+      return rejection("unknown_entity", [participantId], "no participant on this bill has that id");
+    }
+    return wrap({ ...working, bill: { ...working.bill, payerId: participantId } });
+  });
+}
+
+/** DECISIONS/0022 A16: refused for the creator, the payer and any paid participant. */
+export function removeParticipant(document: BillDocument, participantId: string): TransactionResult {
+  return runTransaction(document, (working) => {
+    const participant = working.participants.find((entry) => entry.id === participantId);
+    if (!participant) {
+      return rejection("unknown_entity", [participantId], "no participant on this bill has that id");
+    }
+    if (participantId === working.bill.creatorId || participantId === working.bill.payerId) {
+      return rejection(
+        "protected_participant",
+        [participantId],
+        "the creator and the payer must stay participants",
+      );
+    }
+    if (participant.paid) {
+      return rejection(
+        "participant_paid",
+        [participantId],
+        "settlement is a completed state; un-mark this participant as paid first",
+      );
+    }
+    return wrap(
+      {
+        ...working,
+        participants: working.participants.filter((entry) => entry.id !== participantId),
+        assignments: working.assignments.filter((assignment) => assignment.participantId !== participantId),
+      },
+      {
+        removedAssignments: working.assignments.filter(
+          (assignment) => assignment.participantId === participantId,
+        ),
+      },
+    );
+  });
+}
+
+/**
+ * DECISIONS/0022 L7: the `paid` flag is settlement metadata, not bill content, so it is one of the writes
+ * permitted on a locked bill. Ticket 15 owns settlement presentation; the flag itself is §10's.
+ */
+export function setParticipantPaid(
+  document: BillDocument,
+  participantId: string,
+  paid: boolean,
+): TransactionResult {
+  return commitTransaction(
+    document,
+    (working) => {
+      if (!working.participants.some((participant) => participant.id === participantId)) {
+        return rejection("unknown_entity", [participantId], "no participant on this bill has that id");
+      }
+      return wrap({
+        ...working,
+        participants: working.participants.map((participant) =>
+          participant.id === participantId ? { ...participant, paid } : participant,
+        ),
+      });
+    },
+    {},
+    { requireUnlocked: false },
+  );
 }
 
 export type { BillDocument };

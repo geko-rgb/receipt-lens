@@ -230,8 +230,9 @@ describe("DECISIONS/0019 S3/S6/S7 — the committed document", () => {
     expect(Object.keys(document.derived).sort()).toEqual(DERIVED_KEYS);
     expect(document.working.parseValidation).not.toBeNull();
     // §10 line 800 clears `draft_items_unresolved` once every draft has a name, a resolved quantity and a
-    // price — which this fixture does. Locking is still impossible, because the units those drafts will
-    // materialize are unassigned; ticket 13's lock attempt finalizes the resolved drafts in bulk first.
+    // price — which this fixture does. Locking is still impossible: ticket 13's `lockBill` refuses while a
+    // draft item remains (`items_unfinalized`), because finalizing it would materialize units that only the
+    // creator can assign (DECISIONS/0022 L3).
     expect(lockingCodes(document)).not.toContain("draft_items_unresolved");
   });
 

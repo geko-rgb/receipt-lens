@@ -201,9 +201,12 @@ describe("ticket 12 — assignment (DECISIONS/0021 A2–A5)", () => {
   });
 
   it("rejects every assignment on a locked bill through the existing seam, adding no lock path", () => {
-    // Ticket 11's own pins set `isLocked` through `runTransaction` (tests/bill/pins.test.ts:500), so the
-    // guard is reachable without a `lockBill` operation ticket 13 would have to remove (0021 A3).
-    const locked = ok(runTransaction(finalized(1), (working) => ({ ...working, bill: { ...working.bill, isLocked: true } })));
+    // Ticket 11's own pins set `isLocked` through `runTransaction`, so the guard is reachable without a
+    // `lockBill` operation ticket 13 would have to remove (0021 A3). Ticket 13's runner keeps one invariant —
+    // a committed document is never locked with an open checklist (0022 L3) — so the unit is assigned first
+    // and only then is the bill frozen; this still exercises the guard, not a lockable bill's construction.
+    const clear = ok(assignUnit(finalized(1), unitOf(finalized(1), 0).id, CREATOR));
+    const locked = ok(runTransaction(clear, (working) => ({ ...working, bill: { ...working.bill, isLocked: true } })));
     const result = assignUnit(locked, unitOf(locked, 0).id, CREATOR);
 
     expect(rejected(result).code).toBe("bill_locked");
