@@ -212,19 +212,52 @@ test("no receipt image bytes reach any store", async ({ page }) => {
   await page.goto(baseUrl);
   await upload(page, await receiptPng(page, RECEIPT_LINES));
   await expect(page.getByTestId("draft-review")).toBeVisible({ timeout: 120_000 });
+  // Ticket 14 kept the opt-in box off, and this is the case that proves "off" means off.
+  await expect(page.getByTestId("keep-photo")).not.toBeChecked();
   await page.getByTestId("accept-btn").click();
   await expect(page).toHaveURL(/\/bill/);
+  // The save has to have landed before the census: P7 writes the accepted import at revision 0, so a race
+  // here would read a database that is genuinely not written yet and pass for the wrong reason.
+  await expect(page.getByTestId("save-status")).toHaveAttribute("data-status", "saved");
 
-  const stores = await page.evaluate(async () => ({
-    databases: (await indexedDB.databases()).map((database) => database.name),
-    localStorage: Object.keys(localStorage),
-    sessionStorage: Object.keys(sessionStorage),
-    caches: await caches.keys(),
-  }));
+  const census = await page.evaluate(async () => {
+    const databases = (await indexedDB.databases()).map((database) => database.name).sort();
+    const stores: { name: string; records: number }[] = [];
+    if (databases.includes("receipt-lens")) {
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open("receipt-lens");
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      for (const name of [...database.objectStoreNames]) {
+        const records = await new Promise<number>((resolve, reject) => {
+          const transaction = database.transaction(name);
+          const count = transaction.objectStore(name).count();
+          count.onsuccess = () => resolve(count.result);
+          count.onerror = () => reject(count.error);
+        });
+        stores.push({ name, records });
+      }
+      const names = [...database.objectStoreNames].sort();
+      database.close();
+      return { databases, stores, names };
+    }
+    return { databases, stores, names: [] as string[] };
+  });
 
-  expect(stores.databases).toEqual([]);
-  expect(stores.localStorage).toEqual([]);
-  expect(stores.sessionStorage).toEqual([]);
-  expect(stores.caches).toEqual([]);
+  // (a) receipt-lens is the only database.
+  expect(census.databases).toEqual(["receipt-lens"]);
+  // (b) the image-bearing store exists and holds nothing: ticket 10's claim, restated now that "no store
+  // exists at all" is no longer the shape of the promise.
+  expect(census.stores.find((store) => store.name === "retainedImages")).toEqual({ name: "retainedImages", records: 0 });
+  // (c) and nothing else was created to hold one instead — the store list is exactly the pinned three.
+  expect(census.names).toEqual(["bills", "creatorProfile", "retainedImages"]);
+  // The other three storage surfaces are untouched, unchanged from ticket 10.
+  expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
+  expect(await page.evaluate(() => Object.keys(sessionStorage))).toEqual([]);
+  expect(await page.evaluate(() => caches.keys())).toEqual([]);
+  // The bill itself is on disk (asserted for its own sake in persistence.spec.ts), so an empty
+  // `retainedImages` is a real emptiness rather than a database that never got written.
+  expect(census.stores.find((store) => store.name === "bills")?.records).toBe(1);
 });
 

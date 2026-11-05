@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { IDBFactory as FakeIDBFactory } from "fake-indexeddb";
@@ -46,7 +46,7 @@ import {
   encodeBillRecord,
   type StoredBillRecord,
 } from "../../src/lib/storage/records.js";
-import type { StorageSession } from "../../src/lib/storage/session.js";
+import type { SessionOptions, StorageSession } from "../../src/lib/storage/session.js";
 import { createSession } from "../../src/lib/storage/session.js";
 import {
   DB_NAME,
@@ -85,27 +85,45 @@ const SAVED_AT = "2026-11-05T00:00:01.000Z";
 const LATER_AT = "2026-11-05T00:00:02.000Z";
 
 const STORAGE_DIR = path.join(import.meta.dirname!, "../../src/lib/storage");
-const FIXTURE_PATH = path.join(import.meta.dirname!, "fixtures", "v1-bills.json");
+const FIXTURE_DIR = path.join(import.meta.dirname!, "fixtures");
 
 // ── harness ────────────────────────────────────────────────────────────────────────────────────────────
 
 /**
- * The committed v1 records. There is no fallback to a hand-built record — that is the whole of P9 — so a
- * missing fixture fails with the command that produces it.
+ * The committed v1 records — every file `scripts/storage-fixtures.mjs` wrote, merged. There is no fallback to
+ * a hand-built record, and that is the whole of P9: a missing file fails with the command that produces it.
+ *
+ * Sorted by key so a fixture regenerated in a different scenario order cannot reorder a test's expectations.
  */
 function fixtureBills(): StoredBillRecord[] {
-  let raw: { bills?: StoredBillRecord[] };
-  try {
-    raw = JSON.parse(readFileSync(FIXTURE_PATH, "utf8")) as typeof raw;
-  } catch {
+  const files = existsSync(FIXTURE_DIR)
+    ? readdirSync(FIXTURE_DIR)
+        .filter((name) => name.startsWith("v1-") && name.endsWith(".json"))
+        .sort()
+        .map((name) => path.join(FIXTURE_DIR, name))
+    : [];
+  if (files.length === 0) {
     throw new Error(
-      `missing committed v1 fixture at ${FIXTURE_PATH} — run \`pnpm generate:storage-fixtures\` (DECISIONS/0023 P9): ` +
+      `no committed v1 fixtures in ${FIXTURE_DIR} — run \`pnpm generate:storage-fixtures\` (DECISIONS/0023 P9): ` +
         "a migration test that starts from an invented record is not a migration test.",
     );
   }
-  if (!Array.isArray(raw.bills)) throw new Error(`${FIXTURE_PATH} must hold a \`bills\` array of stored records`);
-  expect(raw.bills.length).toBeGreaterThan(0);
-  return raw.bills;
+  const bills = files.flatMap((file) => {
+    const raw = JSON.parse(readFileSync(file, "utf8")) as { bills?: StoredBillRecord[] };
+    if (!Array.isArray(raw.bills)) throw new Error(`${file} must hold a \`bills\` array of stored records`);
+    return raw.bills;
+  });
+  expect(bills.length).toBeGreaterThan(0);
+  return [...bills].sort((a, b) => (a.billId < b.billId ? -1 : 1));
+}
+
+/** The committed profile row and the committed retained-image row, from the scenario that made them. */
+function fixtureStore(store: "creatorProfile" | "retainedImages"): Record<string, unknown>[] {
+  const file = path.join(FIXTURE_DIR, "v1-profile-and-image.json");
+  if (!existsSync(file)) throw new Error(`missing ${file} — run \`pnpm generate:storage-fixtures\` (P9)`);
+  const raw = JSON.parse(readFileSync(file, "utf8")) as { _meta?: unknown } & Record<string, unknown>;
+  expect(Array.isArray(raw[store])).toBe(true);
+  return raw[store] as Record<string, unknown>[];
 }
 
 /** Opens the shipped chain, answering the gate as a user who exported would. */
@@ -244,7 +262,7 @@ function draftOf(over: Partial<CaptureDraft> = {}): CaptureDraft {
   return { items: parse.items, charges: [], parse, validation: validate(parse), ...over };
 }
 
-function session(factory: IDBFactory, over: Partial<OpenDatabaseOptions> = {}): StorageSession {
+function session(factory: IDBFactory, over: Partial<SessionOptions> = {}): StorageSession {
   return createSession({ factory, now: () => SAVED_AT, ...over });
 }
 
@@ -272,7 +290,9 @@ function additiveStep(field = "rigField"): MigrationStep {
         if (!at) return;
         const record = at.value as Record<string, unknown>;
         record[field] = "added";
-        store.put(record, at.primaryKey);
+        // An inline keyPath store: passing the cursor's key alongside the value is a DataError, which is the
+        // IndexedDB API rejecting the write, not this app's rule.
+        store.put(record);
         at.continue();
       };
     },
@@ -293,7 +313,7 @@ function reductiveStep(): MigrationStep {
         if (!at) return;
         const record = at.value as { working: Record<string, unknown> };
         delete record.working.excludedRowIds;
-        store.put(record, at.primaryKey);
+        store.put(record);
         at.continue();
       };
     },
@@ -447,7 +467,12 @@ describe("DECISIONS/0023 P3 — the migration mechanism", () => {
     expect(original.working.draftItems.length + original.working.items.length).toBeGreaterThan(0);
     before.database.close();
 
-    const failure = await failureOf(() => openDatabase({ factory, targetVersion: 2, migrations: [throwingStep()] }));
+    // The user exported first (P4 satisfied); the step then failed. Without the gate answered the open would
+    // decline before the step ever ran, which tests P4, not P3.
+    const exported = () => Promise.resolve("exported" as const);
+    const failure = await failureOf(() =>
+      openDatabase({ factory, targetVersion: 2, migrations: [throwingStep()], onGate: exported }),
+    );
     expect(failure).toBeInstanceOf(MigrationFailedError);
     expect((failure as MigrationFailedError).failure).toMatchObject({ from: 1, to: 2 });
 
@@ -463,7 +488,12 @@ describe("DECISIONS/0023 P3 — the migration mechanism", () => {
     await saved(factory);
 
     const failure = await failureOf(() =>
-      openDatabase({ factory, targetVersion: 2, migrations: [orphanStoreThenThrowStep()] }),
+      openDatabase({
+        factory,
+        targetVersion: 2,
+        migrations: [orphanStoreThenThrowStep()],
+        onGate: () => Promise.resolve("exported" as const),
+      }),
     );
     expect(failure).toBeInstanceOf(MigrationFailedError);
 
@@ -487,13 +517,11 @@ describe("DECISIONS/0023 P3 — the migration mechanism", () => {
     expect(await rawCount(untouched, "bills")).toBe(1);
   });
 
-  it("waits on a held connection: blocked fires, the holder closes on versionchange, then the upgrade runs", async () => {
+  it("waits for a connection that will not yield: blocked fires, and the upgrade runs only after it closes", async () => {
     const factory = new FakeIDBFactory();
-    const holder = await openHandle(factory);
-    let versionchange = 0;
-    holder.database.addEventListener("versionchange", () => {
-      versionchange += 1;
-    });
+    // A holder opened raw, with no versionchange listener — a tab that has not been taught to yield. This is
+    // the case `blocked` exists for, and the surface P3 owes the user when it happens.
+    const holder = await openAtStoredVersion(factory);
     let blocked = 0;
     const dispatched: UpgradeDispatch[] = [];
 
@@ -501,6 +529,7 @@ describe("DECISIONS/0023 P3 — the migration mechanism", () => {
       factory,
       targetVersion: 2,
       migrations: [additiveStep()],
+      onGate: () => Promise.resolve("exported" as const),
       onBlocked: () => {
         blocked += 1;
       },
@@ -513,9 +542,23 @@ describe("DECISIONS/0023 P3 — the migration mechanism", () => {
 
     holder.close();
     const handle = await opened;
-    expect(versionchange).toBe(1);
     expect(handle.version).toBe(2);
     expect(dispatched).toEqual([{ oldVersion: 1, newVersion: 2, stepsExecuted: 1 }]);
+  });
+
+  it("a session's own connection yields the moment something upgrades, instead of blocking it forever", async () => {
+    const factory = new FakeIDBFactory();
+    const holder = await openHandle(factory);
+    let versionchange = 0;
+    holder.database.addEventListener("versionchange", () => {
+      versionchange += 1;
+    });
+
+    const handle = await openDatabase({ factory, targetVersion: 2, migrations: [additiveStep()] });
+
+    // The holder never gets a close() call in this test: closing itself on versionchange is the promise.
+    expect(versionchange).toBe(1);
+    expect(handle.version).toBe(2);
   });
 });
 
@@ -553,7 +596,12 @@ describe("DECISIONS/0023 P4 — provably lossless, and when the export fires", (
     const original = structuredClone(await rawGet(before.database, "bills", "b1")) as StoredBillRecord;
     before.database.close();
 
-    const handle = await openDatabase({ factory, targetVersion: 2, migrations: [reductiveStep()] });
+    const handle = await openDatabase({
+      factory,
+      targetVersion: 2,
+      migrations: [reductiveStep()],
+      onGate: () => Promise.resolve("exported" as const),
+    });
     const after = await rawGet(handle.database, "bills", "b1");
 
     expect(droppedFieldPaths(original, after)).toEqual(["working.excludedRowIds"]);
@@ -819,7 +867,14 @@ describe("DECISIONS/0023 P5 — concurrent tabs", () => {
     expect(tabB.divergence()).toBeNull();
   });
 
-  it("ships no cross-tab channel, and no storage-layer rejection code", () => {
+  //
+  // SCOPED ABSENCE — read before "fixing" this by deleting it. What v1 forbids is a cross-tab channel *for
+  // bill synchronization*: a `storage` listener or a BroadcastChannel would make P5's "no tab is told before
+  // it next interacts" false, which is the whole shape of the concurrency rule. It is not a permanent ban on
+  // those APIs as technology — a later ticket could legitimately want one for, say, shared download progress,
+  // and then this assertion moves with a decision recorded against it, not silently.
+  // (Owner forward note, 2026-11-05; DECISIONS/0023 P5.)
+  it("ships no cross-tab channel for bill synchronization, and no storage-layer rejection code", () => {
     const sources = `${storageSource()}\n${readFileSync(
       path.join(import.meta.dirname!, "../../src/lib/bill/bill-document.svelte.ts"),
       "utf8",
@@ -1004,8 +1059,9 @@ describe("DECISIONS/0023 P7 — writing, restoring, and having nothing to restor
     expect((await mostRecentBill(handle))!.billId).toBe("b2");
 
     // Same savedAt on three rows: the tie must not depend on insertion order or on a clock's luck.
-    await rawPut(handle.database, "bills", encodeBillRecord(edited("a1"), SAVED_AT));
-    await rawPut(handle.database, "bills", encodeBillRecord(edited("z9"), SAVED_AT));
+    // Both stamped at the *greatest* savedAt in the store, so the comparison really is a tie.
+    await rawPut(handle.database, "bills", encodeBillRecord(edited("a1"), LATER_AT));
+    await rawPut(handle.database, "bills", encodeBillRecord(edited("z9"), LATER_AT));
     expect((await mostRecentBill(handle))!.billId).toBe("z9");
   });
 
@@ -1199,9 +1255,12 @@ describe("DECISIONS/0023 P9 — the fixture is the before state", () => {
     for (const record of source) await rawPut(seeded.database, "bills", record);
     seeded.close();
 
-    expect(await failureOf(() => openDatabase({ factory, targetVersion: 2, migrations: [throwingStep()] }))).toBeInstanceOf(
-      MigrationFailedError,
-    );
+    // Past the gate (this step declares itself lossy) and into the abort: the fixture is what must survive.
+    expect(
+      await failureOf(() =>
+        openDatabase({ factory, targetVersion: 2, migrations: [throwingStep()], onGate: () => Promise.resolve("exported" as const) }),
+      ),
+    ).toBeInstanceOf(MigrationFailedError);
 
     const handle = await openAtStoredVersion(factory);
     expect(handle.version).toBe(1);
@@ -1210,8 +1269,31 @@ describe("DECISIONS/0023 P9 — the fixture is the before state", () => {
   });
 
   it("keeps the shipped chain free of rig steps", () => {
+    // [0] is the chain *for DB_SCHEMA_VERSION === 1*. When v2 lands this becomes [0, 1] as an expected part
+    // of that ticket — the bump, its step and this assertion move together. See DECISIONS/0023 P5's scoped-
+    // absence note: updating this is normal, deleting it to stay green is not.
     expect(MIGRATIONS.map((step) => step.from)).toEqual([0]);
     for (const step of MIGRATIONS) expect(step.description).not.toMatch(/test-only|synthetic|rig/);
+  });
+
+  it("commits the profile row and the image row as the save path wrote them, with photo bytes digested", () => {
+    // P9's realism has one deliberate limit, and it is a standing rule rather than a shortcut: fixtures are
+    // PII-clean, and a real receipt photograph is precisely the PII. So `bytes` is stored here as the
+    // generator's `{ byteLength, fnv1a }` digest — the row's shape and size are evidence, its pixels are not.
+    // The byte-level assertions live in `playwright/persistence.spec.ts`, which never commits a photo.
+    const [profile] = fixtureStore("creatorProfile");
+    expect(Object.keys(profile!).sort()).toEqual(["displayName", "id", "upiId"]);
+    expect(profile!.id).toBe(CREATOR_PROFILE_ID);
+
+    const [image] = fixtureStore("retainedImages");
+    expect(Object.keys(image!).sort()).toEqual(["billId", "bytes", "mediaType", "retainedAt"]);
+    // `{ __bytes: … }` is the generator's marker that a binary value was digested, in the page, before it
+    // crossed to Node — `page.evaluate` would otherwise have returned an ArrayBuffer as `{}`.
+    const bytes = image!.bytes as { __bytes: { byteLength: number; fnv1a: string } };
+    expect(Object.keys(bytes)).toEqual(["__bytes"]);
+    expect(bytes.__bytes.byteLength).toBeGreaterThan(0);
+    expect(typeof bytes.__bytes.fnv1a).toBe("string");
+    expect(JSON.stringify(image)).not.toContain("data:image");
   });
 });
 
@@ -1236,6 +1318,9 @@ describe("DECISIONS/0023 P10 — the failure surfaces", () => {
     expect(rebuildDocument(listed[1]!.working, listed[1]!.revision).working.bill.id).toBe("b2");
   });
 
+  // SCOPED ABSENCE: no `deleteDatabase` in the *storage layer* — the module that must never trade data for
+  // progress (P3). A rig or a fixture script may delete a database it created, and `fake-indexeddb`'s own
+  // tests do; that is not this promise. DECISIONS/0023 P10.
   it("never clears a database: deleteDatabase appears nowhere in the storage layer", () => {
     expect(storageSource()).not.toContain("deleteDatabase");
   });

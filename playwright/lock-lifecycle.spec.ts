@@ -126,9 +126,12 @@ function firstAssignmentBox(page: Page) {
 /** Captures, finalizes, staffs the roster and reviews every assumed quantity. */
 async function makeReady(page: Page, lines: string[] = RECEIPT): Promise<void> {
   await accept(page, lines);
-  // The roster lives inside the items branch: a bill still in `draft` has no participant input at all, so
-  // finalizing first is not a preference here — it is the only order the screen allows.
-  await expect(page.getByTestId("participant-name")).toHaveCount(0);
+  // DECISIONS/0023 P8, answering ticket 13's forwarded note: the roster renders before anything is finalized,
+  // so "who is in" is answerable first (§11 rule 5 makes a zero-item participant meaningful, and the payer
+  // selector lives in the roster). The *grid* is still finalize-gated, because units only exist after
+  // finalization (0021 A1) — that part is a data fact, not a UI gate. This test keeps finalizing first only
+  // so the rest of its steps are unchanged.
+  await expect(page.getByTestId("participant-name")).toHaveCount(1);
   await finalizeAll(page);
   await addParticipant(page, "P1");
   await reviewAllAssumed(page);

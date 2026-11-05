@@ -21,6 +21,13 @@ export const STORE_NAMES = ["bills", "creatorProfile", "retainedImages"] as cons
 
 export type StoreName = (typeof STORE_NAMES)[number];
 
+/** The keyPath of each store, so creation and the repository never disagree about a key. */
+export const STORE_KEY_PATHS: Record<StoreName, string> = {
+  bills: "billId",
+  creatorProfile: "id",
+  retainedImages: "billId",
+};
+
 /** P4's four clauses. A step declares the ones it satisfies; declaring fewer than all four makes it lossy. */
 export type LosslessClause = "L1" | "L2" | "L3" | "L4";
 
@@ -45,37 +52,18 @@ export interface MigrationStep {
   readonly up: (transaction: IDBTransaction, database: IDBDatabase) => void;
 }
 
-/** P4's gate question, answered from the chain alone: does this range need the user to export first? */
-export function requiresExport(before: number, target: number): boolean {
-  notImplemented("P4");
-}
-
-/**
- * P4's mechanical half: the key paths a step dropped or retyped, computed from a record before and after it.
- * A declared-lossless step must return nothing here for every committed fixture it is run against, which is
- * what makes `lossless` a checked property rather than a comment. A path present in `before` and absent from
- * `after` is an L1/L2 violation; a path whose `typeof` or array/object tag changed is one too.
- *
- * L3 and L4 are counts, and counts are read off the migrated store itself — the test asserts
- * `after.length === before.length` and one output per input. A helper that took a step and a list would have
- * to run the step outside a transaction to count its output, which is exactly the semantics P3 pins as
- * impossible.
- */
-export function droppedFieldPaths(before: unknown, after: unknown): string[] {
-  notImplemented("P4");
-}
-
-
-/**
- * The shipped chain. Exactly one step today: creating the three stores. It reads nothing, so it satisfies
- * all four clauses trivially — there is no prior data to lose.
- */
+/** The shipped chain: create the three stores. It reads nothing, so all four clauses hold trivially. */
 export const MIGRATIONS: readonly MigrationStep[] = [
   {
     from: 0,
     description: "create the bills, creatorProfile and retainedImages stores (DECISIONS/0023 P2)",
     lossless: { lossless: true, clauses: ["L1", "L2", "L3", "L4"] },
-    up: () => notImplemented("P3"),
+    up: (_transaction, database) => {
+      for (const name of STORE_NAMES) {
+        if (database.objectStoreNames.contains(name)) continue;
+        database.createObjectStore(name, { keyPath: STORE_KEY_PATHS[name] });
+      }
+    },
   },
 ];
 
@@ -86,6 +74,82 @@ export interface MigrationFailure {
   readonly cause: unknown;
 }
 
-export function notImplemented(pin: string): never {
-  throw new Error(`not implemented: DECISIONS/0023 ${pin}`);
+/** The steps that would run between two versions, in order. A gap is a chain bug, never a silent no-op. */
+export function chainSteps(
+  before: number,
+  target: number,
+  chain: readonly MigrationStep[] = MIGRATIONS,
+): readonly MigrationStep[] {
+  const steps: MigrationStep[] = [];
+  for (let version = before; version < target; version += 1) {
+    const step = chain.find((candidate) => candidate.from === version);
+    if (!step) throw new Error(`no migration registered from schema version ${version} to ${version + 1}`);
+    steps.push(step);
+  }
+  return steps;
+}
+
+/**
+ * P4's gate question, answered from the chain alone: does this range contain a step that is not provably
+ * lossless? Whether the range holds any *data* is a second question, asked at the gate site in
+ * `database.ts` — a fresh install has nothing to export, and blocking it on a modal would be a bug.
+ */
+export function requiresExport(
+  before: number,
+  target: number,
+  chain: readonly MigrationStep[] = MIGRATIONS,
+): boolean {
+  return chainSteps(before, target, chain).some((step) => step.lossless.lossless === false);
+}
+
+/** A value's storage kind. A change here is P4's L2 (a field's meaning moved). */
+function kindOf(value: unknown): string {
+  if (value === null) return "null";
+  if (Array.isArray(value)) return "array";
+  if (value instanceof ArrayBuffer || ArrayBuffer.isView(value)) return "binary";
+  return typeof value;
+}
+
+/**
+ * P4's mechanical half: the key paths a step dropped or retyped, computed from one record before and after.
+ * A declared-lossless step must return nothing here for every committed fixture it is run against, which is
+ * what makes `lossless` a checked property rather than a comment.
+ *
+ * L3 and L4 are counts, and counts are read off the migrated store itself — a test asserts
+ * `after.length === before.length` with one output per input. A helper that took a step and a list would have
+ * to run the step outside a transaction to count its output, which is the semantics P3 pins as impossible.
+ *
+ * A path absent from `before` is not a violation: adding a field is lossless by definition.
+ */
+export function droppedFieldPaths(before: unknown, after: unknown): string[] {
+  const dropped: string[] = [];
+
+  function walk(source: unknown, target: unknown, path: string): void {
+    if (source === undefined) return;
+    if (target === undefined) {
+      dropped.push(path);
+      return;
+    }
+    const sourceKind = kindOf(source);
+    if (sourceKind !== kindOf(target)) {
+      dropped.push(path);
+      return;
+    }
+    if (sourceKind === "object") {
+      for (const [key, value] of Object.entries(source as Record<string, unknown>)) {
+        walk(value, (target as Record<string, unknown>)[key], path === "" ? key : `${path}.${key}`);
+      }
+      return;
+    }
+    if (sourceKind === "array") {
+      const beforeItems = source as readonly unknown[];
+      const afterItems = target as readonly unknown[];
+      // A shortened array is a dropped record, not a re-shaped one, and L1 reads it as a loss.
+      if (afterItems.length < beforeItems.length) dropped.push(`${path}[length]`);
+      beforeItems.forEach((item, index) => walk(item, afterItems[index], `${path}[${index}]`));
+    }
+  }
+
+  walk(before, after, "");
+  return dropped.sort();
 }

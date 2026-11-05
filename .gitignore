@@ -32,3 +32,6 @@ harness/out/
 # that has not won the gate does not join the shipped asset set, and the footprint
 # check must keep verifying the assets the product actually serves (DECISIONS/0012 F11).
 assets/models/candidate/
+# Ticket 14: the migration rig's build output — a test entry, never shipped, and it
+# copies the 14.85 MB ORT wasm alongside the rig chunk (DECISIONS/0023 S1).
+packages/pwa/rig/dist/
