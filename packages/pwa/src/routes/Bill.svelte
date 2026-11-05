@@ -16,6 +16,8 @@
   import Units from "../components/Units.svelte";
   import Lock from "../components/Lock.svelte";
   import Settlement from "../components/Settlement.svelte";
+  import ShareLinks from "../components/ShareLinks.svelte";
+  import { buildShareLinks, shareLinksOf, type ShareLinkOutcome } from "../lib/share/link.js";
   import { visibleFindings } from "../lib/bill/document.js";
   import { previewQuantityChange, type QuantityChangePreview } from "../lib/bill/units.js";
   import { formatPaise, formatPaiseOrNull, parsePaiseInput } from "../lib/bill/paise-input.js";
@@ -111,6 +113,32 @@
   // person to touch this file loses an afternoon.
   const bill = $derived(billStore.document);
   const findings = $derived(bill === null ? [] : visibleFindings(bill));
+
+  /**
+   * DECISIONS/0026 A7: generating share links is a lock-time action, and it belongs to the view because
+   * encoding consumes a fresh nonce and awaits WebCrypto — neither of which a deterministic transaction may
+   * do. One attempt per locked revision; the fragments are view state and are never persisted, because a
+   * stored ciphertext of a bill the ledger already holds would be a second copy of the data *and* a stored
+   * bearer secret that P4's export would then carry.
+   */
+  let shareOutcome = $state.raw<ShareLinkOutcome | null>(null);
+  let shareAttempt = 0;
+
+  $effect(() => {
+    const locked = bill !== null && bill.working.bill.isLocked ? bill : null;
+    if (locked === null) {
+      shareOutcome = null;
+      return;
+    }
+    const generation = (shareAttempt += 1);
+    // The component supplies the clock, as 0022 L4/L5 established for `unlockBill` and `mintToken`.
+    void buildShareLinks(locked, { now: new Date().toISOString() }).then((outcome) => {
+      if (generation === shareAttempt) shareOutcome = outcome;
+    });
+  });
+
+  /** A11: the settlement rows take their bill link from here, so the WhatsApp text and the panel agree. */
+  const shareLinks = $derived(shareLinksOf(shareOutcome));
 
   let newItemName = $state("");
   let newItemQty = $state("");
@@ -596,7 +624,10 @@
 
   <!-- Ticket 15: links exist only once the bill is locked, because lock mints the share tokens (0022 L5). -->
   {#if working.bill.isLocked}
-    <Settlement {bill} profile={session.profile()} />
+    <!-- Ticket 16: the fragments come from the encode above, so the panel that shows the budget and the rows
+         that send the WhatsApp message are reading one generation, not two. -->
+    <ShareLinks {bill} outcome={shareOutcome} />
+    <Settlement {bill} profile={session.profile()} {shareLinks} />
   {/if}
 {/if}
 

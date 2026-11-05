@@ -61,12 +61,13 @@ function assembleSnapshot(document: BillDocument, options: { readonly now: strin
 `mintToken` (0011's determinism rule, restated in 0022 L5): the value a staleness comparison depends on must be
 a parameter a test can pin. `ShareAssemblyError` carries the refusal code.
 
-Two refusals, both from vocabulary that already exists:
+Three refusals, all from vocabulary that already exists:
 
 | Condition | Code | Why it is reachable or not |
 |---|---|---|
 | `working.bill.isLocked === false` | `bill_locked` | The ordinary guard: the UI only offers the panel on a locked bill, and a caller that ignores that gets this. |
-| `working.bill.grandTotal === null` | `grand_total_missing` | §10's own blocker code. **Defensive typing only.** It narrows the return type: 0022 L3's invariant makes it unreachable through `runTransaction`, because a committed locked document has zero locking blockers and `grand_total_missing` is one of the nine. Its pin asserts the type narrowing, not a runtime behaviour, and is marked as a defensive test. |
+| `working.bill.grandTotal` is not resolved integer paise | `grand_total_missing` | §10's own blocker code. **Defensive typing only.** It narrows the return type: 0022 L3's invariant makes it unreachable through `runTransaction`, because a committed locked document has zero locking blockers and this is one of the nine. Its pin forges the state to assert the narrowing — a type check, not a user-facing path. |
+| `derived.shares === null` | `units_unassigned` | Same class, same reason: `shares` is null exactly when a unit is neither assigned nor acknowledged (§10's `units_unassigned`), which a locked bill cannot be. It is read from the committed document rather than recomputed, so that the recipient's own answer stays a second opinion instead of an echo — A6's mismatch flag is only meaningful if the cache came from somewhere else. |
 
 **No second budget check, no schema re-validation, no re-computation of derived numbers.** Assembly reads the
 committed document's `derived` and `billValidation` results as the runner produced them (0019 S9: 16 must not
@@ -304,9 +305,19 @@ type ShareView =
   hides nothing, because ADR-007's whole point is that the recipient already holds the whole bill.
 - **No UPI intent is rebuilt here.** The payload has no payee VPA by design (0025 P4), and G2 states the
   consequence: the view shows the payment *amount* and says the creator's message carries the link.
-- **The fragment is never re-displayed** as text on the participant view (the existing shell placeholder did,
-  as a preservation test fixture). Echoing a bearer secret into the DOM is not a feature. The e2e that asserts
-  byte-for-byte preservation reads `location.hash`, not the page.
+- **The fragment is not printed, and one attribute still carries it.** What changed from ticket 10a's
+  placeholder is that the bytes are no longer rendered as page text; `data-testid="share-fragment"` keeps
+  `data-raw={fragment}`, because DECISIONS/0017 D3a's byte-for-byte proof reads exactly that attribute and
+  `playwright/shell.spec.ts` asserts it three times. The claim therefore has to be precise: the view adds no
+  *new* copy of the secret, and the one it keeps is the shell's existing evidence — the fragment is already in
+  `location.hash`, in history, and readable by anything on the device, which is A10's disclosure sentence rather
+  than a bug this screen could fix. Deleting the attribute would have traded a real guarantee for a symbolic one.
+- **The ledger lookup never blocks the bill.** `cutoffOf` can wait on a storage migration gate, and `/share`
+  deliberately shows no storage screens (App.svelte hides them, because a recipient has no ledger). So the route
+  renders from `openShareLink(fragment)` with the honest "may have changed" label, and refines it through
+  `withStaleness(view, cutoffAt)` if and when the lookup answers. That is the same three answers through the same
+  `stalenessOf`, one of them arrived late rather than never — and a hang in IndexedDB degrades the label, not the
+  bill.
 
 `cutoffOf` is injected for the same reason `mintToken` is: a pin can then test all three staleness outcomes
 without a ledger, and `Share.svelte` supplies the real one — `storage.session().restoreBill(billId)` under
@@ -448,26 +459,44 @@ UPI intent on the participant view" obeys for a second reason (there is no payee
 
 ## A13 — The browser proof
 
-`playwright/share.spec.ts`, six split cases, each self-contained from its own capture, no `setTimeout`
+`playwright/share.spec.ts`, seven split cases, each self-contained from its own capture, no `setTimeout`
 overrides, against the built app:
 
-1. a valid link renders the participant view with the recipient's own recomputed share, no network beyond the
-   document fetch itself;
-2. a tampered fragment fails closed with `link_corrupt_or_tampered` and renders no bill content;
-3. a wrong version fails with `unsupported_link_version`;
-4. an over-budget bill is refused at generation, shows `link_budget_exceeded`, and offers no link at all;
-5. a stale snapshot shows the dated banner and still shows the frozen amount, not the re-locked bill's number;
-6. receipt-only text planted in the fixture is absent from the fragment and from the participant view, and the
-   view renders no image;
-7. the viewer names themselves in G1's roster prompt and their own row is the highlighted one — the promise that
-   "each participant sees their exact share" is proved at the point it is used, and the shares it hides nothing of
-   are asserted to still all be there.
+1. **`share: opening a valid link renders the participant view`** — three rows at ₹33.3333… exact and a ₹33.33
+   transfer, asserted per person rather than per position because the one spare paise goes to the id the
+   largest-remainder tie-break chooses; the pinned disclosure sentences; the "may have changed" label on a
+   device with no ledger; **zero outbound requests** other than the page's own same-origin assets; G1's roster
+   prompt moving the chosen row to the top with `data-mine` while all three rows stay present; the expiry hint
+   reading "no expiry set"; and the full-bill toggle showing the real item and its holders. The creator's side
+   is checked in the same case: three rows in the panel, each with `data-bytes` greater than zero and at most
+   8192.
+2. **`share: tampered fragment fails closed with link_corrupt_or_tampered`** — one flipped base64url character,
+   and no title, no rows and no amounts on the screen.
+3. **`share: wrong version fails with unsupported_link_version`** — the same bytes under a `v9.` prefix.
+4. **`share: a length-1-mod-4 fragment fails closed with the codec's own words`** — A15 through the route, and
+   the assertion is on the codec's message text ("impossible length"), which is what distinguishes a classified
+   failure from the view catching a platform exception.
+5. **`share: over-budget assembly is refused at lock time, and no link is offered`** — a 20 KB incompressible
+   item label, `share-refusal[data-code="link_budget_exceeded"]`, zero `share-link-row`, and A11's other half:
+   the settlement row says `no bill link yet` and offers no WhatsApp hand-off.
+6. **`share: stale snapshot shows banner, not current values`** — lock, capture the fragment, unlock through
+   L4's dialog, read the cutoff out of `stale-links-notice`'s `<time datetime>`, change the price *and* the
+   printed total so the creator's settlement really becomes ₹50.00, re-lock, then open the old fragment on the
+   same device: the banner names the cutoff date, `data-staleness="stale"`, and the rows still read
+   ₹33.3333… / ₹33.33 with no ₹50.00 anywhere in the view.
+7. **`share: receipt image and OCR text are absent from the fragment`** — the `AMBIGUOUS` fixture whose
+   excluded row is `NAAN 60.00`; the row is asserted visible on the creator's bill (so the absence below has
+   something to be absent *from*), then absent from the fragment, from the collapsed participant view, and from
+   the expanded full-bill view, with zero `<img>` elements.
 
-Cases 2, 3 and 6 are honest about what a browser can see: the fragment is opaque by construction, so absence of
-a marker from an encrypted string is a weak assertion on its own — which is why the structural and marker proofs
-live in A3's seam tests, where the payload is inspectable. The browser adds the two things only it can prove:
-that the shipped route renders the pinned copy for a shipped codec's output, and that nothing on the screen came
-from the receipt rather than the bill.
+The case list is eight bullets of intent against seven tests because the G1 roster-selection promise is proved
+inside case 1 rather than as its own capture: it is the same link, the same device state, and one more click.
+
+Cases 2, 3, 4 and 7 are honest about what a browser can see: the fragment is opaque by construction, so absence
+of a marker from an encrypted string is a weak assertion on its own — which is why the structural and marker
+proofs live in A3's seam tests, where the payload is inspectable. The browser adds the two things only it can
+prove: that the shipped route renders the pinned copy for a shipped codec's output, and that nothing on the
+screen came from the receipt rather than the bill.
 
 ## A14 — What this hands to tickets 17 and 18
 

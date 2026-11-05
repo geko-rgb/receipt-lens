@@ -389,6 +389,18 @@ describe("ticket 16 — assembly reads a locked bill (DECISIONS/0026 A1, A2)", (
     }
   });
 
+  it("defensive: refuses to freeze a bill whose units never resolved into shares", () => {
+    // The same class as the pin above: `derived.shares` is null exactly when a unit is neither assigned nor
+    // acknowledged, which §10's `units_unassigned` blocker means a locked bill cannot be.
+    const document = locked();
+    const forged = { ...document, derived: { ...document.derived, shares: null } } as BillDocument;
+
+    const cause = captureError(() => assembleSnapshot(forged, { now: NOW }));
+
+    expect(cause).toBeInstanceOf(ShareAssemblyError);
+    expect((cause as ShareAssemblyError).code).toBe("units_unassigned");
+  });
+
   it("is deterministic: one locked document and one now produce a byte-identical payload", () => {
     const document = locked({ qty: 2 });
 
@@ -417,7 +429,6 @@ describe("ticket 16 — excluded content (DECISIONS/0026 A3)", () => {
       "staleLinkCutoffAt",
       "draftItems",
       "draftCharges",
-      "revision",
       "billId",
       "itemUnitId",
       "token",
@@ -428,6 +439,8 @@ describe("ticket 16 — excluded content (DECISIONS/0026 A3)", () => {
       "text",
       "confidence",
     ]));
+    // `revision` sits on the document rather than the working state (0019 S5), so it is checked there.
+    expect(Object.keys(document)).toContain("revision");
     expect(document.working.items[0]).toHaveProperty("detectedLineTotal");
     expect(document.working.items[0]).toHaveProperty("quantitySource");
   });
