@@ -23,9 +23,17 @@ export interface RegistrationOutcome {
   readonly error: string | null;
 }
 
+/**
+ * The worker is built as an ES module by Vite, so it must be registered as one. Registering the emitted
+ * `sw.js` as a classic script fails at evaluation with "ServiceWorker script evaluation failed" — a message
+ * that names nothing about the actual cause, which is why the option is pinned here and asserted in W10's
+ * test rather than left to whoever wires the call site.
+ */
+export const SW_SCRIPT_OPTIONS = { scope: SW_SCOPE, type: "module" } as const;
+
 export interface RegistrationDeps {
   /** Called with the script URL and scope; resolves the registration, or rejects on a blocked/disabled worker. */
-  readonly register: (url: string, options: { scope: string }) => Promise<{ scope: string }>;
+  readonly register: (url: string, options: { scope: string; type: "module" }) => Promise<{ scope: string } | null | undefined>;
 }
 
 /**
@@ -35,7 +43,7 @@ export interface RegistrationDeps {
  */
 export async function registerServiceWorker(deps: RegistrationDeps): Promise<RegistrationOutcome> {
   try {
-    const registration = await deps.register(SW_SCRIPT_URL, { scope: SW_SCOPE });
+    const registration = await deps.register(SW_SCRIPT_URL, SW_SCRIPT_OPTIONS);
     // A resolution with no scope is not a control claim: Chromium's `serviceWorkers: "block"` resolves the
     // registration rather than rejecting it, so `scope` is the observable that says a worker is really there.
     const scope = registration?.scope ?? null;

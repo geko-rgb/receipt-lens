@@ -37,6 +37,7 @@ import {
 } from "../../src/lib/sw/install-banner.js";
 import { MANIFEST_ICON_PATHS, appManifest } from "../../src/lib/sw/manifest.js";
 import { SW_SCOPE, SW_SCRIPT_URL, registerServiceWorker } from "../../src/lib/sw/registration.js";
+import { SW_SCRIPT_OPTIONS } from "../../src/lib/sw/registration.js";
 import {
   PRECACHE_PLACEHOLDER,
   assertNoModelAssets,
@@ -672,6 +673,7 @@ describe("W4 — the worker's serving decisions", () => {
     method: "GET",
     mode: "cors",
     cache: "default",
+    probe: false,
     ...over,
   });
 
@@ -685,9 +687,14 @@ describe("W4 — the worker's serving decisions", () => {
     expect(asNetwork(action).reason).toBe("non-get");
   });
 
-  it("sends a reload-mode model request to the network and stores nothing — W6's probe bypass", async () => {
-    const action = await decideServing(requestOf("/assets/models/manifest.json", { cache: "reload" }), stateOf());
+  it("sends a marked probe to the network and stores nothing — W6's bypass, as the browser amended it", async () => {
+    const action = await decideServing(requestOf("/assets/models/manifest.json", { probe: true }), stateOf());
     expect(asNetwork(action)).toEqual({ kind: "network", write: false, reason: "probe-bypass" });
+  });
+
+  it("does NOT treat a reload-mode request as a probe: after an offline reload the app's own model reads must come from the cache", async () => {
+    const action = await decideServing(requestOf("/assets/models/PP-OCRv6_tiny_rec.onnx", { cache: "reload", probe: false }), stateOf());
+    expect(action).toEqual({ kind: "serve-model", cacheName: model, url: "/assets/models/PP-OCRv6_tiny_rec.onnx" });
   });
 
   it("serves a model asset from the active set, never from the shell", async () => {
@@ -742,15 +749,15 @@ describe("W4 — the worker's serving decisions", () => {
 /* ---------------------------------------------------------- W10 registration */
 
 describe("W10 — registration, and a worker that never arrives", () => {
-  it("registers /sw.js with scope /", async () => {
-    const calls: [string, string][] = [];
+  it("registers /sw.js as an ES module with scope /, which is what the emitted worker requires", async () => {
+    const calls: [string, { scope: string; type: "module" }][] = [];
     const outcome = await registerServiceWorker({
       register: async (url, options) => {
-        calls.push([url, options.scope]);
+        calls.push([url, options]);
         return { scope: options.scope };
       },
     });
-    expect(calls).toEqual([[SW_SCRIPT_URL, SW_SCOPE]]);
+    expect(calls).toEqual([[SW_SCRIPT_URL, { scope: "/", type: "module" }]]);
     expect(outcome).toEqual({ registered: true, scope: "/", error: null });
   });
 
@@ -760,6 +767,7 @@ describe("W10 — registration, and a worker that never arrives", () => {
         throw new DOMException("Registration failed", "SecurityError");
       },
     });
+    expect(SW_SCRIPT_OPTIONS).toEqual({ scope: "/", type: "module" });
     expect(outcome.registered).toBe(false);
     expect(outcome.scope).toBeNull();
     expect(outcome.error).toContain("Registration failed");

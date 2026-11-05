@@ -15,8 +15,14 @@ export interface ServedRequest {
   readonly method: string;
   /** `Request.mode` — `"navigate"` is the only mode the HTML fallback may answer (W4.1). */
   readonly mode: string;
-  /** `Request.cache` — `"reload"` is W6's probe bypass. */
+  /** `Request.cache`. Recorded, but *not* what marks a probe — see `probe`. */
   readonly cache: string;
+  /**
+   * W6's probe marker, read from {@link PROBE_HEADER} by the worker. `Request.cache === "reload"` cannot be
+   * the signal: Chromium sets it on a hard reload's own subresource and `fetch` requests, so the app's normal
+   * model reads after an offline reload would be sent to the network and fail exactly when offline matters most.
+   */
+  readonly probe: boolean;
 }
 
 /** What the worker should do, as data. */
@@ -67,7 +73,7 @@ export async function decideServing(request: ServedRequest, state: ServingState)
   const url = new URL(request.url).pathname;
 
   if (state.isModelAsset(url)) {
-    if (request.cache === "reload") return passthrough("probe-bypass");
+    if (request.probe) return passthrough("probe-bypass");
     if (state.activeModelCache === null) return passthrough("no-active-model-set");
     if (await state.modelHas(state.activeModelCache, url)) return { kind: "serve-model", cacheName: state.activeModelCache, url };
     return passthrough("no-cache-entry");

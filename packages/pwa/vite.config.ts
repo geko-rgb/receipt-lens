@@ -1,5 +1,7 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, type Plugin } from "vite";
+import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { renderIconPng } from "../../scripts/make-icons.mjs";
 import { appManifest } from "./src/lib/sw/manifest.js";
 import {
@@ -42,10 +44,25 @@ const APP_ENTRY = "index";
  * bytes are re-derivable from `scripts/make-icons.mjs` and `src/lib/sw/manifest.ts` on any machine.
  */
 function pwaAssets(): Plugin {
+  let outDir = "";
+  let root = "";
+
+  /** Every file the build actually wrote, as a `dist/app`-relative path. */
+  const written = (dir: string, prefix: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const next = `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) return next.startsWith("/.vite") ? [] : written(path.join(dir, entry.name), next);
+      return [next.replace(/^\//, "")];
+    });
+
   return {
     name: "receipt-lens:pwa",
     apply: "build",
     enforce: "post",
+    configResolved(config) {
+      root = config.root;
+      outDir = path.resolve(config.root, config.build.outDir);
+    },
     generateBundle(_options, bundle) {
       this.emitFile({
         type: "asset",
@@ -59,30 +76,39 @@ function pwaAssets(): Plugin {
         fileName: "icons/receipt-lens-512-maskable.png",
         source: renderIconPng(512, { maskable: true }),
       });
-
-      // Vite writes the build manifest itself, after this hook, so it is named here rather than discovered.
-      const distPaths = [...Object.keys(bundle), ".vite/manifest.json"];
+      void bundle;
+    },
+    /**
+     * Guards and injection run here, after the files exist. They ran in `generateBundle` first, and the
+     * enumeration came out short: assets emitted by `emitFile` inside the same hook were not in the bundle
+     * object, so the completeness guard checked a list that omitted the icons and the manifest, passed, and
+     * shipped a worker that precached neither. A guard that measures the wrong file set is worse than no
+     * guard, because it looks like a check. The directory written is the only authoritative answer.
+     */
+    writeBundle() {
+      const swPath = path.join(outDir, "sw.js");
+      if (!existsSync(swPath)) {
+        throw new Error(`DECISIONS/0027 W1.1: no ${swPath} — the build wrote no service worker to precache from`);
+      }
+      const distPaths = [...written(outDir, ""), ".vite/manifest.json"];
       const entries = buildPrecacheEntries(distPaths);
 
-      const worker = Object.entries(bundle).find(([key]) => key === "sw.js");
-      if (!worker) throw new Error("DECISIONS/0027 W1.1: the service worker was not emitted, so there is nothing to precache");
-      // The placeholder is an identifier, not a comment: a bundler discards comments and preserves an
-      // undeclared global reference, so this is the form that survives to the artifact being checked.
-      const token = PRECACHE_PLACEHOLDER;
-      const injected = JSON.stringify(entries);
-      const code = (worker[1] as { code: string }).code;
-      if (!code.includes(token)) {
-        throw new Error(`DECISIONS/0027 W1.1: the built sw.js does not contain the precache token ${token}, so the manifest has nowhere to go`);
-      }
-      (worker[1] as { code: string }).code = code.replace(token, injected);
-
-      // W1.1, both directions. A failure here fails `pnpm build`, which fails CI, which fails the merge.
+      // W1.1, both directions. Failing here fails `pnpm build`, which fails CI, which fails the merge.
       assertPrecacheComplete(distPaths, entries);
       assertNoModelAssets(entries);
       const wasm = entries.filter((entry) => entry.url.endsWith(".wasm"));
       if (wasm.length !== 1) {
-        throw new Error(`DECISIONS/0027 W1.1 / F12: expected exactly one precached runtime WASM, found ${wasm.length}. The offline-reload claim depends on this one being cached.`);
+        throw new Error(
+          `DECISIONS/0027 W1.1 / F12: expected exactly one precached runtime WASM, found ${wasm.length}. The offline-reload claim depends on this one being cached.`,
+        );
       }
+
+      const code = readFileSync(swPath, "utf8");
+      if (!code.includes(PRECACHE_PLACEHOLDER)) {
+        throw new Error(`DECISIONS/0027 W1.1: sw.js does not carry ${PRECACHE_PLACEHOLDER}, so the manifest has nowhere to go`);
+      }
+      writeFileSync(swPath, code.replace(PRECACHE_PLACEHOLDER, JSON.stringify(entries)));
+      void root;
     },
   };
 }

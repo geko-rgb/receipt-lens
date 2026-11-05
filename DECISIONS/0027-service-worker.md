@@ -165,6 +165,15 @@ final and nothing has yet been served to anyone:
    on something a reader never asks for, and for model bytes it would put unverified weights on a device
    without going through §9's gate at all.
 
+**Where it runs, and why that moved.** It first ran inside `generateBundle`, enumerating the bundle map, and
+that enumeration was short: assets emitted by `this.emitFile` from the same hook were not in the map, so the
+guard checked a list that silently omitted the icons and `manifest.webmanifest`, passed, and shipped a worker
+that precached neither. A guard that measures the wrong file set is worse than none, because it reads like a
+check. It now runs in `writeBundle`, against the directory actually written, which is the only authoritative
+answer, and the manifest is injected into the emitted `sw.js` there for the same reason. The pin that caught
+it is `offline-reload.spec.ts` test 1, which compares the worker's declared list against the files on disk
+rather than against the build's own claim about them.
+
 Failing the build is what makes it an assertion rather than a note. Three committed checks discharge it:
 
 - `playwright/smoke.spec.ts` reads the **built worker** and asserts the hashed `.wasm` emitted under `assets/`
@@ -503,7 +512,17 @@ cache it is trying to check — it would always report "up to date", the update 
 test suite would be green while the feature was dead. This is the trap in the design, and it has one clean
 answer.
 
-- The probe and every download use **`fetch(url, { cache: "reload" })`**. Core's `FetchLike` takes one
+- The probe and every download use **`fetch(url, { cache: "reload", headers: { "x-receipt-lens-probe": "1" } })`**,
+  and the worker keys the bypass on **that header**, not on `Request.cache`.
+
+  **Amended during implementation, by the test that exists to prove W8.** The mechanism first pinned was
+  `cache: "reload"` alone, and it is wrong in a way only a real reload shows: Chromium propagates a reload's
+  bypass mode to the reloaded document's *own* `fetch` calls, so after a reload the app's ordinary model reads
+  arrive at the worker looking exactly like probes, get passed to the network, and fail — offline that is the
+  whole feature breaking at the moment it matters, and online it is 6,277,292 B re-downloaded on every visit.
+  The header marks intent rather than inferring it, and it costs nothing: same-origin, no user data, never
+  recorded by `offline.spec.ts` (which deliberately does not log headers), and it leaves every URL byte-
+  identical, which is what W6's "no query string" rule was protecting in the first place. Core's `FetchLike` takes one
   argument (`model-manifest.ts:218`), so the bypass is not a parameter threaded through a helper — the
   protocol's `fetchImpl` *is* the closure `(input) => fetch(input, { cache: "reload" })`, and that closure is
   the whole mechanism on the page side.
@@ -933,6 +952,35 @@ into the driver rewrite and still not converging — then:
 The condition on that last point is what makes the hatch safe: the deferral is a ticket, the artifact says
 which deployment it describes either way, and no intermediate state publishes a PWA claim from harness bytes.
 
+### W14.4 The hatch was taken: what ticket 17 measured, and what 17b inherits
+
+Reported at checkpoint 3 rather than quietly. The full table re-derivation did not fit this session, so the
+four-step form of W14.3 was followed:
+
+- **Shipped and proved here:** the worker, installability, the update protocol, and a *measured* warm-visit
+  number for the PWA deployment — `benchmarks/results/warm-bytes.json`, five independent samples, all
+  6,527 B, byte-identical. Against ticket 08's published `secondVisitBytesOverTheWire` of **14,848,852 B**
+  that is a **2,275× reduction**, and the runtime WASM is not among the three things a warm visit now costs
+  (the 2,700 B model-manifest probe, the 2,872 B `sw.js` byte-check, the 955 B worker module chunk — W17).
+  F12's remedy is therefore shipped *and measured*, which is the condition W14.3 set for using the hatch at
+  all.
+- **Deferred to `ticket/17b-footprint-remeasure`:** `ROLES` re-keyed to the PWA's emitted names, F9's
+  condition set amended for a worker-served warm visit, cold/warm/repeat latency against the real capture UI,
+  the `deployment.scope` rewrite, the dated archive copy of the harness artifact, and the README table
+  regenerated from the PWA measurement.
+- **Deliberately NOT done, because doing it now would be a lie:** `NOT_RETAINABLE` in `measure-footprint.mjs`
+  stays, and `footprint.json`'s `findings[]` gains no `resolvedBy`. W15 and W16 both assume the measurement
+  moved to the deployment that has a worker. It has not. `measure-footprint.mjs` still runs the **harness**,
+  the harness still has no service worker, and there the WASM *still* re-downloads 14,848,852 B on every warm
+  visit. Deleting the exception set would make the harness run fail condition 13 ("an asset declared
+  non-retainable is now retained") — the designed signal — against a deployment where nothing was ever
+  resolved, and stamping `resolvedBy: "ticket 17"` on that finding would attach a PWA claim to harness bytes.
+  That is exactly the failure mode `DECISIONS/0012` F1 and ADR-002 were written to end.
+- **What a reader should take from the current table:** it is still the harness's numbers, and
+  `warm-bytes.json` is the PWA's. The two describe different deployments, and 17b replaces the first with the
+  second. 17b's opening move is to delete `NOT_RETAINABLE` *as part of* moving the measurement, which is when
+  the drift guard becomes meaningful instead of merely loud.
+
 ---
 
 ## W15 — F9's fail-loud set, amended for a worker-served warm visit
@@ -1024,9 +1072,13 @@ and opt-in, with the default behaviour byte-identical.
 2. **`/sw.js` must resolve as a file, not as the `index.html` fallback.** Today an unknown path falls through
    to `index.html`, which would hand a would-be worker script back as HTML; W10's smoke check catches it,
    and the server names the missing file instead. (No behaviour change for any path that exists.)
-3. **`cache-control: no-store` stays.** W8 measured that it does not obstruct a Cache-API precache, and
-   changing the shipping server's headers to make a measurement look better is the kind of fix F12 explicitly
-   warns against.
+3. **`cache-control: no-store` stays**, and its price is now measured rather than assumed: because a service
+   worker never intercepts its own script's imports, `no-store` on code assets means the worker re-fetches its
+   955 B module chunk every time it is instantiated. That is 955 B of the 6,527 B warm visit published in
+   `benchmarks/results/warm-bytes.json`, and it is 17b's first item — the fix is an `ETag` on code assets,
+   which is what F12 says already works for everything under the entity limit. It stays `no-store` here because
+   changing a shipping server's headers to move a published number is the class of fix F12 warns against; the
+   number gets fixed by fixing the header, in a ticket that says so.
 4. The MIME map gains `.webmanifest → application/manifest+json` (already present) and no other entry.
 
 `/assets/models/*` continues to be mapped onto the repository's model directory, and no `/ort/` mount is
@@ -1152,7 +1204,7 @@ Every pin below is discharged by a named test, and the pins commit red against t
 | W12 banner and 7-day suppression, `localStorage` single-key rule | `tests/sw/pins.test.ts` + `scripts/scan-egress.mjs` sibling check |
 | W8/W9.1 offline reload and offline capture | `playwright/offline-reload.spec.ts` tests 2, 3 |
 | W1.3 Condition 1 / W13.1 lifecycle transitions: install populates exactly, activate deletes nothing, fetch hits and falls through | `packages/pwa/tests/sw/lifecycle.test.ts` (pure handlers) + `playwright/offline-reload.spec.ts` (controller race in Chromium) |
-| W1.3 Condition 2 / W1.1 build-time completeness in both directions | inside `pnpm build` (`vite.sw-plugin.ts` `writeBundle`) + `playwright/smoke.spec.ts` on the built worker |
+| W1.3 Condition 2 / W1.1 build-time completeness in both directions | inside `pnpm build` (`vite.config.ts`, `writeBundle`) + `playwright/smoke.spec.ts` on the built worker |
 | W13 item 3 two-worker controller hand-off, slow network, no mixture of shells | `playwright/offline-reload.spec.ts` |
 | W14/W15 re-derived artifact, exception set gone, README table | `pnpm measure:footprint` + `pnpm verify:footprint` |
 
