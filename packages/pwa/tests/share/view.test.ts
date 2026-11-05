@@ -6,6 +6,7 @@ import {
   openShareLink,
   SHARE_DISCLOSURE,
   SNAPSHOT_MAY_HAVE_CHANGED,
+  withStaleness,
   type ShareView,
 } from "../../src/lib/share/view.js";
 
@@ -245,5 +246,20 @@ describe("ticket 16 — staleness is shown on the view (DECISIONS/0026 A9)", () 
 
     expect(view.staleness).toEqual({ state: "unknown" });
     expect(view.snapshot.bill.title).toBe("Dinner");
+  });
+
+  it("refines the label when the device answers later, and touches nothing else", async () => {
+    // DECISIONS/0026 A9: the route renders before the ledger is consulted, because a lookup can wait on a
+    // migration gate this view does not show. Re-classifying must therefore not re-decode or rewrite the bill.
+    const fragment = await encodeSnapshot(snapshot(), TOKEN);
+    const rendered = ready(await openShareLink(fragment));
+
+    const stale = ready(withStaleness(rendered, "2026-11-06T08:00:00.000Z"));
+    const untouched = withStaleness({ state: "empty" }, "2026-11-06T08:00:00.000Z");
+
+    expect(stale.staleness).toEqual({ state: "stale", cutoffAt: "2026-11-06T08:00:00.000Z" });
+    expect(stale.snapshot).toEqual(rendered.snapshot);
+    expect(stale.shares).toEqual(rendered.shares);
+    expect(untouched).toEqual({ state: "empty" });
   });
 });

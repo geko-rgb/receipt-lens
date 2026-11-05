@@ -135,8 +135,16 @@ function context(rows: readonly RowSpec[], confirmedTotalPaise: number, over: Pa
     shares,
     confirmedTotalPaise,
     profile: PROFILE,
+    // DECISIONS/0026 A11: the bill link is now the encoded fragment, so the fixture supplies fragment-shaped
+    // material instead of relying on the placeholder this ticket deleted. A caller can still override it.
+    shareLinks: Object.fromEntries(rows.map((entry) => [entry.id, fragmentFor(entry.id)])),
     ...over,
   };
+}
+
+/** A fragment stands in for `encodeSnapshot`'s output: the `v1.` prefix and the bearer token it was keyed by. */
+function fragmentFor(participantId: string): string {
+  return `v1.token-${participantId}.c2VjcmV0bm9uY2U.c2lnbmFsdGFn`;
 }
 
 function row(view: ReturnType<typeof settlementRows>, id: string) {
@@ -418,9 +426,34 @@ describe("ticket 15 — WhatsApp (DECISIONS/0024 S5)", () => {
     expect(decodeURIComponent(url.slice("https://wa.me/?text=".length))).toBe(text);
   });
 
-  it("supplies the version-and-token placeholder link ticket 16 will replace", () => {
-    expect(participantLinkFor("https://example.test", "abc")).toBe("https://example.test/share#v1.abc");
-    expect(participantLinkFor("", "abc")).toBe("/share#v1.abc");
+  it("builds the participant link from the encoded fragment, not from the token alone", () => {
+    // DECISIONS/0026 A11: this pin read `#v1.<token>` while ticket 15 shipped a placeholder. The second
+    // argument is now `encodeSnapshot`'s output, which already carries its own version prefix.
+    expect(participantLinkFor("https://example.test", fragmentFor("p1"))).toBe(
+      "https://example.test/share#v1.token-p1.c2VjcmV0bm9uY2U.c2lnbmFsdGFn"
+    );
+    expect(participantLinkFor("", fragmentFor("p1"))).toBe("/share#v1.token-p1.c2VjcmV0bm9uY2U.c2lnbmFsdGFn");
+  });
+
+  it("offers no bill link and so no WhatsApp hand-off when no fragment was produced", () => {
+    // A11's other half, and the reason the placeholder has no fallback: a link that decodes to nothing would
+    // look like a sent bill. The UPI intent is unaffected — it never depended on the fragment.
+    const view = settlementRows(
+      context(
+        [
+          { id: CREATOR, exact: em("9950") },
+          { id: "p1", exact: em("50") },
+        ],
+        10_000,
+        { shareLinks: {} }
+      )
+    );
+
+    const p1 = row(view, "p1");
+    expect(p1.state).toBe("payable");
+    expect(p1.upiUrl).toMatch(/^upi:\/\/pay\?/);
+    expect(p1.participantLink).toBeNull();
+    expect(p1.whatsappUrl).toBeNull();
   });
 });
 
