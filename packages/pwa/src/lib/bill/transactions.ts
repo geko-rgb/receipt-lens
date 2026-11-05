@@ -52,7 +52,14 @@ export type TransactionRejectCode =
   // DECISIONS/0021 A3: two conditions no existing code described, added deliberately rather than squeezed
   // into a code that means something else. The closed union widens per operation kind, not ad hoc.
   | "assignment_duplicate"
-  | "invalid_name";
+  | "invalid_name"
+  // DECISIONS/0022 L12: four conditions no earlier code described, each with its own remedy.
+  | "lock_blocked"
+  | "items_unfinalized"
+  | "unlock_unconfirmed"
+  | "not_locked"
+  | "participant_paid"
+  | "protected_participant";
 
 export interface TransactionReject {
   code: TransactionRejectCode;
@@ -779,6 +786,63 @@ export function addParticipant(document: BillDocument, name: string): Transactio
     };
     return wrap({ ...working, participants: [...working.participants, participant] });
   });
+}
+
+/**
+ * DECISIONS/0022 — the lock lifecycle, as throwing stubs until the implementation lands. The options are
+ * caller-supplied because `lib/bill/*` reads no clock and no random source (0011's determinism rule):
+ * `mintToken` is the share-link material factory, and `now` is the unlock timestamp.
+ */
+export interface LockOptions {
+  readonly mintToken: (participantId: string) => string;
+}
+
+export interface UnlockOptions {
+  /** Only the unlock dialog's confirm handler produces `true` (DECISIONS/0022 L4). */
+  readonly confirmed: true;
+  /** ISO timestamp recorded as `staleLinkCutoffAt`. */
+  readonly now: string;
+  readonly mintToken: (participantId: string) => string;
+}
+
+/** DECISIONS/0022 L3: finalize resolvable draft charges, refuse draft items, set `isLocked`, mint tokens. */
+export function lockBill(document: BillDocument, options: LockOptions): TransactionResult {
+  void document;
+  void options;
+  throw new Error("not implemented: DECISIONS/0022 L3 — lockBill");
+}
+
+/** DECISIONS/0022 L4–L6: explicit confirmation, fresh tokens for everyone, the stale-link cutoff. */
+export function unlockBill(document: BillDocument, options: UnlockOptions): TransactionResult {
+  void document;
+  void options;
+  throw new Error("not implemented: DECISIONS/0022 L4 — unlockBill");
+}
+
+/** DECISIONS/0022 L1: one operation for both directions, so a mistake is fixable. */
+export function setUnclassifiedRowExcluded(
+  document: BillDocument,
+  rowId: string,
+  excluded: boolean,
+): TransactionResult {
+  void document;
+  void rowId;
+  void excluded;
+  throw new Error("not implemented: DECISIONS/0022 L1 — setUnclassifiedRowExcluded");
+}
+
+/** DECISIONS/0022 L11: the payer is a participant; a non-participant is `unknown_entity`. */
+export function setPayer(document: BillDocument, participantId: string): TransactionResult {
+  void document;
+  void participantId;
+  throw new Error("not implemented: DECISIONS/0022 L11 — setPayer");
+}
+
+/** DECISIONS/0022 A16: refused for the creator, the payer and any paid participant. */
+export function removeParticipant(document: BillDocument, participantId: string): TransactionResult {
+  void document;
+  void participantId;
+  throw new Error("not implemented: DECISIONS/0022 A16 — removeParticipant");
 }
 
 export type { BillDocument };

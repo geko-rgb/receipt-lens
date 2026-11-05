@@ -142,6 +142,16 @@ export interface WorkingBill {
   unclassifiedRows: UnclassifiedRow[];
   parseResult: ParseResult | null;
   parseValidation: ParseValidationResult | null;
+  /**
+   * DECISIONS/0022 L1: ambiguous rows the creator has accounted for. PWA review state, not core parse
+   * output — which is why it sits here rather than on `UnclassifiedRow`. §10 carries the authorized note.
+   */
+  excludedRowIds: string[];
+  /**
+   * DECISIONS/0022 L6: ISO timestamp of the most recent unlock; null until the first one. A snapshot whose
+   * `snapshotCreatedAt` precedes it came from an earlier lock of this bill.
+   */
+  staleLinkCutoffAt: string | null;
 }
 
 /** §4's `ValidationFinding.code` is an open string; these are the PWA's bill-state codes (0020 T8). */
