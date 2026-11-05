@@ -15,6 +15,7 @@
   import { billStore } from "../lib/bill/bill-document.svelte.js";
   import Units from "../components/Units.svelte";
   import Lock from "../components/Lock.svelte";
+  import Settlement from "../components/Settlement.svelte";
   import { visibleFindings } from "../lib/bill/document.js";
   import { previewQuantityChange, type QuantityChangePreview } from "../lib/bill/units.js";
   import { formatPaise, formatPaiseOrNull, parsePaiseInput } from "../lib/bill/paise-input.js";
@@ -592,6 +593,11 @@
   </section>
 
   <Lock {bill} />
+
+  <!-- Ticket 15: links exist only once the bill is locked, because lock mints the share tokens (0022 L5). -->
+  {#if working.bill.isLocked}
+    <Settlement {bill} profile={session.profile()} />
+  {/if}
 {/if}
 
 <style>

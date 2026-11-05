@@ -59,7 +59,9 @@ export type TransactionRejectCode =
   | "unlock_unconfirmed"
   | "not_locked"
   | "participant_paid"
-  | "protected_participant";
+  | "protected_participant"
+  // DECISIONS/0024 S1: v1's payer is the creator, because only `CreatorProfile` stores a payee VPA.
+  | "payer_must_be_creator";
 
 export interface TransactionReject {
   code: TransactionRejectCode;
@@ -937,6 +939,15 @@ export function setPayer(document: BillDocument, participantId: string | null): 
     }
     if (!working.participants.some((participant) => participant.id === participantId)) {
       return rejection("unknown_entity", [participantId], "no participant on this bill has that id");
+    }
+    // DECISIONS/0024 S1 pin 1: only the creator has a stored payee address in v1. Accepting a different
+    // payer would silently build a UPI intent that pays the creator for someone else's share.
+    if (participantId !== working.bill.creatorId) {
+      return rejection(
+        "payer_must_be_creator",
+        [participantId],
+        "v1 records the creator as the payer; another payer needs a stored UPI id on that participant",
+      );
     }
     return wrap({ ...working, bill: { ...working.bill, payerId: participantId } });
   });
