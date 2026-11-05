@@ -31,6 +31,18 @@ const FROZEN_AT = new Date("2026-11-05T00:00:00.000Z");
 const RECEIPT_LINES = ["RECEIPT", "COFFEE 4.50", "NAAN 60.00", "TOTAL 100.00"];
 
 /**
+ * Everything a scenario *types*, as opposed to everything the parser read off the drawn receipt. Named
+ * separately because `pnpm scan:pii` checks the fixtures against this list: any free-text value in a
+ * committed storage fixture must be one of these, an app default the editor itself writes (`Receipt`,
+ * `Creator`), or the scan fails. Widening the vocabulary is therefore a visible diff in this file rather
+ * than a quiet change to what the corpus contains.
+ */
+const TYPED_VALUES = ["P1", "Albus", "albus@okhdfc"];
+const SYNTHETIC_VOCABULARY = [
+  ...new Set([...RECEIPT_LINES, ...RECEIPT_LINES.flatMap((line) => line.split(/\s+/)), ...TYPED_VALUES]),
+].sort();
+
+/**
  * Freezes `Date` before any app code runs, so `billId` and `savedAt` are reproducible. `Date.now()` and
  * `new Date()` both answer with the pinned instant; a constructor given arguments still honours them, because
  * `staleLinkCutoffAt` and the settlement paths take their stamps from callers, not from here.
@@ -201,6 +213,7 @@ const meta = {
   storeNames: ["bills", "creatorProfile", "retainedImages"],
   frozenAt: FROZEN_AT.toISOString(),
   bytesAreDigests: true,
+  syntheticVocabulary: SYNTHETIC_VOCABULARY,
   note: "Raw IndexedDB contents after the app's own save path wrote them, in Chromium. Binary values are {__bytes:{byteLength,fnv1a}} because JSON cannot hold an ArrayBuffer. DECISIONS/0023 P9: the before-state of a migration test is evidence, not a sketch.",
 };
 

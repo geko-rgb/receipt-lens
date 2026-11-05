@@ -502,6 +502,18 @@ invented is not a migration test.* Three things follow.
    packages/pwa/tests/persistence/fixtures/v1-profile-and-image.json  // the one profile row, + a kept photo
    ```
 
+   **`pnpm scan:pii` covers these files too**, because "fixtures are PII-clean" is a standing rule and a
+   dump of a database is a fixture. It cannot check them the way it checks the benchmark corpus — there is
+   nothing redacted here to re-apply redaction to — so it checks something stronger and different: every
+   free-text value (`name`, `text`, `label`, `title`, `displayName`, `upiId`) must be either declared in the
+   fixture's own `_meta.syntheticVocabulary` (which the generator derives from the receipt lines it draws and
+   the strings its scenarios type) or one of the three constants the editor writes itself (`Receipt`,
+   `Creator`, `image/jpeg`). Anything else fails the build, so new free text in a storage fixture is a
+   decision in `scripts/storage-fixtures.mjs`, never an accident. Invented-but-realistic values are still
+   reported by the same heuristics that grade the benchmark corpus: the fixtures' fake UPI handle shows up as
+   one masked `vpa-shaped` advisory, visible rather than whitelisted away. Verified both ways — clean
+   fixtures exit 0, and a `saritha@gmail.com` injected into a committed record exits 1 naming the file.
+
    One file per scenario rather than one per store, because each is *the whole database* as that scenario's
    save path left it — every store the app created, dumped together, with a `_meta` naming the generator, the
    `dbVersion`, the store list and the frozen clock. `fixtureBills()` in the pins file merges the `bills`
