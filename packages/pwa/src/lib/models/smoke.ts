@@ -12,12 +12,18 @@
 export const SMOKE_MIN_LINES = 1;
 export const SMOKE_MIN_WORDS = 1;
 
+/** A run either produced counts or it failed; a run that did neither is not evidence of a working model. */
 export interface SmokeCounts {
-  readonly lines: number;
-  readonly words: number;
+  readonly lines?: number;
+  readonly words?: number;
+  readonly error?: string;
 }
 
-/** True when a smoke run proves the candidate set executes. An error, zero lines or zero words all reject it. */
-export function acceptsSmokeResult(result: SmokeCounts | { readonly error: string }): boolean {
-  throw new Error("not implemented: DECISIONS/0027 W5 step 5 — smoke acceptance bar");
+/**
+ * True when a smoke run proves the candidate set executes. An error, zero lines or zero words all reject it —
+ * and so does a run that reported no counts at all, since `?? 0` puts it under the floor rather than through it.
+ */
+export function acceptsSmokeResult(result: SmokeCounts): boolean {
+  if (result.error !== undefined) return false;
+  return (result.lines ?? 0) >= SMOKE_MIN_LINES && (result.words ?? 0) >= SMOKE_MIN_WORDS;
 }

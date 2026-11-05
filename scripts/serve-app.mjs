@@ -39,10 +39,19 @@ const MIME = {
 const APP_ROUTES = ["/", "/capture", "/bill", "/bills", "/share"];
 
 /**
- * Starts the server on an ephemeral port. `withRig` is false by default: the shipped-app tests must not be
- * able to reach the rig accidentally, and the ones that need it ask for it.
+ * Ticket 17 additions, both opt-in so every existing caller sees byte-identical behaviour:
+ *
+ * - `recordRequests` collects `{ path, status, bodyBytes }` per response and exposes them on the handle.
+ *   `DECISIONS/0012` F5 requires bytes to be counted by the origin that served them, not by page resource
+ *   timings, and the footprint measurement now points at *this* deployment — so this server needs the log
+ *   `harness/serve.mjs` already had (W17 item 1).
+ * - an unknown path ending in a code-ish extension answers `404` instead of falling back to `index.html`.
+ *   A missing `/sw.js` served as HTML fails worker registration with a message naming nothing useful, and the
+ *   catch-all made that failure silent (W17 item 2). `cache-control: no-store` stays exactly as it was: W8
+ *   measured that it does not obstruct a Cache-API precache, and changing a shipping server's headers to make
+ *   a measurement look better is the kind of fix `DECISIONS/0012` F12 warns against.
  */
-export function startServer({ withRig = false } = {}) {
+export function startServer({ withRig = false, recordRequests = false } = {}) {
   if (!existsSync(path.join(appDir, "index.html"))) {
     throw new Error("missing packages/pwa/dist/app/index.html — run `pnpm build` first");
   }
@@ -63,6 +72,8 @@ export function startServer({ withRig = false } = {}) {
       const rigDir = ${JSON.stringify(withRig ? rigDir : null)};
       const routes = ${JSON.stringify(APP_ROUTES)};
       const mime = ${JSON.stringify(MIME)};
+      const record = ${JSON.stringify(recordRequests)};
+      const CODE_LIKE = /\\.(js|mjs|css|wasm|webmanifest|json|png)$/;
       const pick = (dir, name) => {
         const file = path.join(dir, name);
         return fs.existsSync(file) && fs.statSync(file).isFile() ? file : null;
@@ -81,18 +92,32 @@ export function startServer({ withRig = false } = {}) {
         } else {
           file = pick(appDir, name);
         }
+        if (!file && CODE_LIKE.test(name)) {
+          log(name, 404, 0);
+          res.writeHead(404, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
+          return res.end("not found: " + name);
+        }
         if (!file) file = path.join(appDir, "index.html");
+        const body = fs.readFileSync(file);
+        log(name, 200, body.byteLength);
         res.writeHead(200, {
           "content-type": mime[path.extname(file)] ?? "application/octet-stream",
           "cache-control": "no-store",
+          "content-length": body.byteLength,
         });
-        fs.createReadStream(file).pipe(res);
+        res.end(body);
       });
+      function log(name, status, bodyBytes) {
+        if (record) process.stdout.write("req " + JSON.stringify({ path: name, status, bodyBytes }) + "\\n");
+      }
       server.listen(0, "127.0.0.1", () => process.stdout.write("url: http://127.0.0.1:" + server.address().port + "/\\n"));
       `,
     ],
     { cwd: repoRoot, stdio: ["ignore", "pipe", "pipe"] },
   );
+
+  /** Every response the origin served, in order. Only populated with `recordRequests`, hence always present. */
+  const requests = [];
 
   const url = new Promise((resolve, reject) => {
     // NO_COLOR: vite-style banners colourise the port and the digits arrive wrapped in escape codes
@@ -101,17 +126,31 @@ export function startServer({ withRig = false } = {}) {
     const timer = setTimeout(() => reject(new Error("app server printed no URL within 20s")), 20_000);
     child.stdout?.setEncoding("utf8");
     child.stdout?.on("data", (chunk) => {
-      const match = chunk.match(/url: (http:\/\/127\.0\.0\.1:\d+\/)/);
-      if (match) {
-        clearTimeout(timer);
-        resolve(match[1]);
+      for (const line of chunk.split("\n")) {
+        const match = line.match(/url: (http:\/\/127\.0\.0\.1:\d+\/)/);
+        if (match) {
+          clearTimeout(timer);
+          resolve(match[1]);
+          continue;
+        }
+        const request = line.match(/^req (.+)$/);
+        if (request) requests.push(JSON.parse(request[1]));
       }
     });
+    child.stderr?.setEncoding("utf8");
+    child.stderr?.on("data", (chunk) => process.stderr.write(chunk));
     child.once("exit", (code) => {
       clearTimeout(timer);
       reject(new Error(`app server exited (${code})`));
     });
   });
 
-  return { url, close: () => child.kill("SIGTERM") };
+  return {
+    url,
+    requests,
+    close: () => child.kill("SIGTERM"),
+    /** Total response body bytes the origin moved. F5's "whose byte count", for the footprint measurement. */
+    bytes: () => requests.reduce((sum, entry) => sum + entry.bodyBytes, 0),
+    reset: () => requests.splice(0, requests.length),
+  };
 }

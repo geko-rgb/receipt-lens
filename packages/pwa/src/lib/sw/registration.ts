@@ -34,5 +34,14 @@ export interface RegistrationDeps {
  * there may well be one.
  */
 export async function registerServiceWorker(deps: RegistrationDeps): Promise<RegistrationOutcome> {
-  throw new Error(`not implemented: DECISIONS/0027 W10 — registration (${SW_SCRIPT_URL})`);
+  try {
+    const registration = await deps.register(SW_SCRIPT_URL, { scope: SW_SCOPE });
+    // A resolution with no scope is not a control claim: Chromium's `serviceWorkers: "block"` resolves the
+    // registration rather than rejecting it, so `scope` is the observable that says a worker is really there.
+    const scope = registration?.scope ?? null;
+    if (scope === null) return { registered: false, scope: null, error: "registration resolved without a scope" };
+    return { registered: true, scope, error: null };
+  } catch (error) {
+    return { registered: false, scope: null, error: error instanceof Error ? error.message : String(error) };
+  }
 }

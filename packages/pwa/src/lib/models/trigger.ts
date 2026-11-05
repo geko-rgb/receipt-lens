@@ -1,3 +1,5 @@
+import type { RouteName } from "../router.js";
+
 /**
  * Ticket 17 — the model-download trigger of DECISIONS/0027 W2.1, as ruled at checkpoint 1.
  *
@@ -5,16 +7,20 @@
  * > that navigates to `/share` (participants viewing a bill) or browses the ledger without capturing should
  * > never download the model.
  *
- * The rule is expressed as a pure predicate over a phase, not as an effect, so W2.1's four consequences —
- * `/share` stays silent, no second download while one is in flight, a failed attempt may be retried — are all
- * assertable without a browser.
+ * The rule is a pure predicate over a phase, not an effect, so W2.1's consequences — `/share` stays silent, no
+ * second download while one is in flight, a failed attempt may be retried — are all assertable without a
+ * browser.
  */
 
 /** Where the last attempt for this document got to. */
 export type PreparationPhase = "idle" | "in-flight" | "succeeded" | "failed";
 
-/** The router's route names, from `src/lib/router.ts`. */
-export type CaptureRoute = "capture" | "bill" | "bills" | "share" | "not-found";
+/**
+ * The router's own route names, imported rather than restated: a second vocabulary of route strings is a list
+ * that drifts from the one that produced it, and W2.1's "no other route may download a model" is only a real
+ * guarantee if "other" means the router's actual remaining routes.
+ */
+export type CaptureRoute = RouteName;
 
 export interface TriggerInput {
   readonly route: CaptureRoute;
@@ -29,5 +35,5 @@ export interface TriggerInput {
  * and leave a stale set active forever.
  */
 export function shouldPrepareModelSet(input: TriggerInput): boolean {
-  throw new Error(`not implemented: DECISIONS/0027 W2.1 — capture-route trigger (${input.route}/${input.phase})`);
+  return input.route === "capture" && (input.phase === "idle" || input.phase === "failed");
 }

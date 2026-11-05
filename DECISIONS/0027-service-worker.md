@@ -360,6 +360,17 @@ the pointer survives all of them. That looks paranoid; it is the one place where
 silently deletes the record of which model set is live, which would leave an app that serves no models and
 knows neither why nor what it had.
 
+**Found while implementing, and it changed the shape of the API.** W3.1 first read as one combined sweep taking
+both kinds at once. Two callers need it, and each can only see half the picture: the worker knows which shell
+the live document is reading but not which candidate the page is still verifying, and the page is exactly the
+reverse. A combined selector therefore either needs tri-state "not mine" fields, or it lets one caller delete
+the other's working set — a worker activating while a preparation is in flight would sweep the candidate that
+preparation is writing. The module instead exports **two** selectors, `supersededShellCaches(names,
+currentShell)` and `supersededModelCaches(names, active)`, and the pins assert that neither can return a cache
+of the other's kind. A caller that cannot ask about what it does not own cannot delete it by accident, which is
+a stronger form of the same rule than any parameterisation. W7.1 and W7.2 are unchanged; only the mechanism
+that enforces the split is.
+
 ---
 
 ## W4 — The page runs the protocol; the worker serves reads
@@ -544,6 +555,11 @@ contact with a half-written download.
 handler, which by definition runs after the new worker took control. That is `cleanupOutdatedCaches` in
 five lines, and it is safe because the new worker's own cache was fully populated at install before it
 activated.
+
+**The worker's activate deletes shell caches and nothing else** (owner Condition 1: "deletion is triggered by
+W7.1's pointer-move, not lifecycle"). Model sets are superseded by the page's step 7, because only the page
+knows whether a candidate is mid-verification. An activate with no previous shell cache performs zero
+deletions, and that is asserted, not assumed.
 
 ### W7.3 The state, and where it is shown
 

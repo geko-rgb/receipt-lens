@@ -16,6 +16,17 @@ export function loadOcr(): Promise<CoreModule> {
   return loaded;
 }
 
+/**
+ * Adopt a provider that has already loaded and smoke-tested a model set (DECISIONS/0027 W5's hand-off).
+ *
+ * The preparation protocol builds a provider to run its one inference. Throwing that away would mean the
+ * user's first capture paid for the runtime and both sessions a second time, which is the difference between
+ * "prepared in the background" and "prepared twice, slowly".
+ */
+export function adoptProvider(next: import("@receipt-lens/core").OcrProvider): void {
+  provider = next;
+}
+
 /** The provider is created once, on the far side of the import — never at module scope. */
 async function ocrProvider(): Promise<import("@receipt-lens/core").OcrProvider> {
   if (provider) return provider;
