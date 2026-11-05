@@ -42,10 +42,17 @@
       },
       {
         "keys": [
+          "parseValidation"
+        ],
+        "becomes": "null",
+        "because": "the load path discards and recomputes it (P1), and its findings are confidence-derived — storing it would commit a second, raster-dependent answer to one question"
+      },
+      {
+        "keys": [
           "confidence"
         ],
-        "becomes": "the same number rounded to 2 decimal places",
-        "because": "softmax confidence follows the raster's hinting; the floors it is compared against are 2-decimal values (0.50, 0.70), so that is the precision that carries meaning"
+        "becomes": "null",
+        "because": "a continuous measurement of a rastered glyph has no byte-stable precision — rounding to 2 decimals still split 1 against 0.99 between machines; §10 allows null, core reports confidence_unavailable for it, and P1 recomputes parseValidation on load so nothing downstream trusts the stored value"
       }
     ],
     "vocabularyRule": "pnpm scan:pii fails if a free-text value here is not in syntheticVocabulary or an app-written constant",
@@ -80,7 +87,7 @@
             "unitPrice": 999,
             "priceSource": "user_confirmed",
             "lineTotal": 450,
-            "confidence": 1,
+            "confidence": null,
             "warnings": [
               {
                 "code": "qty_assumed",
@@ -138,7 +145,7 @@
               "unitPrice": 450,
               "priceSource": "detected",
               "lineTotal": 450,
-              "confidence": 1,
+              "confidence": null,
               "sourceLineIds": [
                 "l2"
               ],
@@ -208,58 +215,7 @@
             }
           ]
         },
-        "parseValidation": {
-          "uncertain": false,
-          "findings": [
-            {
-              "severity": "minor",
-              "code": "ambiguous_row",
-              "scope": "row",
-              "message": "Row u1 could not be classified and is preserved for review: NAAN 60.00",
-              "rowRefs": [
-                "u1"
-              ]
-            },
-            {
-              "severity": "minor",
-              "code": "qty_assumed",
-              "scope": "item",
-              "message": "Item i1 prints no quantity; 1 is assumed and must be reviewed before lock",
-              "itemRefs": [
-                "i1"
-              ]
-            }
-          ],
-          "items": [
-            {
-              "id": "i1",
-              "name": "COFFEE",
-              "qty": 1,
-              "quantitySource": "assumed",
-              "unitPrice": 450,
-              "priceSource": "detected",
-              "lineTotal": 450,
-              "confidence": 1,
-              "sourceLineIds": [
-                "l2"
-              ],
-              "warnings": [
-                {
-                  "code": "qty_assumed",
-                  "message": "Item i1 prints no quantity, so 1 is assumed and needs review before lock",
-                  "itemRef": "i1",
-                  "sourceLineIds": [
-                    "l2"
-                  ],
-                  "sourceText": "COFFEE 4.50",
-                  "sourceBox": {
-                    "__normalized": "geometry"
-                  }
-                }
-              ]
-            }
-          ]
-        },
+        "parseValidation": null,
         "excludedRowIds": [],
         "staleLinkCutoffAt": null
       }
