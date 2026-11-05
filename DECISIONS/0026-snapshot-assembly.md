@@ -69,6 +69,19 @@ Three refusals, all from vocabulary that already exists:
 | `working.bill.grandTotal` is not resolved integer paise | `grand_total_missing` | §10's own blocker code. **Defensive typing only.** It narrows the return type: 0022 L3's invariant makes it unreachable through `runTransaction`, because a committed locked document has zero locking blockers and this is one of the nine. Its pin forges the state to assert the narrowing — a type check, not a user-facing path. |
 | `derived.shares === null` | `units_unassigned` | Same class, same reason: `shares` is null exactly when a unit is neither assigned nor acknowledged (§10's `units_unassigned`), which a locked bill cannot be. It is read from the committed document rather than recomputed, so that the recipient's own answer stays a second opinion instead of an echo — A6's mismatch flag is only meaningful if the cache came from somewhere else. |
 
+**`units_unassigned` joins `grand_total_missing` as a defensive narrowing** — unreachable through
+`runTransaction` because the lock checklist already gates on it, pinned only to catch a future broadening of the
+return type or a caller that mints a document outside the runner. A third such code is not a new idea, so the
+note says exactly what its pin claims and nothing more: assembly refuses a state the document cannot be in.
+
+**Why `computedShares` comes from `derived.shares` rather than from the projection.** A6's mismatch flag is only
+a second opinion if the two opinions have different sources. Had assembly recomputed over the same
+`splittableFromSnapshot` projection the recipient recomputes over, an assembly bug that dropped a unit or a
+charge would have been invisible in every link that bug ever produced — both sides would agree, and the flag
+that exists to catch disagreement would read "agreed". Reading the runner's own answer is what makes "the cache
+disagrees" mean something, and the A6 pin that recomputes a real locked bill and expects exact equality is the
+evidence the two sources have not drifted.
+
 **No second budget check, no schema re-validation, no re-computation of derived numbers.** Assembly reads the
 committed document's `derived` and `billValidation` results as the runner produced them (0019 S9: 16 must not
 recompute blockers outside the runner, and the same discipline applies to shares).
@@ -312,12 +325,17 @@ type ShareView =
   *new* copy of the secret, and the one it keeps is the shell's existing evidence — the fragment is already in
   `location.hash`, in history, and readable by anything on the device, which is A10's disclosure sentence rather
   than a bug this screen could fix. Deleting the attribute would have traded a real guarantee for a symbolic one.
-- **The ledger lookup never blocks the bill.** `cutoffOf` can wait on a storage migration gate, and `/share`
-  deliberately shows no storage screens (App.svelte hides them, because a recipient has no ledger). So the route
-  renders from `openShareLink(fragment)` with the honest "may have changed" label, and refines it through
-  `withStaleness(view, cutoffAt)` if and when the lookup answers. That is the same three answers through the same
-  `stalenessOf`, one of them arrived late rather than never — and a hang in IndexedDB degrades the label, not the
-  bill.
+- **The ledger lookup never blocks the bill.** `/share` renders the bill from the fragment immediately, then
+  re-labels it stale or current-for-this-bill when the ledger's `staleLinkCutoffAt` lookup answers. The lookup is
+  never on the rendering path: a slow or gated IndexedDB open must not delay the share view, because this route
+  shows no storage screen to un-gate it with. So the label starts as `unknown` — which A9 requires to be the
+  honest answer anyway — and is replaced through `withStaleness(view, cutoffAt)`, which recomposes the same view
+  through the same `stalenessOf` and touches no number. This is what makes one view correct on both devices:
+  a fresh one with an empty ledger, which stays "may have changed" forever because that is true, and the
+  creator's, which learns the bill was unlocked. **The pin asserts the re-label's purity** — same snapshot, same
+  recomputed shares, only the label changed, and a non-ready view passes through untouched — and **the two
+  browser cases assert the two ends of it**: an empty ledger renders the bill and the "may have changed" line
+  with no waiting, and a populated one renders the dated stale banner. One behaviour, proved at both ends.
 
 `cutoffOf` is injected for the same reason `mintToken` is: a pin can then test all three staleness outcomes
 without a ledger, and `Share.svelte` supplies the real one — `storage.session().restoreBill(billId)` under
@@ -391,6 +409,16 @@ are listed rather than quietly changed:
    **`buildSettlement(document, profile, { origin, shareLinks })`**. A row with no fragment has
    `participantLink: null` and therefore `whatsappUrl: null`: no link is offered rather than a broken one, and the
    reason is on the share panel, where the encoding actually failed.
+
+   **The fragment-absent case leaves the UPI intent alone.** A payable row without a fragment becomes
+   `{ participantLink: null, whatsappUrl: null, upiUrl: <unchanged> }`, and its pin asserts exactly that
+   (`"offers no bill link and so no WhatsApp hand-off when no fragment was produced"`: `state` stays `payable`,
+   `upiUrl` still matches `^upi://pay\?`). The distinction is not incidental — the intent is a function of the
+   payer's UPI id from `CreatorProfile` and the participant's allocated paise, both of which live on the locked
+   bill and neither of which the share codec is involved in. That is why ticket 15's payment links worked before
+   ticket 16's codec existed and keep working when link generation refuses: only the *bill* link needs the
+   fragment. The WhatsApp hand-off is the one that disappears, because its text embeds the bill link, and half a
+   message with a broken "opens on any device" URL would be worse than no message.
 3. **Two assertions in `packages/pwa/tests/settlement/pins.test.ts` move** with it: the pin that "supplies the
    version-and-token placeholder link ticket 16 will replace" becomes a pin that the link is built from the
    encoded fragment, and the WhatsApp-text pin asserts the real fragment rather than `share#v1.token-p1`. Its
