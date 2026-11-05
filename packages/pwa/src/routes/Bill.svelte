@@ -11,10 +11,11 @@
    */
   import { getDraft } from "../lib/draft.js";
   import { billStore } from "../lib/bill/bill-document.svelte.js";
+  import Units from "../components/Units.svelte";
   import { visibleFindings } from "../lib/bill/document.js";
+  import { previewQuantityChange, type QuantityChangePreview } from "../lib/bill/units.js";
   import { formatPaise, formatPaiseOrNull, parsePaiseInput } from "../lib/bill/paise-input.js";
   import {
-    acknowledgeUnassignedUnit,
     addManualCharge,
     addManualItem,
     deleteCharge,
@@ -59,6 +60,19 @@
   let newChargeAmount = $state("");
   let newChargeType = $state<ChargeType>("tax");
 
+  /**
+   * A shrink that would discard assignments or acknowledgements waits here until the creator accepts it
+   * (DECISIONS/0021 A7/A13). It holds the input too, because the field has to keep showing the committed
+   * quantity while the dialog asks — cancelling then has nothing to undo.
+   */
+  let pendingQuantity = $state.raw<{
+    itemId: string;
+    qty: number;
+    fromQty: number;
+    preview: QuantityChangePreview;
+    input: HTMLInputElement;
+  } | null>(null);
+
   /** Commits a transaction, and hands a rejected one back so the field can be restored to the bill's value. */
   function apply(result: TransactionResult, restore?: (result: TransactionResult) => void): void {
     const published = billStore.publish(result);
@@ -83,6 +97,21 @@
     const input = event.currentTarget as HTMLInputElement;
     const text = input.value.trim();
     const qty = text === "" ? null : Number(text);
+
+    // A shrink that would remove held or acknowledged units is confirmed first (0021 A7). The preview is the
+    // same calculation the transaction will run, and a draft has no units, so only finalized lines reach it.
+    if (bill && qty !== null && Number.isInteger(qty) && qty > 0) {
+      const item = bill.working.items.find((entry) => entry.id === id);
+      if (item && qty < item.qty) {
+        const preview = previewQuantityChange(bill.working, id, qty);
+        if (preview.removedAssignments.length > 0 || preview.removedAcknowledgedUnitIds.length > 0) {
+          input.value = String(item.qty);
+          pendingQuantity = { itemId: id, qty, fromQty: item.qty, preview, input };
+          return;
+        }
+      }
+    }
+
     apply(setItemQuantity(bill!, id, qty), () => {
       input.value = quantityOf(id) === null ? "" : String(quantityOf(id));
     });
@@ -152,6 +181,25 @@
     apply(setGrandTotal(bill!, value));
     input.value = "";
   }
+
+  /** Accepting runs exactly the transaction the warning described — one commit, one revision (0021 A7/A13). */
+  function confirmQuantity(): void {
+    if (!pendingQuantity || !bill) return;
+    const { itemId, qty, fromQty, input } = pendingQuantity;
+    pendingQuantity = null;
+    const published = billStore.publish(setItemQuantity(bill, itemId, qty));
+    input.value = published.ok ? String(qty) : String(fromQty);
+  }
+
+  function cancelQuantity(): void {
+    // The field already shows the committed quantity, so a cancel is nothing but closing the dialog.
+    pendingQuantity = null;
+  }
+
+  function participantName(participantId: string): string {
+    return bill?.working.participants.find((entry) => entry.id === participantId)?.name ?? participantId;
+  }
+
   function blockerText(blocker: LockBlocker): string {
     return blocker.refs && blocker.refs.length > 0 ? `${blocker.code} (${blocker.refs.join(", ")})` : blocker.code;
   }
@@ -200,6 +248,36 @@
     <div class="alert alert-error" role="alert" data-testid="transaction-rejected">
       Change not applied: {billStore.rejection.code} — the bill still shows
       {formatPaise(derived.calculatedPayableTotal)}.
+    </div>
+  {/if}
+
+  {#if pendingQuantity}
+    {@const preview = pendingQuantity.preview}
+    <div class="dialog-backdrop">
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="quantity-warning-title" data-testid="quantity-warning">
+        <h2 id="quantity-warning-title">Remove assigned units?</h2>
+        <p>
+          Changing this line from {preview.fromQty} to {preview.toQty} removes
+          {preview.removedUnitIds.length} unit(s) and the work recorded on them:
+        </p>
+        <ul>
+          {#each preview.removedAssignments as assignment (assignment.itemUnitId + assignment.participantId)}
+            <li class="refs" data-testid="quantity-warning-assignment">
+              {assignment.itemUnitId} held by {participantName(assignment.participantId)}
+            </li>
+          {/each}
+          {#each preview.removedAcknowledgedUnitIds as unitId (unitId)}
+            <li class="refs" data-testid="quantity-warning-acknowledged">{unitId} acknowledged unassigned</li>
+          {/each}
+        </ul>
+        <p class="hint">Nothing changes until you continue.</p>
+        <div class="inline">
+          <button type="button" data-testid="quantity-cancel" onclick={cancelQuantity}>Keep {preview.fromQty}</button>
+          <button type="button" data-testid="quantity-confirm" onclick={confirmQuantity}>
+            Set {preview.toQty} and continue
+          </button>
+        </div>
+      </div>
     </div>
   {/if}
 
@@ -291,21 +369,8 @@
           {/if}
           <button type="button" data-testid="delete-item" onclick={() => apply(deleteItem(bill, item.id))}>Delete</button>
         </div>
-        <div class="units" data-testid="unit-list">
-          {#each working.itemUnits.filter((unit) => unit.itemId === item.id) as unit (unit.id)}
-            <span class="unit" data-testid="unit">
-              {unit.unitIndex}
-              {#if unit.confirmedUnassigned}
-                <span class="badge badge-ok">unassigned acknowledged</span>
-              {:else}
-                <button type="button" data-testid="acknowledge-unit" onclick={() => apply(acknowledgeUnassignedUnit(bill, unit.id))}>
-                  Mark unassigned
-                </button>
-              {/if}
-            </span>
-          {/each}
-        </div>
       {/each}
+      <Units {bill} />
     {/if}
   </section>
 
@@ -481,16 +546,22 @@
     color: #555;
   }
 
-  .units {
+  .dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 2px 0 8px 12px;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
   }
 
-  .unit {
-    font-size: 0.85em;
-    color: #333;
+  .dialog {
+    background: #fff;
+    border-radius: 6px;
+    padding: 16px 20px;
+    max-width: 32rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   }
 
   .badge {
