@@ -118,17 +118,26 @@ async function dumpStores(page) {
      */
     const GEOMETRY_KEYS = new Set(["box", "sourceBox", "wordBoxes"]);
     /**
-     * OCR confidence is a measurement of a raster, not a value the save path chose: the same build read
-     * 0.99544… here and 0.99397… on the CI runner, in the fourth decimal, because the glyphs were hinted a
-     * pixel differently. It is rounded to two places rather than dropped — a number stays a number, so core's
-     * confidence floors (`DECISIONS/0011` V5's 0.50/0.70) still see a value they can classify, and the
-     * fixture's derived state remains the app's own answer rather than an artifact of the normalizer. The
-     * residual limit is honest: a machine whose reading crossed one of those floors would still move a
-     * finding, and that would be a real model-behaviour change rather than this gate being fussy.
+     * OCR confidence is nulled, not rounded. Rounding was tried first (two decimals, on the theory that the
+     * 0.50/0.70 floors make that the meaningful precision) and CI still split: this machine read 0.99544 → 1,
+     * the runner read 0.99397 → 0.99. A continuous measurement of a raster has no stable decimal place — the
+     * disagreement is the whole field, not its last digit, so any precision chosen can be straddled.
+     *
+     * Null is what makes the fixture well-formed instead: §10 types `confidence` as `number | null`, core
+     * skips null scores and reports `confidence_unavailable` (DECISIONS/0011 V0.1, which established that
+     * dev's zero-scored-word corpus already puts every fixture in this state), and P1's load path discards
+     * the stored `parseValidation` and recomputes it from `parseResult` — so the derived state a migration
+     * test sees is the shipped validator's answer to the stored text, not a leftover of the machine that
+     * produced it. The model's real scores are ticket 09b's benchmark artifacts and the e2e that runs it;
+     * they were never this file's subject.
      */
-    const roundConfidence = (value) => Math.round(value * 100) / 100;
     const encodeBinary = (item, key) => {
-      if (key === "confidence" && typeof item === "number") return roundConfidence(item);
+      if (key === "confidence") return null;
+      // `parseValidation` is a stored answer to a question the load path re-asks (P1: read, discarded,
+      // recomputed), and its findings are derived from the confidences above — so a committed copy would be
+      // both redundant and raster-dependent. Null is what §10 allows and what the pin then checks honestly:
+      // the restored validation equals a fresh `validate(parseResult)`, not a stored one.
+      if (key === "parseValidation") return null;
       if (item instanceof ArrayBuffer || ArrayBuffer.isView(item)) return { "__normalized": "image bytes" };
       if (Array.isArray(item)) return item.map((entry) => encodeBinary(entry, key));
       if (item && typeof item === "object") {
@@ -219,7 +228,8 @@ const meta = {
   normalized: [
     { keys: ["box", "sourceBox", "wordBoxes"], becomes: "{\"__normalized\":\"geometry\"}", because: "OCR geometry depends on the runner's font rendering; pixels differ between machines" },
     { keys: ["bytes"], becomes: "{\"__normalized\":\"image bytes\"}", because: "JPEG output size and content vary with the browser's encoder; presence and byte length are asserted in playwright/persistence.spec.ts instead" },
-    { keys: ["confidence"], becomes: "the same number rounded to 2 decimal places", because: "softmax confidence follows the raster's hinting; the floors it is compared against are 2-decimal values (0.50, 0.70), so that is the precision that carries meaning" },
+    { keys: ["parseValidation"], becomes: "null", because: "the load path discards and recomputes it (P1), and its findings are confidence-derived — storing it would commit a second, raster-dependent answer to one question" },
+    { keys: ["confidence"], becomes: "null", because: "a continuous measurement of a rastered glyph has no byte-stable precision — rounding to 2 decimals still split 1 against 0.99 between machines; §10 allows null, core reports confidence_unavailable for it, and P1 recomputes parseValidation on load so nothing downstream trusts the stored value" },
   ],
   vocabularyRule: "pnpm scan:pii fails if a free-text value here is not in syntheticVocabulary or an app-written constant",
 

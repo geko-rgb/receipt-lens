@@ -1206,7 +1206,15 @@ describe("DECISIONS/0023 P9 — the fixture is the before state", () => {
 
     const stored = await loadBill(second, original!.billId);
     const rebuilt = rebuildDocument(stored!.working, stored!.revision);
-    expect(rebuilt.working).toEqual(original!.working);
+    // Everything the save path chose survives byte-for-byte. `parseValidation` is the one field the rule
+    // says a load *re-asks* rather than copies (P1), so it is compared against a fresh `validate()` — which
+    // is the property — and not against whatever was on the wire. An equality assertion here would only pass
+    // by accident whenever the two happened to agree.
+    const { parseValidation: storedValidation, ...storedRest } = stored!.working;
+    const { parseValidation: rebuiltValidation, ...rebuiltRest } = rebuilt.working;
+    expect(storedValidation).toBeNull();
+    expect(rebuiltRest).toEqual(storedRest);
+    expect(rebuiltValidation).toEqual(validate(rebuilt.working.parseResult!));
     expect(rebuilt.revision).toBe(original!.revision);
   });
 
