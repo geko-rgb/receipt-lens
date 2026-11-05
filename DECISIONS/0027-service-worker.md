@@ -23,12 +23,14 @@ each is discharged by a committed test at checkpoint 3. Everything else is contr
 
 ## W0 — The pins, in one line each
 
-1. **Hand-written worker, no Workbox and no `vite-plugin-pwa`.** The update protocol is custom regardless;
-   past that point the libraries' remaining value is a navigation route and a cache sweep, which are
-   under 40 lines here. Deviation from `docs/pwa-design.md` §2.2, recorded as that note permits. (W1)
-2. **Cache strategy: shell precached on install, model set prepared after first paint.** The runtime WASM
-   is *shell*, not *model* — its identity is its filename, so it needs no verification protocol, and the
-   warm-visit-0-bytes claim has to hold whether or not anyone has run OCR. (W2)
+1. **A hand-written worker.** §2.2's exit clause authorizes replacing `generateSW` with a worker we write —
+   that part is pre-authorized and its condition is met. Going further and dropping `vite-plugin-pwa` and
+   Workbox entirely is **beyond the clause** and is put to the owner as an explicit scope change (W1.0). No
+   pin assertion differs between the two outcomes.
+2. **Cache strategy: shell precached on install, model set downloaded on navigation to `/capture`.** The
+   runtime WASM is *shell*, not *model* — its identity is its filename, so it needs no verification protocol,
+   and the warm-visit-0-bytes claim has to hold whether or not anyone has run OCR. A `/share` recipient never
+   downloads a model. (W2, owner ruling 2026-11-05)
 3. **Cache names: `receipt-lens-shell-v<digest>` and `receipt-lens-models:<providerVersion>:<manifestHash>`,**
    plus one pointer cache. `v<digest>` is generated from the precache manifest, so a shipped-app change
    cannot be shipped without bumping. (W3)
@@ -68,20 +70,70 @@ each is discharged by a committed test at checkpoint 3. Everything else is contr
 18. **Durability is requested, not assumed.** The Cache API is exempt from the HTTP cache's per-entity limit;
     it is not exempt from origin quota or eviction. (W18)
 19. **Ticket 17 adds no COOP/COEP,** changes no provider contract, no `/share` route, no settlement and no
-    model tier. (W20)
+    model tier; the post-17 latency rows are 1-thread and say so, and the install prompt's browser half is a
+    manual check this suite cannot automate. (W20)
+
+### W0.1 Checkpoint-1 rulings (2026-11-05)
+
+Approved, with four rulings and one condition. Where a ruling conflicts with W1–W20 as first written, **the
+ruling wins** and the amended text carries it in place.
+
+| | Ruling | Where it lands |
+|---|---|---|
+| 1 | Model download moves from boot-time to **navigation on `/capture`**, with progressive UI | W2.1, W7.3 |
+| 2 | Shell cache name **`v<digest>` approved** — "a counter is a rule a human forgets" | W3 |
+| 3 | Full footprint re-derivation **is the deliverable**, with an escape hatch into a recorded `17b` ticket | W14.3 |
+| 4 | W20 approved **plus**: the footprint table must name the 1-thread basis explicitly | W14, W20 |
+| C | Workbox deviation accepted **conditionally**: quote §2.2's exit clause verbatim, or the deviation is a scope change needing a ruling | W1.0 |
+
+**The condition found something.** Quoted in full at W1.0, the clause authorizes switching `generateSW` →
+`injectManifest` — a *custom worker built by `vite-plugin-pwa`, with Workbox still in it*. It does not
+authorize dropping Workbox. The checkpoint-1 report collapsed the two and overclaimed; W1.0 now separates
+them and puts the remainder to the owner as the scope change it is. No pin assertion differs between the
+outcomes.
+
+Also accepted as findings: W12's split disposition for the install prompt, W14's deployment move, and the
+baseline correction (pwa 338, not 333 — ticket 16's five A6 non-dependence pins landed after its own
+checkpoint 3).
 
 ---
 
 ## W1 — Tooling: a hand-written worker, no service-worker library
 
-`docs/pwa-design.md` §2.2 recommended `vite-plugin-pwa` 2.0.0 + Workbox 7.4.1 with `generateSW`, and named
-its own exit: *"start on `generateSW` for the shell precache, and switch to `injectManifest` in ticket 17 if
-the update protocol cannot be expressed on top of it."* It cannot. `generateSW` has no hook for "keep the old
-model set until the new one verifies" — that is the whole of §9's contract — so the recommendation's own
-condition is met and the choice moves to `injectManifest`, i.e. a worker we write.
+### W1.0 What §2.2 actually authorizes, and what it does not (owner condition, 2026-11-05)
 
-Once the worker is ours, Workbox contributes three things: `precacheAndRoute`, `cleanupOutdatedCaches`,
-`NavigationRoute`. Measured against what ticket 17 must write regardless, that is a poor trade:
+The checkpoint-1 report said this deviation was pre-authorized by `docs/pwa-design.md` §2.2. Quoted verbatim,
+the clause reads:
+
+> **intent.** `generateSW` is the right strategy *for the shell*. Ticket 17's model-update protocol — download,
+> verify, smoke, activate, then clean up — is `precacheAndRoute`-independent and will most likely need
+> `injectManifest` (a custom worker) to express the verification gate, because `generateSW` cannot "keep the
+> old set until the new one verifies" for a runtime-downloaded asset. Recommendation: start on `generateSW`
+> for the shell precache, and switch to `injectManifest` in ticket 17 if the update protocol cannot be
+> expressed on top of it. DECISIONS/0017 D5 is the measurement that makes the choice safe either way.
+
+That is two claims, and only the first was pre-authorized:
+
+- **Authorized, condition met** — switch from `generateSW` to *a worker we write*. The stated condition is "if
+  the update protocol cannot be expressed on top of it", and `generateSW` has no hook for "keep the old model
+  set until the new one verifies", which is §9's whole contract.
+- **Not authorized** — `injectManifest` is a *mode of `vite-plugin-pwa`*, not a departure from it: the plugin
+  still builds the worker, still generates the precache manifest, still injects `self.__WB_MANIFEST`, and the
+  worker still imports `workbox-*` at runtime. Dropping the plugin and Workbox is **beyond the clause**. The
+  checkpoint-1 report collapsed these two into one and thereby overclaimed. This is a scope change, put to the
+  owner as one rather than landed silently.
+
+Two properties make the ruling cheap either way. Everything W4–W7 pins lives in the **page**, not the worker,
+so the protocol and its tests are identical under `injectManifest` with Workbox. And the single
+choice-dependent pin — where the precache list comes from — is isolated behind
+`packages/pwa/src/precache.ts`, which returns entries in `self.__WB_MANIFEST`'s own shape: under Workbox they
+are fed to `precacheAndRoute`, without it to the worker's own install handler. **No pin assertion changes on
+either side of this ruling**; only the worker's body does. What would weaken is W1.1's guard: under
+`maximumFileSizeToCacheInBytes` it becomes "assert the WASM is in the generated manifest *and* the ceiling is
+above the tier's largest asset" — the same guarantee, with a number to remember instead of a completeness
+rule.
+
+The case for the change, in full:
 
 - **Six new packages** (`vite-plugin-pwa`, `workbox-build`, `workbox-core`, `workbox-precaching`,
   `workbox-routing`, `workbox-strategies`) inside a product whose §1 claim is that nothing third-party runs.
@@ -99,10 +151,10 @@ Once the worker is ours, Workbox contributes three things: `precacheAndRoute`, `
   `(fetch, caches, provider) → state`. That is exactly the shape `packages/pwa/tests/sw/pins.test.ts`
   asserts (W4). Workbox's API is not a seam; it is an implementation.
 
-`vite-plugin-pwa` was never a decided dependency — D5's own framing is "this dimension cannot discriminate",
-it was measured only to find the friction. Nothing here contradicts a measurement; it declines an
-unselected option. **This is the deviation from `docs/pwa-design.md` §2.2, and it is the only one in this
-record.**
+`vite-plugin-pwa` was never a *decided* dependency — D5's own framing is "this dimension cannot
+discriminate", and it was measured only to find the friction. Nothing in W1.0 contradicts a measurement; the
+ruling being asked for declines an option that was recommended but not selected. **This is the one place
+where ticket 17 goes past `docs/pwa-design.md`, and it is the only one in this record.**
 
 ### W1.1 The build emits the precache list, and the build fails if the list is incomplete
 
@@ -145,31 +197,44 @@ WASM *shell* or is it *model*? **This record says it is shell.** Three reasons:
    cannot see them. The WASM is in `dist/app`. That difference is the split, and it is the split the design
    note already drew.
 
-### W2.1 The model set is prepared after first paint, not on install and not on first capture
+### W2.1 The model set downloads on navigation to `/capture` — owner ruling, 2026-11-05
+
+> **Ruled at checkpoint 1.** *"Model set download triggers on navigation to `/capture` (not app boot, not
+> first-OCR). The smoke-gate is preserved because the user is framing the receipt during the 2–5 second window
+> when the download completes. Progressive UI shows 'preparing OCR — X MB of 6.3 MB' if not yet complete when
+> the user triggers capture. If the model is ready by capture time, no delay. If not, the user sees explicit
+> progress rather than a hang. App shell + WASM remain precached on install (required for offline reload); only
+> the model is deferred."*
+>
+> The reasoning recorded with it: *"the population that navigates to `/share` (participants viewing a bill) or
+> browses the ledger without capturing should never download the model."* That is the answer to the cost this
+> record raised against its own boot-time pin, and it names the population — once ticket 16's links are in the
+> wild, a recipient who only ever views a share link is the majority of visits, not an edge case.
 
 | Asset class | When | Mechanism |
 |---|---|---|
 | `index.html`, every emitted `assets/*.js` / `*.css` / `*.wasm`, `manifest.webmanifest`, icons | **install** | precache list from W1.1 |
-| `/assets/models/manifest.json` + det + rec + dictionary | **after first paint, once per document, only when no active set matches the probed manifest** | the W5 protocol |
-| a receipt image | **never** | §10: images are not persisted by default; the worker must not write one (W2.3) |
+| `/assets/models/manifest.json` + det + rec + dictionary | **first navigation to `/capture` per document**, and only when no active set matches the probed manifest | the W5 protocol |
+| a receipt image | **never** | §10: images are not persisted by default; the worker must not write one (W2.2) |
 
-The brief's phrase was "lazy-cache models on first OCR call", with the argument that the download then
-happens while the user is already waiting. This record pins *boot, deferred past first paint, non-blocking*
-instead, for one reason and against one real cost:
+Consequences of the trigger moving, pinned so they are not discovered later:
 
-- **Reason.** The smoke inference (W5 step 5) has to run whatever triggers the download, and a downloaded but
-  never verified model set sitting in the cache is precisely the state §9 forbids. Preparing at boot means
-  the first capture meets a warm, already-verified provider — `docs/pwa-design.md` §2.1's promise that "a
-  first offline capture attempt" does not fail on a missing piece — and the user never watches a download
-  they did not start.
-- **Cost, stated plainly.** Someone who opens the app and never captures still moves 6,277,292 B. On a metered
-  connection that is a real charge for something they did not ask for. The mitigations this record takes are
-  that the download is gated on the probe finding no matching active set (so it is at most once per model
-  version, not once per visit), that the visible state names it while it happens (W7), and that it is
-  deferred past first paint so it never delays the shell. A "download models now" affordance, with boot-time
-  preparation made opt-in, is the alternative; **it is not v1, and the owner can overrule this at the
-  checkpoint without any code shape changing** — W5's protocol is identical either way, only its trigger
-  moves.
+- **The smoke gate survives**, because the trigger is *intent to capture* rather than *the capture call*. The
+  download and the smoke run start when the user arrives at `/capture`, which is while they are pointing a
+  camera or choosing a file — the 2–5 s window the ruling describes. Nothing about W5's eight steps changes;
+  only what invokes them.
+- **`/share`, `/bills` and `/bill` must never start the download.** A recipient decoding someone's bill has no
+  use for 6.3 MB of weights, and a participant's device is the least likely place to want them. Pinned as a
+  test, not a promise: navigating the whole route set except `/capture` issues zero model requests.
+- **Preparing is not one-shot per document.** Returning from `/bill` to `/capture` after a failed attempt must
+  be able to retry, so the trigger is "no in-flight or succeeded attempt for this document", not "fired once".
+  A retry while a preparation is already running is a no-op, never a second download.
+- **Progressive UI.** The capture view shows the W7.3 `preparing` line with a real byte count — *"Preparing
+  OCR — X MB of 6.3 MB"* — and the intake control stays usable: the user can pick a file during preparation
+  and the run starts when both the file and the model set are ready. A hang with no number is the failure mode
+  this rules out.
+- **The `unavailable` state (W13) gets more likely, and more legible.** A fresh install offline that never
+  reached `/capture` has no models by design; the app says so in the capture view rather than at boot.
 
 ### W2.2 The worker never precaches model bytes, and never caches a receipt image
 
@@ -202,14 +267,16 @@ receipt-lens-active-model-cache         one entry: the pointer to the active mod
 
 `<digest>` is the first 12 hex characters of the SHA-256 of the precache manifest serialised canonically
 — entries sorted by `url`, each as `url` + U+001F + `revision` (`null` for content-hashed build outputs, so
-the filename is the revision), joined by U+001E. Two properties, both deliberate:
+the filename is the revision), joined by U+001E. **Ruled at checkpoint 1: approved** — *"A counter is a rule a
+human forgets is correct. Automated digest with no manual step. Approve W3 as pinned."* Two properties, both
+deliberate:
 
 - **A shipped-app change cannot be shipped without bumping.** The brief's format was `receipt-lens-shell-v<n>`,
-  which reads as a hand-incremented counter. A counter is a rule a human has to remember, and the failure
-  when it is forgotten is the worst one available: users keep running the previous shell with no symptom. A
-  digest bumps itself. If the owner wants the literal manual counter, it is a one-line change in
-  `cache-names.ts` and W3.1's test still catches a forgotten bump — the test compares the built worker's
-  cache name against a digest recomputed from the built manifest.
+  which reads as a hand-incremented counter; the ruling replaces that reading with a generated digest. A
+  counter is a rule a human has to remember, and the failure when it is forgotten is the worst one available:
+  users keep running the previous shell with no symptom. A digest bumps itself. If a manual counter is
+  reinstated later it is a one-line change in `cache-names.ts`, and W3.1's test still catches a forgotten bump
+  — the test compares the built worker's cache name against a digest recomputed from the built manifest.
 - **Two caches, so the two update stories never collide** (§9: "never reuse a cache solely because a filename
   or generic URL matches", and `docs/pwa-design.md` §2.3: "a shell update must never orphan a model set, and
   a model update must never look like a shell update"). A new shell version does not touch the pointer or any
@@ -417,7 +484,8 @@ reason: a recipient has no model history on this device and must not be told abo
 Copy is pinned in the component and asserted verbatim by test, following `DECISIONS/0025` P7's precedent:
 
 - `pending`: **"A model update is pending. Receipts still read with the previous model set."**
-- `preparing`: **"Downloading the model set (n of m bytes)."**
+- `preparing`: **"Preparing OCR — {n} MB of {m} MB."** (the owner ruling's wording, W2.1; `m` is the manifest's
+  own declared byte total, so the denominator is the same number the verification step checks against)
 - `unavailable`: **"Models are not on this device yet. Receipt reading needs them."**
 
 No copy may promise the update will arrive, retry on a timer, or describe the retained set as current.
@@ -493,6 +561,7 @@ its own step):
 | 5 | a version bump activates a new set, then a hash mismatch on the next bump leaves the *first* set active, the pending copy visible, and OCR still working | no caches to supersede |
 | 6 | cleanup: after a verified activation the superseded cache is gone; after a failed activation it is still there, and the pointer still resolves | nothing to clean |
 | 7 | offline *before any model set exists*: block the network on a fresh context, load, and the app shows `unavailable` and does not throw on file intake | the shell itself would not load |
+| 8 | **trigger discipline (W2.1):** visiting `/`, `/bill`, `/bills` and `/share` issues zero requests under `/assets/models/`; navigating to `/capture` starts exactly one preparation; navigating away and back does not start a second while one is in flight | no trigger exists to be wrong |
 
 Tests 1, 4 and 7 use the real built app from `scripts/serve-app.mjs`. Tests 5 and 6 need a mutable model
 origin — a server that can serve a *second* manifest with a bad hash — which is a footprint-style test
@@ -685,6 +754,40 @@ adds no isolation headers** — doing so would improve latency and change the pu
 commit as the caching change, which is exactly the "one variable at a time" rule F3's whole section is built
 on. The isolation question is a separate measurement with a separate record.
 
+**Ruled at checkpoint 1, and added to the record as a requirement, not a suggestion:** the thread count is
+named explicitly in the footprint table's declared-conditions block, in these words:
+
+> Latency measured at 1 ORT thread (`serve-app.mjs` sends no COOP/COEP; the harness's 4-thread measurement is
+> superseded). If isolation headers are added, latency improves and the footprint table regenerates.
+
+A reader comparing pre-17 and post-17 latency must be able to see that the two are apples-to-oranges on
+thread count and *not* on the fix. `render-footprint-table.mjs` emits that sentence from
+`measurement.deployment.threads`, so it is generated rather than hand-written, and `verify:footprint` still
+fails on drift.
+
+### W14.3 Escape hatch — a recorded deferral, never a silent one
+
+**Ruled at checkpoint 1:** the full re-derivation is the deliverable, because the table is §1's "measured
+footprint" claim and a pre-17 number under a post-17 build is the dishonesty F1 and ADR-002 exist to prevent.
+The owner's framing: *"a SW that caches the WASM with no measured improvement is a technical fix with no
+visible effect."*
+
+If at checkpoint 3 the re-derivation is clearly past the session budget — the stated bar is roughly two hours
+into the driver rewrite and still not converging — then:
+
+1. commit what works: the worker, the offline-reload proof, installability, **and a new measured
+   warm-bytes number for the PWA deployment** so F12's remedy is evidenced even in partial form;
+2. open `ticket/17b-footprint-remeasure` as a ticket file under `.scratch/receipt-lens-v1/issues/`, with the
+   status, the blocked-by, and exactly which parts of W14/W15 remain (`ROLES`, the F9 amendments, the driver);
+3. say so in ticket 17's file and in `HANDOFF`: **F12's remedy is shipped but the full re-measurement is
+   deferred to 17b**;
+4. and do **not** delete `NOT_RETAINABLE` or the harness `deployment.scope` in a way that makes the stale
+   table look current. If the table is not regenerated, it still says it describes the harness, and
+   `verify:footprint` keeps passing against the *archive* rather than against a number that has quietly aged.
+
+The condition on that last point is what makes the hatch safe: the deferral is a ticket, the artifact says
+which deployment it describes either way, and no intermediate state publishes a PWA claim from harness bytes.
+
 ### W14.1 What the harness numbers become
 
 The current artifact is copied to `benchmarks/results/footprint-2026-11-05-<rev>.json` before it is
@@ -876,7 +979,12 @@ claim is, which is ticket 18's to decide.
   ceiling discussion in `DECISIONS/0017` D5 is superseded by W1.1's completeness rule, which does not
   reintroduce a size assumption.
 - **No COOP/COEP headers** (W14), and so no change to ORT's thread count or to the device classes F3/F4
-  declare.
+  declare. The consequence is published rather than footnoted: the post-17 latency rows are **1-thread**
+  numbers and the superseded harness rows were 4-thread, and W14's ruled sentence names that in the
+  declared-conditions block of the generated table.
+- **The install prompt does not fire in headless Chromium** (measured, W12). The app's half is e2e-tested
+  against a fabricated event; the browser's half is a manual check that cannot be automated in the current
+  Playwright setup, and it is left open on purpose rather than replaced by a test that would pass either way.
 - **No receipt image in any cache, ever** (W2.2), and no new persistence store.
 - **`PROJECT(1).md` is not edited by this record.** It already states every rule W2–W7 implements.
 - **Not a privacy audit.** W19 defers the worker-allowed egress scenario to ticket 18, with the reason.
@@ -887,9 +995,9 @@ claim is, which is ticket 18's to decide.
 
 - **Whether the owner wants a manual `v<n>` shell counter** instead of W3's manifest digest. Both satisfy
   the brief's format; the digest cannot be forgotten. Overruling costs one function and one test.
-- **Whether model preparation is boot-time or capture-time** (W2.1). W5's protocol is the same either way;
-  only the trigger moves. This is a product call about metered connections, and it is the pin in this record
-  most likely to be reversed.
+- **Whether `/capture` is the right trigger or a visible "download models now" button is better.** W2.1 is
+  ruled and implemented as pinned; the open question is only whether a user who wants models prepared without
+  visiting the capture view needs an affordance. Nothing in W5 changes if that button is added later.
 - **The icon artwork** (W11), and therefore what `verify:icons` compares against once a real logo exists.
 - **How installability is verified outside a headless browser.** W12 says what cannot be proven here; the
   human check is not scheduled by this record.
@@ -912,6 +1020,7 @@ Every pin below is discharged by a named test, and the pins commit red against t
 |---|---|
 | W3 cache names, W3.1 prefix closure | `packages/pwa/tests/sw/pins.test.ts` |
 | W2.1/W1.1 precache manifest contents, exclusion of `/assets/models/`, WASM present | `tests/sw/pins.test.ts` + `playwright/smoke.spec.ts` |
+| W2.1 `/capture` is the only route that starts a model download; no concurrent preparations | `tests/sw/pins.test.ts` + `playwright/offline-reload.spec.ts` test 8 |
 | W5 step order, W6 probe bypass, W7 each failure path, W7.1 candidate-vs-active cleanup | `tests/sw/pins.test.ts` |
 | W7.3 state and copy | `tests/sw/pins.test.ts` + `playwright/offline-reload.spec.ts` |
 | W10 registration failure is inert | `tests/sw/pins.test.ts` |
