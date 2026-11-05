@@ -89,13 +89,41 @@ export interface QuantityChangePreview {
   readonly removedAcknowledgedUnitIds: string[];
 }
 
-/** Stub — ticket 12's pins are red until this returns the shrink's removals (DECISIONS/0021 A7). */
+/**
+ * The shrink is `syncUnitsToQuantity`'s, not a second implementation of it: the preview must predict exactly
+ * what the transaction will do, or the warning is describing a different removal than the one that happens.
+ * A draft has no units, so it previews as an empty removal (0021 A7).
+ */
 export function previewQuantityChange(
-  _working: WorkingBill,
-  _itemId: string,
-  _newQty: number,
+  working: WorkingBill,
+  itemId: string,
+  newQty: number,
 ): QuantityChangePreview {
-  throw new Error("not implemented: units.previewQuantityChange");
+  const item = working.items.find((entry) => entry.id === itemId);
+  const mine = working.itemUnits.filter((unit) => unit.itemId === itemId);
+  if (!item) {
+    return {
+      itemId,
+      fromQty: mine.length,
+      toQty: newQty,
+      removedUnitIds: [],
+      removedAssignments: [],
+      removedAcknowledgedUnitIds: [],
+    };
+  }
+
+  const { removedUnitIds } = syncUnitsToQuantity({ ...item, qty: newQty }, working.itemUnits);
+  const removed = new Set(removedUnitIds);
+  return {
+    itemId,
+    fromQty: item.qty,
+    toQty: newQty,
+    removedUnitIds,
+    removedAssignments: working.assignments.filter((assignment) => removed.has(assignment.itemUnitId)),
+    removedAcknowledgedUnitIds: mine
+      .filter((unit) => removed.has(unit.id) && unit.confirmedUnassigned)
+      .map((unit) => unit.id),
+  };
 }
 
 /** The pure half of assignment: `transactions.ts` maps a reason to a `TransactionRejectCode` (0021 A3). */
@@ -109,20 +137,69 @@ export type AssignmentOutcome =
   | { readonly ok: true; readonly working: WorkingBill }
   | { readonly ok: false; readonly reason: AssignmentFailure };
 
-/** Stub — DECISIONS/0021 A2/A3. */
+/**
+ * Set membership, one pair per call (DECISIONS/0021 A2). Assigning is the act that rescinds an
+ * acknowledgement (§10 line 769), so the flag is cleared in the same returned state — there is no
+ * intermediate value in which a unit is both acknowledged and held.
+ */
 export function assignPair(
-  _working: WorkingBill,
-  _unitId: string,
-  _participantId: string,
+  working: WorkingBill,
+  unitId: string,
+  participantId: string,
 ): AssignmentOutcome {
-  throw new Error("not implemented: units.assignPair");
+  if (!working.itemUnits.some((unit) => unit.id === unitId)) {
+    return { ok: false, reason: "unit_missing" };
+  }
+  if (!working.participants.some((participant) => participant.id === participantId)) {
+    return { ok: false, reason: "participant_unknown" };
+  }
+  if (
+    working.assignments.some(
+      (assignment) => assignment.itemUnitId === unitId && assignment.participantId === participantId,
+    )
+  ) {
+    return { ok: false, reason: "assignment_duplicate" };
+  }
+
+  return {
+    ok: true,
+    working: {
+      ...working,
+      itemUnits: working.itemUnits.map((unit) =>
+        unit.id === unitId ? { ...unit, confirmedUnassigned: false } : unit,
+      ),
+      assignments: [...working.assignments, { itemUnitId: unitId, participantId }],
+    },
+  };
 }
 
-/** Stub — DECISIONS/0021 A2/A4. */
+/**
+ * Removing the last pair leaves the unit pending, not acknowledged (DECISIONS/0021 A4): an un-tick is a
+ * statement about who holds the unit, never a statement that the creator will pay for it.
+ */
 export function unassignPair(
-  _working: WorkingBill,
-  _unitId: string,
-  _participantId: string,
+  working: WorkingBill,
+  unitId: string,
+  participantId: string,
 ): AssignmentOutcome {
-  throw new Error("not implemented: units.unassignPair");
+  if (!working.itemUnits.some((unit) => unit.id === unitId)) {
+    return { ok: false, reason: "unit_missing" };
+  }
+  if (!working.participants.some((participant) => participant.id === participantId)) {
+    return { ok: false, reason: "participant_unknown" };
+  }
+  const present = working.assignments.some(
+    (assignment) => assignment.itemUnitId === unitId && assignment.participantId === participantId,
+  );
+  if (!present) return { ok: false, reason: "assignment_missing" };
+
+  return {
+    ok: true,
+    working: {
+      ...working,
+      assignments: working.assignments.filter(
+        (assignment) => !(assignment.itemUnitId === unitId && assignment.participantId === participantId),
+      ),
+    },
+  };
 }

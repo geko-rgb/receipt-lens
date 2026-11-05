@@ -10,7 +10,7 @@ import {
 } from "./finalize.js";
 import { createWorkingBill, type NewBillOptions } from "./mapping.js";
 import { recompute, type RecomputeResult } from "./totals.js";
-import { materializeUnits, syncUnitsToQuantity } from "./units.js";
+import { assignPair, materializeUnits, syncUnitsToQuantity, unassignPair } from "./units.js";
 import type {
   BillCharge,
   BillValidationResult,
@@ -19,6 +19,7 @@ import type {
   DraftItem,
   Item,
   ItemUnitAssignment,
+  Participant,
   ValueSource,
   WorkingBill,
 } from "./working-bill.js";
@@ -47,7 +48,11 @@ export type TransactionRejectCode =
   | "bill_locked"
   | "not_finalizable"
   | "recompute_failed"
-  | "unit_assigned";
+  | "unit_assigned"
+  // DECISIONS/0021 A3: two conditions no existing code described, added deliberately rather than squeezed
+  // into a code that means something else. The closed union widens per operation kind, not ad hoc.
+  | "assignment_duplicate"
+  | "invalid_name";
 
 export interface TransactionReject {
   code: TransactionRejectCode;
@@ -716,24 +721,64 @@ export function acknowledgeUnassignedUnit(document: BillDocument, unitId: string
 
 /**
  * DECISIONS/0021 A2/A3: one transaction per toggle. Assigning clears `confirmedUnassigned` on the unit in
- * the same commit (§10 line 769), and a duplicate pair is a rejection rather than a silent no-op.
- * Stub — ticket 12's pins are red until the rule exists.
+ * the same commit (§10 line 769), and a duplicate pair is a rejection rather than a silent no-op. The pure
+ * rule is `units.assignPair`; this function owns the vocabulary the UI reads.
  */
-export function assignUnit(_document: BillDocument, _unitId: string, _participantId: string): TransactionResult {
-  throw new Error("not implemented: transactions.assignUnit");
+export function assignUnit(document: BillDocument, unitId: string, participantId: string): TransactionResult {
+  return runTransaction(document, (working) => {
+    const outcome = assignPair(working, unitId, participantId);
+    if (outcome.ok) return wrap(outcome.working);
+    if (outcome.reason === "unit_missing") {
+      return rejection("unknown_entity", [unitId], "no unit in this bill has that id");
+    }
+    if (outcome.reason === "participant_unknown") {
+      return rejection("unknown_entity", [participantId], "no participant on this bill has that id");
+    }
+    if (outcome.reason === "assignment_duplicate") {
+      return rejection("assignment_duplicate", [unitId, participantId], "that participant already holds this unit");
+    }
+    // `assignment_missing` is unreachable from an assign; kept explicit so the reason union stays total.
+    return rejection("unknown_entity", [unitId, participantId], "that participant does not hold this unit");
+  });
 }
 
-/** DECISIONS/0021 A4: the last pair removed leaves the unit pending, never acknowledged. Stub. */
-export function unassignUnit(_document: BillDocument, _unitId: string, _participantId: string): TransactionResult {
-  throw new Error("not implemented: transactions.unassignUnit");
+/** DECISIONS/0021 A4: the last pair removed leaves the unit pending, never acknowledged. */
+export function unassignUnit(document: BillDocument, unitId: string, participantId: string): TransactionResult {
+  return runTransaction(document, (working) => {
+    const outcome = unassignPair(working, unitId, participantId);
+    if (outcome.ok) return wrap(outcome.working);
+    if (outcome.reason === "unit_missing") {
+      return rejection("unknown_entity", [unitId], "no unit in this bill has that id");
+    }
+    if (outcome.reason === "participant_unknown") {
+      return rejection("unknown_entity", [participantId], "no participant on this bill has that id");
+    }
+    return rejection("unknown_entity", [unitId, participantId], "that participant does not hold this unit");
+  });
 }
 
 /**
  * DECISIONS/0021 A10: deterministic `p1..pN` id, no cascade into units or assignments, `invalid_name` on a
- * blank name. Stub — red until the rule exists.
+ * blank name. Adding someone never re-opens an acknowledgement and never assigns them anything.
  */
-export function addParticipant(_document: BillDocument, _name: string): TransactionResult {
-  throw new Error("not implemented: transactions.addParticipant");
+export function addParticipant(document: BillDocument, name: string): TransactionResult {
+  return runTransaction(document, (working) => {
+    const trimmed = name.trim();
+    if (trimmed === "") return rejection("invalid_name", ["participant"], "a participant needs a name");
+
+    const participant: Participant = {
+      id: nextManualId(
+        working.participants.map((entry) => entry.id),
+        "p",
+      ),
+      billId: working.bill.id,
+      name: trimmed,
+      paid: false,
+      token: "",
+      tokenExpiresAt: "",
+    };
+    return wrap({ ...working, participants: [...working.participants, participant] });
+  });
 }
 
 export type { BillDocument };
