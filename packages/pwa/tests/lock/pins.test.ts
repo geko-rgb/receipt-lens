@@ -413,14 +413,18 @@ describe("ticket 13 — the lifecycle projection (DECISIONS/0022 L10)", () => {
 });
 
 describe("ticket 13 — the payer (DECISIONS/0022 L11)", () => {
-  it("moves the payer without moving a share", () => {
+  it("narrows the payer to the creator without moving a share (DECISIONS/0024 S1)", () => {
     const document = lockable();
     const sharesBefore = JSON.stringify(document.derived.shares);
 
-    const moved = ok(setPayer(document, "p1"));
+    const attempt = setPayer(document, "p1");
 
-    expect(moved.working.bill.payerId).toBe("p1");
-    expect(JSON.stringify(moved.derived.shares)).toBe(sharesBefore);
+    expect(rejected(attempt).code).toBe("payer_must_be_creator");
+    expect(attempt.document).toBe(document);
+    expect(JSON.stringify(attempt.document.derived.shares)).toBe(sharesBefore);
+
+    const moved = ok(setPayer(document, CREATOR));
+    expect(moved.working.bill.payerId).toBe(CREATOR);
   });
 
   it("rejects a non-participant payer, and a raw-seam one blocks the lock", () => {
@@ -472,7 +476,10 @@ describe("ticket 13 — participant removal (DECISIONS/0022 A16)", () => {
     const document = lockable();
     expect(rejected(removeParticipant(document, CREATOR)).code).toBe("protected_participant");
 
-    const payerMoved = ok(setPayer(document, "p1"));
+    // The payer can only be the creator in v1, so the non-creator payer is built through the raw seam.
+    const payerMoved = ok(
+      runTransaction(document, (working) => ({ ...working, bill: { ...working.bill, payerId: "p1" } })),
+    );
     expect(rejected(removeParticipant(payerMoved, "p1")).code).toBe("protected_participant");
   });
 
@@ -549,7 +556,7 @@ describe("ticket 13 — the blocker matrix: every code produced by its condition
     expect(blocker(document, "payer_missing")!.refs).toEqual(["ghost"]);
 
     const named = ok(addParticipant(document, "P1"));
-    const fixed = ok(setPayer(named, "p1"));
+    const fixed = ok(setPayer(named, CREATOR));
     expect(blocker(fixed, "payer_missing")).toBeUndefined();
   });
 
