@@ -186,9 +186,19 @@ Failing the build is what makes it an assertion rather than a note. Three commit
 
 D5's ceiling warning still travels, in its honest form: with no ceiling there is no silent drop, but the
 *origin quota* grows with the tier, and W18 is what notices. Any model-tier change re-opens this config and
-`DECISIONS/0012` F11 trigger 2 remains the moment it gets checked. `maximumFileSizeToCacheInBytes` does not
-appear in this repository's config at all, since the library that owns it is not used; `pnpm build` failing on
-an incomplete precache is the setting that replaces it.
+`DECISIONS/0012` F11 trigger 2 remains the moment it gets checked. `maximumFileSizeToCacheInBytes` appears nowhere in the
+workspace — not in `pnpm-lock.yaml` (checked: zero matches for `workbox` or `vite-plugin-pwa`), not in any
+shipped package's dependencies, and not in `packages/pwa/vite.config.ts`. `pnpm build` failing on an incomplete
+precache is the setting that replaces it.
+
+**Stated precisely, because a nearby claim is not true.** Workbox does survive in this checkout, in exactly one
+place: `scripts/pwa-framework/package.json`, the self-contained ticket 10a G1 probe whose `node_modules` are
+git-ignored and which the workspace never builds. `HANDOFF` records an owner ruling of 2026-11-04 — *"Delete
+`scripts/pwa-framework/` after 10a merges … Do not leave `verify-evidence.mjs` pointing at a file that is
+gone"* — and that deletion was never carried out, so 38 probe files are still tracked three tickets after the
+merge that should have removed them. It is not ticket 17's to delete unasked, and it does not touch the shipped
+dependency tree, but a reader of "Workbox is absent" should read *absent from what the app builds and installs*,
+and the probe is an outstanding owner decision rather than a resolved one.
 
 ### W1.2 The ruling (2026-11-05, checkpoint 2): hand-written worker, authorized as a scope change
 
