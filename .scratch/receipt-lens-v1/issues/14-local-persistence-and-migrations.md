@@ -41,6 +41,9 @@ plus the store-creation step, so the rig is built and gated *now* and the chain'
   `smoke.spec.ts` guard that the migration rig is not in the shipped bundle).
 * `pnpm build` ✓ `pnpm typecheck` (0 errors, `svelte-check` 0/0) ✓ `pnpm scan:egress` 0 violations ✓
   `pnpm install --frozen-lockfile` with `fake-indexeddb: false` in `allowBuilds` ✓.
+* `pnpm scan:pii` now covers the storage fixtures as well as the benchmark corpus: 3 files, 24 free-text
+  values, 7 distinct, every one inside the declared synthetic vocabulary; the invented UPI handle appears as
+  one masked `vpa-shaped` advisory. Tampering a committed record with an email address exits 1.
 * `pnpm verify:storage-fixtures` — the generator re-runs and `git diff --exit-code` over
   `packages/pwa/tests/persistence/fixtures` is clean; three committed fixtures, each a whole-database dump of
   what the real save path wrote in Chromium. The gate has already earned its keep: it caught a save-path
