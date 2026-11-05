@@ -39,6 +39,13 @@
         ],
         "becomes": "{\"__normalized\":\"image bytes\"}",
         "because": "JPEG output size and content vary with the browser's encoder; presence and byte length are asserted in playwright/persistence.spec.ts instead"
+      },
+      {
+        "keys": [
+          "confidence"
+        ],
+        "becomes": "the same number rounded to 2 decimal places",
+        "because": "softmax confidence follows the raster's hinting; the floors it is compared against are 2-decimal values (0.50, 0.70), so that is the precision that carries meaning"
       }
     ],
     "vocabularyRule": "pnpm scan:pii fails if a free-text value here is not in syntheticVocabulary or an app-written constant",
@@ -75,7 +82,7 @@
             "priceSource": "detected",
             "lineTotal": 450,
             "detectedLineTotal": 450,
-            "confidence": 0.9954397554198902,
+            "confidence": 1,
             "assumedQtyReviewed": true
           }
         ],
@@ -132,7 +139,7 @@
               "unitPrice": 450,
               "priceSource": "detected",
               "lineTotal": 450,
-              "confidence": 0.9954397554198902,
+              "confidence": 1,
               "sourceLineIds": [
                 "l2"
               ],
@@ -233,7 +240,7 @@
               "unitPrice": 450,
               "priceSource": "detected",
               "lineTotal": 450,
-              "confidence": 0.9954397554198902,
+              "confidence": 1,
               "sourceLineIds": [
                 "l2"
               ],
