@@ -19,6 +19,7 @@ questions.
    `BillShareSnapshot`, and the shape is §10's verbatim with `snapshotVersion: 1`. No second snapshot type.
 2. **Assembly needs a locked bill.** An unlocked document refuses with `bill_locked`, the code 0022 L2
    already owns; §13 freezes the snapshot *at* lock, so there is nothing honest to encode before that.
+   `grand_total_missing` rides along as **defensive typing, not a runtime path** — see A1.
 3. **Excluded content is proved, not promised.** No receipt image, OCR text, `parseResult`, `parseValidation`,
    `unclassifiedRows`, `excludedRowIds`, `staleLinkCutoffAt`, drafts, confidence, `paid`, participant tokens or
    `CreatorProfile` — a test walks the payload's own key set and a second test searches for planted markers.
@@ -65,7 +66,7 @@ Two refusals, both from vocabulary that already exists:
 | Condition | Code | Why it is reachable or not |
 |---|---|---|
 | `working.bill.isLocked === false` | `bill_locked` | The ordinary guard: the UI only offers the panel on a locked bill, and a caller that ignores that gets this. |
-| `working.bill.grandTotal === null` | `grand_total_missing` | §10's own blocker code, read back here as a guard. 0022 L3's invariant makes it unreachable through the runner — a committed locked document has zero locking blockers, and `grand_total_missing` is one of the nine — so this line exists to narrow the type, not to describe a user-facing state. |
+| `working.bill.grandTotal === null` | `grand_total_missing` | §10's own blocker code. **Defensive typing only.** It narrows the return type: 0022 L3's invariant makes it unreachable through `runTransaction`, because a committed locked document has zero locking blockers and `grand_total_missing` is one of the nine. Its pin asserts the type narrowing, not a runtime behaviour, and is marked as a defensive test. |
 
 **No second budget check, no schema re-validation, no re-computation of derived numbers.** Assembly reads the
 committed document's `derived` and `billValidation` results as the runner produced them (0019 S9: 16 must not
@@ -291,9 +292,16 @@ type ShareView =
   hides which check failed is not a diagnostic. Fail-closed behaviour is asserted for **all four**, and each is
   reached through the real codec rather than a hand-written fragment where the code allows it.
 - **`ready` renders**: the bill title, every participant's exact share and payment amount *from the
-  recomputation*, the full-bill toggle (items with their unit holders, charges with their inclusion decision,
-  adjustment lines), the `tokenExpiresAt` hint labelled as a client-side hint, the created-by-snapshot date, the
-  staleness banner or the honest "may have changed" line, and the disclosure.
+  recomputation*, G1's identity prompt (a `which-one-are-you` select over the roster names; choosing one marks
+  that row `data-testid="share-mine"` and reorders it to the top, choosing "nobody yet" leaves the list flat),
+  the full-bill toggle (items with their unit holders, charges with their inclusion decision, adjustment lines),
+  the `tokenExpiresAt` hint labelled as a client-side hint, the created-by-snapshot date, the staleness banner or
+  the honest "may have changed" line, and the disclosure.
+- **The identity prompt is view state, not a decode result.** `ShareView` carries no
+  `selectedParticipantId`: `openShareLink` answers what the link says, and which row is "mine" is a question the
+  person holding the device answers. That keeps the seam pure — one fragment, one model, any number of viewers —
+  and it is why the selection cannot become a security property by accident: it reorders and highlights, and
+  hides nothing, because ADR-007's whole point is that the recipient already holds the whole bill.
 - **No UPI intent is rebuilt here.** The payload has no payee VPA by design (0025 P4), and G2 states the
   consequence: the view shows the payment *amount* and says the creator's message carries the link.
 - **The fragment is never re-displayed** as text on the participant view (the existing shell placeholder did,
@@ -378,26 +386,54 @@ are listed rather than quietly changed:
    e2e counterpart in `playwright/settlement.spec.ts` (`toContain("/share#v1.")`) needs no edit — a real fragment
    still starts that way, which is the one piece of ticket 15's evidence that survives unchanged.
 
+**This amendment lands as a `DECISIONS/0024` S12 paragraph in the same implementation commit**, not only here:
+0024 is the record that owns the settlement seam, so a signature change to `participantLinkFor`,
+`SettlementContext` and `buildSettlement` has to be readable from the document a ticket-15 reviewer would open.
+S12 names the new parameter meanings, the `shareLinks` shape, the two pins that moved and the reason no
+placeholder fallback survives. The moved pins' own comments carry the rationale, the amendment commit message
+references ticket 16 A11, and **nothing here edits another ticket's pins silently** — a pin that changes meaning
+is a decision, and it is reviewable as one.
+
 `deriveTransactionRef`, the `tr` derivation, the intent builder and the exact/payment formatting are untouched:
 0024 S9 hands ticket 16 those rows and forbids rebuilding a second UPI intent around the codec, which A8's "no
 UPI intent on the participant view" obeys for a second reason (there is no payee VPA in the payload anyway).
 
 ## A12 — Gaps, recorded rather than discovered later
 
-- **G1 — "show only my share" has no recipient identity to default to.** §10's snapshot has no recipient field,
-  and 0025 P4 forbids putting participant tokens in the payload. A link therefore carries a bill, not an answer
-  to "which row is yours". The view's default is the share list with a toggle to the full bill, and the copy says
-  plainly that it cannot know which participant was addressed. Adding `recipientId` is a `snapshotVersion`
-  decision, not an implementation detail, and this ticket does not take it — the same reasoning 0025 P4 applied
-  to `paid`.
-- **G2 — the participant view cannot produce a UPI intent.** `CreatorProfile.upiId` is excluded by 0025 P4, so
-  `pa` has no value on a recipient device. The amount is shown; the intent is the creator's message. Widening
-  this needs a decision about putting a payee VPA into a link, which is a privacy question this record does not
-  answer.
-- **G3 — `tokenExpiresAt` is `""` for every real bill.** 0022 L5 deliberately left it unwritten; inventing a
-  TTL here would be a product number with no evidence. The hint renders as "no expiry set" rather than a
-  fabricated date, and the expiry copy stays UX-only.
-- **G4 — see A9's last bullet** for the cross-snapshot rule that is not implemented, with the argument.
+- **G1 — "show only my share" has no recipient identity to default to, so the viewer names themselves.** §10's
+  snapshot has no recipient field, and 0025 P4 forbids putting participant tokens in the payload. The v1 view
+  therefore shows the **full bill**, and the viewer selects their own name from the roster (A8's "Which one of
+  you are you?" prompt) to highlight their share; with no selection every share is shown flat. Per-recipient
+  defaulting — the view knowing it is "you" without asking — needs `recipientId` in the snapshot, which is a
+  `snapshotVersion` 2 decision. The reason it stays deferred: adding `recipientId` to the encrypted payload is a
+  small step beyond "bill data" and toward "who this link is for", which is a claim about a person rather than
+  about a meal. The selection is view state and never leaves the device.
+- **G2 — how a participant actually pays, pinned.** The share snapshot excludes `upiId` (0025 P4), so the
+  `/share` view shows the exact share and the payment amount and **rebuilds no `upi://` intent**. Payment links
+  are delivered by WhatsApp at settlement time — `buildWhatsAppMessage` line 196 already carries
+  `Pay with UPI: {upiUrl}`, the full `upi://pay?pa=…&am=…` intent, alongside `Bill link (opens on any device):
+  {participantLink}` on line 197, both fed from ticket 15's `SettlementContext.shareLinks` from ticket 16 on. So
+  the intended flow is that **both halves arrive together in one message**: the tap-to-pay link and the bill. A
+  participant who receives only the bill link sees the amounts and contacts the payer for a payment link; that is
+  a real degradation, and the view says so rather than offering a dead button. If a future v2 wants tap-to-pay
+  from the share view itself, `payerUpiId` has to enter the snapshot as a `snapshotVersion` 2 field, trading
+  disclosure of the payer's VPA to every participant holding the link for a one-tap flow — which is exactly the
+  address-book exclusion 0025 P4 chose to keep.
+- **G3 — `tokenExpiresAt` is `""` for every real bill.** 0022 L5 deliberately left it unwritten; inventing a TTL
+  here would be a product number with no evidence. `""` means "no expiry set", and the hint renders that way
+  rather than as a fabricated date. If a TTL is ever added, the field becomes `string | null` with `null` meaning
+  no expiry, and the empty-string convention goes away with it. **No sentinel values** — `"never"`, `"0000"` or
+  `"none"` inside a link a recipient can forge at leisure is a string that pretends to be a type; absence is
+  `null`, and §10's field having no `null` today is the reason the convention is tolerated for one more ticket.
+- **G4 — 0025 P8's "two snapshots for one bill id on one device" needs no second mechanism.** The case P8 named
+  is a device holding a stale snapshot and a current one for the same bill. Every way that actually happens is
+  unlock → edit → re-lock, and 0022 L6's `unlockBill` stamps `staleLinkCutoffAt` with the unlock time while
+  minting fresh tokens for the new epoch. So the older snapshot's `snapshotCreatedAt` precedes the cutoff and the
+  A9 comparison resolves it to `stale` on its own — the banner appears, the frozen amounts stay on screen, and the
+  newer link is unaffected. The remaining case, encoding twice inside one lock epoch, produces two links that are
+  *equally* current: no unlock happened, nothing changed on the bill, and labelling the first one stale would be a
+  false statement about the bill rather than a conservative one. Recording the argument is the pin here, not a
+  reference to one; a session-scoped "most recent snapshot seen" map would add state that can only be wrong.
 - **G5 — `paid` is not in the snapshot** (0025 P4). A recipient cannot see settlement status; 0024 S9's
   "present `paid` as automatic verification" prohibition is unaffected.
 - **G6 — links are per view session, not durable.** Regenerated fragments differ in bytes (fresh nonce) while
@@ -422,7 +458,10 @@ overrides, against the built app:
 4. an over-budget bill is refused at generation, shows `link_budget_exceeded`, and offers no link at all;
 5. a stale snapshot shows the dated banner and still shows the frozen amount, not the re-locked bill's number;
 6. receipt-only text planted in the fixture is absent from the fragment and from the participant view, and the
-   view renders no image.
+   view renders no image;
+7. the viewer names themselves in G1's roster prompt and their own row is the highlighted one — the promise that
+   "each participant sees their exact share" is proved at the point it is used, and the shares it hides nothing of
+   are asserted to still all be there.
 
 Cases 2, 3 and 6 are honest about what a browser can see: the fragment is opaque by construction, so absence of
 a marker from an encrypted string is a weak assertion on its own — which is why the structural and marker proofs
@@ -448,6 +487,6 @@ from the receipt rather than the bill.
 Nothing in this record is a measurement. The 8192-byte cap, the 64 KiB inflate ceiling and §10's field list are
 contract constants this ticket inherited, not calibrated here. Every pin is discharged by
 `packages/pwa/tests/share/snapshot.test.ts` and `packages/pwa/tests/share/view.test.ts` (seam),
-`packages/pwa/tests/settlement/pins.test.ts` (A11's amended rows), and `playwright/share.spec.ts` (browser),
-which are the source of truth for behaviour. If a real bill turns out not to fit the budget, that is ROADMAP R4
+`packages/pwa/tests/settlement/pins.test.ts` (A11's amended rows, whose rationale also lands in
+`DECISIONS/0024` S12), and `playwright/share.spec.ts` (browser), which are the source of truth for behaviour. If a real bill turns out not to fit the budget, that is ROADMAP R4
 becoming evidence and needs a new record with the measured sizes — not a quieter cap.
