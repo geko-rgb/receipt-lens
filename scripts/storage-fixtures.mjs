@@ -117,7 +117,18 @@ async function dumpStores(page) {
      * the same text, prices, provenance, ids and structure on both.
      */
     const GEOMETRY_KEYS = new Set(["box", "sourceBox", "wordBoxes"]);
+    /**
+     * OCR confidence is a measurement of a raster, not a value the save path chose: the same build read
+     * 0.99544… here and 0.99397… on the CI runner, in the fourth decimal, because the glyphs were hinted a
+     * pixel differently. It is rounded to two places rather than dropped — a number stays a number, so core's
+     * confidence floors (`DECISIONS/0011` V5's 0.50/0.70) still see a value they can classify, and the
+     * fixture's derived state remains the app's own answer rather than an artifact of the normalizer. The
+     * residual limit is honest: a machine whose reading crossed one of those floors would still move a
+     * finding, and that would be a real model-behaviour change rather than this gate being fussy.
+     */
+    const roundConfidence = (value) => Math.round(value * 100) / 100;
     const encodeBinary = (item, key) => {
+      if (key === "confidence" && typeof item === "number") return roundConfidence(item);
       if (item instanceof ArrayBuffer || ArrayBuffer.isView(item)) return { "__normalized": "image bytes" };
       if (Array.isArray(item)) return item.map((entry) => encodeBinary(entry, key));
       if (item && typeof item === "object") {
@@ -208,6 +219,7 @@ const meta = {
   normalized: [
     { keys: ["box", "sourceBox", "wordBoxes"], becomes: "{\"__normalized\":\"geometry\"}", because: "OCR geometry depends on the runner's font rendering; pixels differ between machines" },
     { keys: ["bytes"], becomes: "{\"__normalized\":\"image bytes\"}", because: "JPEG output size and content vary with the browser's encoder; presence and byte length are asserted in playwright/persistence.spec.ts instead" },
+    { keys: ["confidence"], becomes: "the same number rounded to 2 decimal places", because: "softmax confidence follows the raster's hinting; the floors it is compared against are 2-decimal values (0.50, 0.70), so that is the precision that carries meaning" },
   ],
   vocabularyRule: "pnpm scan:pii fails if a free-text value here is not in syntheticVocabulary or an app-written constant",
 
