@@ -1,4 +1,4 @@
-import type { Item, ItemUnit } from "./working-bill.js";
+import type { Item, ItemUnit, ItemUnitAssignment, WorkingBill } from "./working-bill.js";
 
 /**
  * `ItemUnit` materialization and quantity maintenance — §10 line 767 and §11 rule 2:
@@ -73,4 +73,56 @@ export function findQuantityUnitViolations(items: Item[], units: ItemUnit[]): st
     if (!itemIds.has(unit.itemId)) offenders.add(unit.itemId);
   }
   return [...offenders];
+}
+
+/**
+ * What a quantity decrease would remove, computed over the committed state without writing anything
+ * (DECISIONS/0021 A7). The UI shows this in a blocking confirmation; `setUnitsToQuantity`'s `effects` are
+ * what actually happened. The two are never conflated: a preview is a prediction.
+ */
+export interface QuantityChangePreview {
+  readonly itemId: string;
+  readonly fromQty: number;
+  readonly toQty: number;
+  readonly removedUnitIds: string[];
+  readonly removedAssignments: ItemUnitAssignment[];
+  readonly removedAcknowledgedUnitIds: string[];
+}
+
+/** Stub — ticket 12's pins are red until this returns the shrink's removals (DECISIONS/0021 A7). */
+export function previewQuantityChange(
+  _working: WorkingBill,
+  _itemId: string,
+  _newQty: number,
+): QuantityChangePreview {
+  throw new Error("not implemented: units.previewQuantityChange");
+}
+
+/** The pure half of assignment: `transactions.ts` maps a reason to a `TransactionRejectCode` (0021 A3). */
+export type AssignmentFailure =
+  | "unit_missing"
+  | "participant_unknown"
+  | "assignment_duplicate"
+  | "assignment_missing";
+
+export type AssignmentOutcome =
+  | { readonly ok: true; readonly working: WorkingBill }
+  | { readonly ok: false; readonly reason: AssignmentFailure };
+
+/** Stub — DECISIONS/0021 A2/A3. */
+export function assignPair(
+  _working: WorkingBill,
+  _unitId: string,
+  _participantId: string,
+): AssignmentOutcome {
+  throw new Error("not implemented: units.assignPair");
+}
+
+/** Stub — DECISIONS/0021 A2/A4. */
+export function unassignPair(
+  _working: WorkingBill,
+  _unitId: string,
+  _participantId: string,
+): AssignmentOutcome {
+  throw new Error("not implemented: units.unassignPair");
 }
