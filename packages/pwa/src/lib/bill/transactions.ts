@@ -241,7 +241,13 @@ export function rebuildDocument(
   revision: number,
   steps: Partial<TransactionSteps> = {},
 ): BillDocument {
-  throw new Error("not implemented: DECISIONS/0023 P1");
+  const s: TransactionSteps = { ...defaultSteps, ...steps };
+  const recomputed = s.recompute(working);
+  const fresh: WorkingBill = {
+    ...recomputed.working,
+    parseValidation: s.validateParse(recomputed.working.parseResult),
+  };
+  return commit({ revision, working: fresh, derived: recomputed.derived, billValidation: s.validateWorking(fresh) });
 }
 
 /** The leaf predicates, re-exported so the seam's whole API is one module. */

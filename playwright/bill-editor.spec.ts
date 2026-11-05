@@ -92,7 +92,13 @@ async function clickEveryReview(page: Page): Promise<void> {
 
 test("the bill view without an accepted parse says so instead of inventing a bill", async ({ page }) => {
   await page.goto(`${server.url}bill`);
-  await expect(page.getByTestId("bill-empty")).toContainText("capture a receipt");
+  // DECISIONS/0023 P7 rewrote this state: with persistence, "no draft in memory" no longer implies "nothing
+  // on this device", so the screen names both ways out. Nothing is invented either way — the totals section
+  // still does not exist.
+  await expect(page.getByTestId("bill-empty")).toContainText("No bill open");
+  await expect(page.getByTestId("empty-capture-cta")).toBeVisible();
+  await expect(page.getByTestId("empty-ledger-cta")).toBeVisible();
+  await expect(page.getByTestId("totals")).toHaveCount(0);
 });
 
 test("capture → editor: drafts finalize, edits recompute, the print survives, a rejection rolls back", async ({ page }) => {

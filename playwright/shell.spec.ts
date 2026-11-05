@@ -128,14 +128,18 @@ test.describe("shell navigation", () => {
     expect(requests.every((url) => url.startsWith(baseUrl))).toBe(true);
   });
 
-  test("the three placeholder views are reachable by nav without a page reload", async ({ page }) => {
+  test("every view is reachable by nav without a page reload", async ({ page }) => {
     await page.goto(`${baseUrl}capture`, { waitUntil: "load" });
     await page.evaluate(() => {
       window.__noReloadToken = "kept";
     });
 
-    await page.getByRole("link", { name: "Bill" }).click();
+    await page.getByRole("link", { name: "Bill", exact: true }).click();
     expect((await shellState(page)).heading).toBe("Bill");
+    // Ticket 14's ledger. Same rule as the other three: a nav click re-renders, it does not reload.
+    await page.getByRole("link", { name: "Past bills" }).click();
+    expect((await shellState(page)).route).toBe("bills");
+    expect((await shellState(page)).heading).toBe("Past bills");
     await page.getByRole("link", { name: "Share" }).click();
     expect((await shellState(page)).heading).toBe("Share");
     expect((await shellState(page)).route).toBe("share");
@@ -174,7 +178,7 @@ test.describe("D3a condition 1 — hashchange re-renders, and the fragment stays
 
   test("a back navigation re-renders through popstate", async ({ page }) => {
     await page.goto(`${baseUrl}capture`, { waitUntil: "load" });
-    await page.getByRole("link", { name: "Bill" }).click();
+    await page.getByRole("link", { name: "Bill", exact: true }).click();
     await page.evaluate(() => {
       window.location.hash = "v1.fromback";
     });
@@ -205,7 +209,7 @@ test.describe("D3a condition 3 — the fragment survives every route change", ()
     expect(await currentHash(page)).toBe(`#${fragment}`);
     expect((await shellState(page)).route).toBe("capture");
 
-    await page.getByRole("link", { name: "Bill" }).click();
+    await page.getByRole("link", { name: "Bill", exact: true }).click();
     await expect.poll(() => currentHash(page)).toBe(`#${fragment}`);
     expect((await shellState(page)).route).toBe("bill");
     expect((await shellState(page)).fragmentLength).toBe(fragment.length);

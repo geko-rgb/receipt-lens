@@ -43,6 +43,9 @@ let status: SaveStatus = $state.raw("idle");
 /** P5's divergence: the record another tab wrote, or null. Read by the notice, never inferred from a message. */
 let diverged: { revision: number; savedAt: string } | null = $state(null);
 
+/** P10: the cause behind a `not saved`, kept so the chip can name the kind (quota, closed, unknown). */
+let saveCause: unknown | null = $state.raw(null);
+
 /** The session this root writes through. Unattached in tests that do not care about storage. */
 let session: StorageSession | null = null;
 
@@ -61,10 +64,13 @@ function detach<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-/** Publishes a save report into the two reactive fields. One direction, so the chip cannot lie. */
+/** Publishes a save report into the reactive fields. One direction, so the chip cannot lie. */
 function record(report: PersistReport): void {
   status = report.status;
   diverged = report.stored ?? null;
+  saveCause = report.outcome.status === "failed" ? report.outcome.cause : null;
+  // P5: a replay the runner refused is a rejection like any other, and the screen must show its code.
+  if (report.replay && !report.replay.ok) rejection = { code: report.replay.reject.code, message: report.replay.reject.message };
 }
 
 export const billStore = {
@@ -91,6 +97,11 @@ export const billStore = {
   /** P5: the divergence a deferred save produced, or null. */
   get divergence(): { revision: number; savedAt: string } | null {
     return diverged;
+  },
+
+  /** P10: what the last failed save ran into, or null. The chip's copy switches on its kind. */
+  get saveCause(): unknown | null {
+    return saveCause;
   },
 
   /** Wiring, not state: `main.ts` attaches the app's session; a test attaches its own over a fake factory. */
@@ -155,6 +166,24 @@ export const billStore = {
   },
 
   /**
+   * P7: publishes a document that came *from* storage. Not a transaction and not a save — the record on disk
+   * is already the truth, and writing what was just read back would move `savedAt` on a bill nobody edited.
+   * `syncedRevision` is what makes the next save from this tab legitimate (P5).
+   */
+  attachRestored(document: BillDocument): void {
+    current = document;
+    imported = null;
+    rejection = null;
+    diverged = null;
+    status = "saved";
+  },
+
+  /** Retry the last save after a storage failure. The document already holds the edit (P10.1). */
+  retrySave(): void {
+    if (session && current) void session.persist(current).then(record);
+  },
+
+  /**
    * Clears memory. It does **not** touch storage: "close this view" must never be "delete the user's bill"
    * (P7), and deletion is an explicit ledger action with its own confirmation.
    */
@@ -163,6 +192,7 @@ export const billStore = {
     imported = null;
     rejection = null;
     diverged = null;
+    saveCause = null;
     status = "idle";
   },
 };

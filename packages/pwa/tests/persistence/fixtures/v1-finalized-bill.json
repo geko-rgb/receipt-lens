@@ -1,0 +1,250 @@
+{
+  "_meta": {
+    "generator": "scripts/storage-fixtures.mjs",
+    "dbVersion": 1,
+    "storeNames": [
+      "bills",
+      "creatorProfile",
+      "retainedImages"
+    ],
+    "frozenAt": "2026-11-05T00:00:01.000Z",
+    "bytesAreDigests": true,
+    "note": "Raw IndexedDB contents after the app's own save path wrote them, in Chromium. Binary values are {__bytes:{byteLength,fnv1a}} because JSON cannot hold an ArrayBuffer. DECISIONS/0023 P9: the before-state of a migration test is evidence, not a sketch.",
+    "purpose": "participants, a finalized line with units, and the assumed-quantity review — 0021's shapes on disk"
+  },
+  "bills": [
+    {
+      "billId": "bill:2026-11-05T00:00:01.000Z",
+      "revision": 3,
+      "savedAt": "2026-11-05T00:00:01.000Z",
+      "working": {
+        "bill": {
+          "id": "bill:2026-11-05T00:00:01.000Z",
+          "title": "Receipt",
+          "creatorId": "bill:2026-11-05T00:00:01.000Z:creator",
+          "payerId": "bill:2026-11-05T00:00:01.000Z:creator",
+          "createdAt": "2026-11-05T00:00:01.000Z",
+          "isLocked": false,
+          "taxIncluded": null,
+          "taxIncludedSource": "unresolved",
+          "grandTotal": 10000,
+          "grandTotalSource": "detected",
+          "adjustmentLines": []
+        },
+        "draftItems": [],
+        "items": [
+          {
+            "id": "i1",
+            "billId": "bill:2026-11-05T00:00:01.000Z",
+            "name": "COFFEE",
+            "qty": 1,
+            "quantitySource": "assumed",
+            "unitPrice": 450,
+            "priceSource": "detected",
+            "lineTotal": 450,
+            "detectedLineTotal": 450,
+            "confidence": 0.9954397554198902,
+            "assumedQtyReviewed": true
+          }
+        ],
+        "draftCharges": [],
+        "charges": [],
+        "participants": [
+          {
+            "id": "bill:2026-11-05T00:00:01.000Z:creator",
+            "billId": "bill:2026-11-05T00:00:01.000Z",
+            "name": "Creator",
+            "paid": false,
+            "token": "",
+            "tokenExpiresAt": ""
+          },
+          {
+            "id": "p1",
+            "billId": "bill:2026-11-05T00:00:01.000Z",
+            "name": "P1",
+            "paid": false,
+            "token": "",
+            "tokenExpiresAt": ""
+          }
+        ],
+        "itemUnits": [
+          {
+            "id": "unit:i1:0",
+            "itemId": "i1",
+            "unitIndex": 0,
+            "confirmedUnassigned": false
+          }
+        ],
+        "assignments": [],
+        "unclassifiedRows": [
+          {
+            "id": "u1",
+            "text": "NAAN 60.00",
+            "box": {
+              "x": 54.316073960302454,
+              "y": 488.02309782608694,
+              "width": 345.03633034026467,
+              "height": 60.203804347826065
+            },
+            "sourceLineIds": [
+              "l3"
+            ],
+            "reason": "ambiguous",
+            "warningCode": "ambiguous_row"
+          }
+        ],
+        "parseResult": {
+          "items": [
+            {
+              "id": "i1",
+              "name": "COFFEE",
+              "qty": 1,
+              "quantitySource": "assumed",
+              "unitPrice": 450,
+              "priceSource": "detected",
+              "lineTotal": 450,
+              "confidence": 0.9954397554198902,
+              "sourceLineIds": [
+                "l2"
+              ],
+              "warnings": [
+                {
+                  "code": "qty_assumed",
+                  "message": "Item i1 prints no quantity, so 1 is assumed and needs review before lock",
+                  "itemRef": "i1",
+                  "sourceLineIds": [
+                    "l2"
+                  ],
+                  "sourceText": "COFFEE 4.50",
+                  "sourceBox": {
+                    "x": 56.64812942366026,
+                    "y": 327.906976744186,
+                    "width": 375.83417593528816,
+                    "height": 60.43604651162792
+                  }
+                }
+              ]
+            }
+          ],
+          "unclassifiedRows": [
+            {
+              "id": "u1",
+              "text": "NAAN 60.00",
+              "box": {
+                "x": 54.316073960302454,
+                "y": 488.02309782608694,
+                "width": 345.03633034026467,
+                "height": 60.203804347826065
+              },
+              "sourceLineIds": [
+                "l3"
+              ],
+              "reason": "ambiguous",
+              "warningCode": "ambiguous_row"
+            }
+          ],
+          "taxes": [],
+          "serviceCharge": null,
+          "tip": null,
+          "discount": null,
+          "roundOff": null,
+          "otherCharges": [],
+          "subtotal": null,
+          "subtotalSource": "unresolved",
+          "grandTotal": 10000,
+          "grandTotalSource": "detected",
+          "warnings": [
+            {
+              "code": "ambiguous_row",
+              "message": "Row u1 could not be classified as an item, a continuation or header noise, and is preserved for review",
+              "sourceLineIds": [
+                "l3"
+              ],
+              "sourceText": "NAAN 60.00",
+              "sourceBox": {
+                "x": 54.316073960302454,
+                "y": 488.02309782608694,
+                "width": 345.03633034026467,
+                "height": 60.203804347826065
+              }
+            },
+            {
+              "code": "qty_assumed",
+              "message": "Item i1 prints no quantity, so 1 is assumed and needs review before lock",
+              "itemRef": "i1",
+              "sourceLineIds": [
+                "l2"
+              ],
+              "sourceText": "COFFEE 4.50",
+              "sourceBox": {
+                "x": 56.64812942366026,
+                "y": 327.906976744186,
+                "width": 375.83417593528816,
+                "height": 60.43604651162792
+              }
+            }
+          ]
+        },
+        "parseValidation": {
+          "uncertain": false,
+          "findings": [
+            {
+              "severity": "minor",
+              "code": "ambiguous_row",
+              "scope": "row",
+              "message": "Row u1 could not be classified and is preserved for review: NAAN 60.00",
+              "rowRefs": [
+                "u1"
+              ]
+            },
+            {
+              "severity": "minor",
+              "code": "qty_assumed",
+              "scope": "item",
+              "message": "Item i1 prints no quantity; 1 is assumed and must be reviewed before lock",
+              "itemRefs": [
+                "i1"
+              ]
+            }
+          ],
+          "items": [
+            {
+              "id": "i1",
+              "name": "COFFEE",
+              "qty": 1,
+              "quantitySource": "assumed",
+              "unitPrice": 450,
+              "priceSource": "detected",
+              "lineTotal": 450,
+              "confidence": 0.9954397554198902,
+              "sourceLineIds": [
+                "l2"
+              ],
+              "warnings": [
+                {
+                  "code": "qty_assumed",
+                  "message": "Item i1 prints no quantity, so 1 is assumed and needs review before lock",
+                  "itemRef": "i1",
+                  "sourceLineIds": [
+                    "l2"
+                  ],
+                  "sourceText": "COFFEE 4.50",
+                  "sourceBox": {
+                    "x": 56.64812942366026,
+                    "y": 327.906976744186,
+                    "width": 375.83417593528816,
+                    "height": 60.43604651162792
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "excludedRowIds": [],
+        "staleLinkCutoffAt": null
+      }
+    }
+  ],
+  "creatorProfile": [],
+  "retainedImages": []
+}

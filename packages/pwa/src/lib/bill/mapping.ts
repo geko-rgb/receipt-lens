@@ -30,8 +30,11 @@ export interface NewBillOptions {
  * Later profile edits never rewrite a stored bill: a bill records what it said when it was made, and
  * rewriting bills to track a setting is a derived-value write P1 forbids.
  */
+export const DEFAULT_CREATOR_NAME = "Creator";
+
 export function creatorNameFor(profile: CreatorProfile | null): string {
-  throw new Error("not implemented: DECISIONS/0023 P8");
+  const displayName = profile?.displayName.trim() ?? "";
+  return displayName.length > 0 ? displayName : DEFAULT_CREATOR_NAME;
 }
 
 export function draftItemFromParsed(item: ParsedItem): DraftItem {

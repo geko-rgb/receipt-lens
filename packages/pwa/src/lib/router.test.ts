@@ -32,6 +32,8 @@ describe("routeFor — the pinned fallback", () => {
     expect(routeFor("/", "")).toBe("capture");
     expect(routeFor(ROUTE_PATHS.capture, "")).toBe("capture");
     expect(routeFor(ROUTE_PATHS.bill, "")).toBe("bill");
+    // DECISIONS/0023 P7: the ledger is a route of its own.
+    expect(routeFor(ROUTE_PATHS.bills, "")).toBe("bills");
     expect(routeFor(ROUTE_PATHS.share, "")).toBe("share");
   });
 
@@ -41,6 +43,7 @@ describe("routeFor — the pinned fallback", () => {
 
   it("keeps a fragment on its own path's view", () => {
     expect(routeFor(ROUTE_PATHS.bill, "v1.token.nonce.ciphertext")).toBe("bill");
+    expect(routeFor(ROUTE_PATHS.bills, "v1.token.nonce.ciphertext")).toBe("bills");
     expect(routeFor(ROUTE_PATHS.capture, "v1.token.nonce.ciphertext")).toBe("capture");
   });
 
@@ -54,6 +57,7 @@ describe("routeFor — the pinned fallback", () => {
 describe("targetUrl — navigation must not re-encode the fragment", () => {
   it("concatenates rather than building a URL", () => {
     expect(targetUrl(ROUTE_PATHS.bill, "v1.abc")).toBe("/bill#v1.abc");
+    expect(targetUrl(ROUTE_PATHS.bills, "v1.abc")).toBe("/bills#v1.abc");
     expect(targetUrl(ROUTE_PATHS.bill, "")).toBe("/bill");
   });
 

@@ -310,13 +310,16 @@ interface UnreadableRecord {
 v1 is single-tab by `DECISIONS/0019` S10, and `revision` exists because S5 said "last write wins" must be
 14's deliberate choice. It is made here, and the making is *deferred detection*, not a merge.
 
-- **Detection is a revision check on the saving tab's next write, not a notification.** Each tab holds a
-  `syncedRevision`: the stored record's `revision` at the moment this tab last loaded it or last wrote it
-  successfully. `saveBill` compares it against the record it is about to replace. Equal → the write
-  proceeds. Unequal → **another tab has written since this tab synchronised**, and the write is refused.
-  Comparing `syncedRevision` rather than the incoming `revision` is the part that cannot be got wrong
-  quietly: two tabs editing from the same base both produce `revision: 5`, so a `5 > 5` test would report
-  harmony exactly when there is a conflict.
+- **Detection is a revision check on the saving tab's next write, not a notification.** Each tab maintains a
+  `syncedRevision` — **the stored record's `revision` at this tab's last load-or-write** — held separately
+  from the revision of the record it is about to write. `saveBill` compares the stored document's current
+  `revision` against that `syncedRevision`, never against the incoming revision. Equal → the write proceeds.
+  Unequal → another tab has written since this tab synchronised, the write is **refused** as
+  **`bill_changed_elsewhere`**, and the UI cannot offer a "saved" claim. Comparing against the incoming
+  revision is the trap that makes this pin necessary: two tabs editing from the same base both produce
+  `revision: 5`, so an incoming-revision comparison reports harmony at exactly the moment of conflict. The
+  write is refused *until the user re-syncs* — there is no automatic re-sync, because re-syncing is the act
+  that discards what is on their screen.
 - **Tab B is told on its next interaction, and never before it.** No `storage` event listener, no
   `BroadcastChannel`, no `navigator.locks`, no polling, no leader election — v1 has no cross-tab channel of
   any kind, so a tab cannot be informed of something it has not yet gone to check. "Both tabs are told"
@@ -351,6 +354,15 @@ v1 is single-tab by `DECISIONS/0019` S10, and `revision` exists because S5 said 
   this pin refuses. The screen is never *wrong about what it will write* (the check runs at write time);
   it can be briefly wrong about what it displays. A future notification path is a decision, not an
   omission — P13.
+- **The absences are scoped to bill synchronization, and the pins say so.** *(Owner forward note,
+  2026-11-05.)* What v1 forbids is a cross-tab channel **for bill synchronization**, because that is the
+  mechanism that would make "no tab is told before it next interacts" false — not a permanent ban on
+  `BroadcastChannel` as a technology, which a later ticket might want for something with different semantics
+  (a model-download progress shared between tabs, say). The `pins.test.ts` assertion carries that scope in a
+  comment, and widening it requires a record rather than a new line of code. The same scoping applies to the
+  chain-shape pins: `MIGRATIONS.map((step) => step.from)` is `[0]` **for the shipped v1 chain**, and the day a
+  v2 lands, that assertion becoming `[0, 1]` is the expected consequence of the bump — part of the v2 ticket,
+  not a bug and not a reason to skip the fixture step.
 - **The two-captures case is not a conflict.** Two tabs that each accept a capture mint
   `bill:${createdAt}` (`Bill.svelte:46`) and save two different records; the ledger shows both, and P5 never
   fires because the keyPaths differ.
@@ -485,10 +497,22 @@ invented is not a migration test.* Three things follow.
    dumps every store of `receipt-lens` verbatim:
 
    ```
-   packages/pwa/tests/persistence/fixtures/v1-bills.json          // the bills records, raw
-   packages/pwa/tests/persistence/fixtures/v1-creatorProfile.json
-   packages/pwa/tests/persistence/fixtures/v1-retainedImages.json // the opt-in case only
+   packages/pwa/tests/persistence/fixtures/v1-draft-bill.json         // draft tier + a committed edit
+   packages/pwa/tests/persistence/fixtures/v1-finalized-bill.json     // participants, units, qty review
+   packages/pwa/tests/persistence/fixtures/v1-profile-and-image.json  // the one profile row, + a kept photo
    ```
+
+   One file per scenario rather than one per store, because each is *the whole database* as that scenario's
+   save path left it — every store the app created, dumped together, with a `_meta` naming the generator, the
+   `dbVersion`, the store list and the frozen clock. `fixtureBills()` in the pins file merges the `bills`
+   arrays of all three and sorts by key, so a migration test faces several shapes of real record at once.
+   **Photo bytes are the one thing not committed**, and not for convenience: the standing rule is that
+   fixtures are PII-clean and a receipt photograph is exactly the PII. The generator replaces an
+   `ArrayBuffer` with `{ __bytes: { byteLength, fnv1a } }` **inside the page** — `page.evaluate` hands back a
+   structured clone, and an `ArrayBuffer` that arrives in Node as `{}` cannot be digested after the fact, which
+   is how the first version of this script silently wrote a 39 KB photo as nothing. The digest proves the
+   shape without carrying the pixels; the pixels are asserted in `playwright/persistence.spec.ts`, where they
+   never leave the browser.
 
    with a `_meta` block naming the generator, the app head, the `dbVersion` and **the fields the comparison
    normalizes** (`savedAt`, and any clock-derived id such as `billId` = `bill:${createdAt}` — P7's clock and
@@ -566,6 +590,14 @@ own surface, its own test, and one shared promise: **nothing was deleted, and he
   a full disk is neither); the save-status chip is the truth: `saving` → `saved {time}` → `not saved` with
   `Retry save`. `data-testid="save-status"` carries the state, and every persistence e2e waits for `saved`
   rather than sleeping (the fail-fast timeout rule from HANDOFF).
+- **P10.2 — quota is tested in two halves, because it cannot be produced as one event.** *(Owner ruling,
+  2026-11-05, at the checkpoint 2 gate.)* (a) A **real** write failure — the session's handle closed out from
+  under the transaction — must yield `not_saved` with the edit preserved on screen, asserted through
+  `billStore`; (b) `saveFailureKind(cause)` fed a genuine `QuotaExceededError` DOMException must classify it
+  as `quota`, which is what selects the storage-full copy. The two halves test the two behaviours
+  independently, and that is the honest version: `fake-indexeddb` implements no quota, and Playwright
+  `route()` interception of a storage error would be storage mocking — a test that passes by replacing the
+  thing whose failure it claims to prove. Nothing here claims to have filled a device's disk.
 - **Retention quota is P6's separate transaction**, so a 3 MB photo can fail to store while the bill
   succeeds; the retention panel then correctly reports *no photo*, and P6's "presence is the state" makes
   the lie impossible.
@@ -612,6 +644,48 @@ own surface, its own test, and one shared promise: **nothing was deleted, and he
   `src/`, so it cannot enter the bundle, and the app always uses `globalThis.indexedDB`.
 - **No new runtime dependency.** No network. No service worker (17). No UPI (15). No snapshot codec (16).
 
+## S1a — The seam as shipped
+
+*Folded in at the checkpoint 3 gate (owner instruction: record the shipped signatures, not the intended
+ones). Verified by grepping `export` lines out of the modules on 2026-11-05; the deviations from S1's plan
+are named below rather than smoothed over.*
+
+| Module | Shipped surface |
+|---|---|
+| `schema.ts` | `DB_NAME`, `DB_SCHEMA_VERSION`, `STORE_NAMES`, `STORE_KEY_PATHS`, `LosslessClause`, `LosslessProof`, `MigrationStep`, `MIGRATIONS`, `MigrationFailure`, `chainSteps`, `requiresExport`, `droppedFieldPaths` |
+| `database.ts` | `OpenDatabaseOptions`, `GateNeeded`, `UpgradeDispatch`, `DatabaseHandle`, `MigrationFailedError`, `UpgradeDeclinedError`, `DatabaseVersionTooNewError`, `readStoredVersion(factory?)`, `openDatabase(options?)` |
+| `idb.ts` | `done`, `run`, `readAll`, `readOne`, `countOf`, `put`, `remove` — the only module that touches request events |
+| `records.ts` | `StoredBillRecord`, `CreatorProfileRow`, `RetainedImageRecord`, `UnreadableRecord`, `ExportEnvelope`, `CREATOR_PROFILE_ID`, `encodeBillRecord`, `decodeBillRecord`, `encodeProfileRow`, `decodeProfileRow` |
+| `repository.ts` | `SaveBillOutcome` (its `deferred` branch carries `code: "bill_changed_elsewhere"`), `SaveBillRequest`, `RetainedImageRequest`, `SaveFailureKind`, `saveFailureKind`, `loadBill`, `mostRecentBill`, `listBills`, `saveBill`, `deleteBill`, `saveCreatorProfile`, `loadCreatorProfile`, `putRetainedImage`, `deleteRetainedImage`, `hasRetainedImage`, `countRecords`, `exportJson` |
+| `session.ts` | `SaveStatus`, `ReplayableOperation`, `PersistReport`, `RetainedImageInput`, `SessionOptions`, `StorageSession`, `createSession`, `appSession(options?)` |
+| `backup.ts` | `BackupOptions`, `buildBackup` — the export reads at the **stored** version, on its own short-lived connection |
+| `download.ts` | `exportFileName`, `envelopeBlob`, `downloadEnvelope` |
+| `storage-state.svelte.ts` | `StoragePhase`, `StorageNotice`, `storage` (`session()`, `exportBackup()`, `continueAfterExport()`, `declineGate()`, `retryUpgrade()`, `offerUpgradeAgain()`, `guard()`, `reset()`, `notice`, `blocked`) |
+| `bill/transactions.ts` | `rebuildDocument(working, revision, steps?)` |
+| `bill/mapping.ts` | `DEFAULT_CREATOR_NAME`, `creatorNameFor(profile)` |
+| `bill/bill-document.svelte.ts` | `attach(session)`, `attachRestored(document)`, `retrySave()`, `overwrite()`, `reapply()`, `saveStatus`, `divergence`, `saveCause` |
+
+**Four departures from S1's sketch, each for a reason worth keeping:**
+
+1. **`migrationsOverride` is `migrations` plus `targetVersion`.** A rig that tests v1→v2 has to ask for
+   version 2 explicitly; borrowing `DB_SCHEMA_VERSION` for it would mean bumping the shipped constant to test
+   a bump, which is the P9 mistake in costume.
+2. **The replay thunk lives on the session, not on the root.** `persist(document, replay?)` holds it,
+   `reapply()` consumes it. The root's job is publishing documents; knowing what to re-run after a deferred
+   write is storage choreography, and putting it in the root would have made the reactive slot the owner of a
+   rule.
+3. **`session()` on the state module replaced a bare `appSession()` call.** The gate, the `blocked` notice
+   and the named open failures have to reach a screen, and a session created before those handlers exist has
+   nowhere to send them. `appSession(options)` is called by `storage.session()` with them, and `main.ts`
+   attaches that session to the root.
+4. **`StorageStatus.svelte` takes props.** The rig renders the same component against a synthetic chain. The
+   alternative — a flag inside `lib/storage/` that changes how it opens the database — is the backdoor P3
+   forbids, so the seam was moved to the component instead, where it is one API and not a trap.
+
+`createSession` is a factory rather than a singleton for the same reason as S1's `openDatabase` options: P5's
+concurrency pins need two sessions over one factory, and a module-level singleton would have made that
+untestable rather than merely awkward.
+
 ## S2 — Tests
 
 `packages/pwa/tests/persistence/pins.test.ts`, written before the implementation and red on exactly these
@@ -646,6 +720,23 @@ pins (the ticket's own list, each naming its pin):
 | 25 | export is record-level and partial | a cursor that throws on one record yields an envelope containing every *other* record verbatim plus `unreadable: [{ billId, reason }]`; the unloadable-but-readable bill of pin 24 still exports (no `rebuildDocument` on the export path) |
 | 26 | counter semantics, both opens | open #1 on an empty factory: `onupgradeneeded` fires exactly once, `oldVersion 0`, `newVersion 1`, one step executed; open #2 at version 1: fires **zero** times, zero steps, bill rebuilds byte-identically (P9.2) |
 | 27 | migration chain is contiguous | `MIGRATIONS` covers `0 … DB_SCHEMA_VERSION-1` with no gap or duplicate, every step declares a `LosslessProof`, and at version 1 the shipped chain is exactly `[{ from: 0 }]` — rig steps cannot enter it |
+
+**As shipped (checkpoint 3): 60 tests, all green.** The 27 rows above are the pins; the file splits several of
+them into separate named cases (the export envelope's shape, its record-level manifest and its image exclusion
+are three tests against row 16, and so on) and adds five that only the shipped seam made assertable:
+`encodeBillRecord`/`decodeBillRecord` by value, `saveFailureKind`'s classification, the fixture's own profile
+and digested-image rows, and the two source-scan absences P5 and P10 promised.
+
+**Two rows in the table above are DOM assertions and are discharged in e2e, not here** — the vitest
+environment is Node with no jsdom, and adding one to test a heading would be a new dev dependency for a
+sentence on a screen. Row 20 (the ledger's capture CTA) is `persistence.spec.ts` test 3, `an empty ledger says
+so and the CTA is what navigates`; row 23's "the grid shows its own hint" is implied by test 4's roster
+assertion (`participant-row` seeded from the profile before any finalize) and by `lock-lifecycle.spec.ts`'s
+inverted `participant-name` check. Row 20's *predicate* — an empty device lists nothing and restores nothing —
+is pinned in the unit file regardless, because that part is a session result, not markup.
+
+**The e2e list grew one more**: `smoke.spec.ts` gained the rig-exclusion guard (S1a's departure 4), so the
+suite is **50 tests** — the 39 that existed, 10 in `persistence.spec.ts`, and that bundle check.
 
 `playwright/persistence.spec.ts` — **split tests**, each self-contained from its own capture per HANDOFF's
 e2e-structure note (fully-parallel contexts are isolated, so each gets its own IndexedDB), and no
