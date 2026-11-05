@@ -53,9 +53,17 @@ function snapshot(over: Partial<BillShareSnapshot> = {}): BillShareSnapshot {
   };
 }
 
-/** Deterministic but poorly compressible, so the budget pin is about bytes rather than DEFLATE's mood. */
+/** Deterministic pseudo-random text, so the budget pin is about bytes rather than DEFLATE's mood. */
 function incompressible(length: number): string {
-  return Array.from({ length }, (_, index) => String.fromCharCode(33 + ((index * 37) % 90))).join("");
+  let state = 0x12345678;
+  const characters: string[] = [];
+  for (let index = 0; index < length; index += 1) {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    characters.push(String.fromCharCode(33 + ((state >>> 0) % 94)));
+  }
+  return characters.join("");
 }
 
 const TOKEN = "3f1c2b7a-9d4e-4a61-8c2f-0b5e6d7a8c91";
