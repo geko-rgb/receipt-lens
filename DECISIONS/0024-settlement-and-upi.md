@@ -172,7 +172,8 @@ publishes different numbers, only the constants change; the builder and its pins
 2. **Payer ≠ creator** is not representable: `Participant` has no UPI field. `setPayer` refuses rather than
    silently producing a link that pays the creator for someone else's share.
 3. **The WhatsApp participant link is a placeholder fragment** (`#v1.<token>`) until ticket 16's codec lands.
-   Ticket 15 does not decode it and does not claim it is the snapshot format.
+   Ticket 15 does not decode it and does not claim it is the snapshot format. *(Closed 2026-11-05 by S12: the
+   fragment is now the encoded snapshot link, and the placeholder is deleted rather than kept as a fallback.)*
 4. **The settlement target is the confirmed printed grand total.** If the printed total and the exact shares
    are inconsistent by more than the allocation's one-paise-per-participant slack, `allocateSettlement` refuses
    and the settlement view reports `settlement_total_inconsistent` instead of inventing amounts. Locking does
@@ -186,6 +187,50 @@ publishes different numbers, only the constants change; the builder and its pins
 | `deriveTransactionRef(billId, participantId, token)` and the clipping helpers | Treat `tr` as authentication or as a payment proof |
 | `buildWhatsAppMessage` with the participant link as an argument | Embed the receipt image or OCR text to make the message "complete" |
 | The `paid` flag as committed settlement metadata | Present `paid` as automatic verification |
+
+## S12 — Ticket 16's amendment: the participant link is the encoded fragment
+
+Date of amendment: 2026-11-05 · ticket 16 · requested by `DECISIONS/0026` A11, which carries the reasoning.
+This paragraph exists because S8-3 named the placeholder as ticket 16's to close, and closing it changes three
+signatures this record pinned — a change to another ticket's pins is a decision, so it is written here, where a
+reader of the settlement contract would look for it, rather than only in the record that asked for it.
+
+**`participantLinkFor(origin, fragment)`.** The second parameter was *the participant's token* and the body
+built `${base}/share#v1.${token}`. It is now *the encoded fragment* — `encodeSnapshot`'s output, which already
+carries its own `v1.` prefix, the nonce and the ciphertext — and the body is `${base}/share#${fragment}`. The
+token-only construction is **deleted, not kept as a fallback**: a `#v1.<token>` URL no longer decodes to
+anything, and offering one would make an unshared bill look shared. This is 0026 A4's rule read from the other
+side — no link is offered rather than a broken one.
+
+**`SettlementContext.shareLinks: Readonly<Record<string, string>>`**, participantId → fragment. It is required
+on the context rather than optional so no caller can fall back into the placeholder by accident. A row whose
+participant is absent from the record gets `participantLink: null`, and therefore `whatsappUrl: null`, while its
+UPI intent is untouched: the intent never depended on the fragment. `buildSettlement(document, profile, {
+origin, shareLinks })` gained the matching option, and the settlement row now says `no bill link yet — see
+Share links above` instead of going quiet, because the reason lives on the panel that tried to encode.
+
+**The links are generated once, by the bill view, per locked revision** (0026 A7) and passed into both the share
+panel and this component, so the budget the creator reads and the link in the message cannot disagree. They are
+not persisted: a stored ciphertext of a bill the ledger already holds would be a second copy of the data, and
+the export envelope (0023 P4) would carry a bearer secret.
+
+**Two pins in `packages/pwa/tests/settlement/pins.test.ts` moved, and they are named rather than summarized:**
+
+1. *"supplies the version-and-token placeholder link ticket 16 will replace"* became *"builds the participant
+   link from the encoded fragment, not from the token alone"*, asserting
+   `participantLinkFor("https://example.test", fragmentFor("p1"))` equals
+   `https://example.test/share#v1.token-p1.c2VjcmV0bm9uY2U.c2lnbmFsdGFn`.
+2. The fixture `context()` now supplies `shareLinks` for every row, so the WhatsApp-text pin
+   (`toContain("https://example.test/share#v1.token-p1")`) still passes — its substring is the front of a real
+   fragment — and a *third* pin was added for the other half of the amendment: no fragment means no bill link
+   and no WhatsApp hand-off, with the UPI intent still present.
+
+`playwright/settlement.spec.ts`'s `toContain("/share#v1.")` needed no edit. A genuine encoded fragment starts
+that way, which is the one piece of ticket 15's browser evidence that survives the amendment unchanged — and
+that is a fact about the fixture's token shape, not a reason to relax the assertion.
+
+S9's hand-off table stays correct as written: ticket 16 consumed the rows, the ref and the message builder, and
+built no second intent around the codec.
 
 ## Reporting discipline
 

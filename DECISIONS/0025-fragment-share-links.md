@@ -153,10 +153,19 @@ Exactly one code per failure, checked in this order so the message is stable:
 |---|---|---|
 | 1 | The fragment starts with `#`; strip it. A missing or non-`v1` first component: a well-formed unknown version (`v2`, `v10`) → `unsupported_link_version`; a malformed version token → `link_corrupt_or_tampered`. | `unsupported_link_version` |
 | 2 | Encoded length ≤ 8192. | `link_budget_exceeded` |
-| 3 | Four components; each base64url charset; token decodes to 32 bytes, nonce to 12 bytes, ciphertext to at least 16 tag bytes. | `link_corrupt_or_tampered` |
+| 3 | Four components; each base64url **and a length that can encode bytes** (see the amendment below); token decodes to 32 bytes, nonce to 12 bytes, ciphertext to at least 16 tag bytes. | `link_corrupt_or_tampered` |
 | 4 | HKDF + AES-GCM decryption and tag verification. | `link_corrupt_or_tampered` |
 | 5 | Inflate, refusing output larger than 64 KiB (a decompression bomb is corruption, not a schema problem). | `link_corrupt_or_tampered` |
 | 6 | UTF-8 + JSON parse; then schema validation (version, required fields, types, `snapshotVersion === 1`, integer paise, exact-money decimal strings, no unknown top-level fields). | `link_schema_invalid` |
+
+**P6 amendment (2026-11-05, ticket 16 second sprint).** The charset predicate for base64url components is
+"charset matches **AND** length ≠ 1 mod 4". Unpadded base64url is constrained to lengths {0, 2, 3} mod 4;
+length 1 mod 4 is impossible and would produce a `DOMException` from `atob` outside the decryption try/catch.
+The length constraint is part of the charset predicate — malformed input of length 1 mod 4 fails as
+`link_corrupt_or_tampered` **at the charset step**, not at the decode step. The 13th codec pin
+(`packages/pwa/tests/share/codec.test.ts`) asserts `v1.A.A.A`, `v1.tok.A.AAAA` and
+`v1.<36-char-token>.A.AAAA` all produce `link_corrupt_or_tampered`. The finding, the reproduced inputs and the
+reason a truncated paste lands exactly in this class are in `DECISIONS/0026` A15.
 
 Rendering starts only after step 6 succeeds. A failure at any step shows the code's user-readable message and
 no bill content — never a partially decoded bill. The codes are a closed union; a new failure mode adds a code

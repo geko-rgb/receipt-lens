@@ -90,6 +90,16 @@ const BASE64URL = /^[A-Za-z0-9_-]+$/;
 const corrupt = (reason: string): ShareCodecError =>
   new ShareCodecError("link_corrupt_or_tampered", `the share link is corrupt or was tampered with: ${reason}`);
 
+/**
+ * DECISIONS/0025 P6 as amended by DECISIONS/0026 A15: the charset and the length are one check. Unpadded
+ * base64url is constrained to lengths {0, 2, 3} mod 4 — one leftover character encodes no byte at all — so a
+ * component of length 1 mod 4 is not a smaller valid encoding of anything. Left to `atob` it throws a
+ * DOMException outside the decryption guard, which is exactly the escape ADR-007's fail-closed rule forbids.
+ */
+function isBase64urlComponent(value: string): boolean {
+  return BASE64URL.test(value) && value.length % 4 !== 1;
+}
+
 function base64url(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -97,7 +107,7 @@ function base64url(bytes: Uint8Array): string {
 }
 
 function fromBase64url(value: string): Uint8Array {
-  if (!BASE64URL.test(value)) throw corrupt("a component is not base64url");
+  if (!isBase64urlComponent(value)) throw corrupt("a component is not base64url or has an impossible length");
   const standard = value.replace(/-/g, "+").replace(/_/g, "/");
   const binary = atob(`${standard}${"=".repeat((4 - (standard.length % 4)) % 4)}`);
   const bytes = new Uint8Array(binary.length);
@@ -131,7 +141,7 @@ export async function deriveKey(token: string, billId?: string): Promise<CryptoK
 
 /** `v1.<token>.<nonce>.<ciphertextAndTag>`, without the leading `#`. */
 export async function encodeSnapshot(snapshot: BillShareSnapshot, token: string): Promise<string> {
-  if (!BASE64URL.test(token)) throw corrupt("the share token is not URL-safe");
+  if (!isBase64urlComponent(token)) throw corrupt("the share token is not URL-safe or has an impossible length");
 
   const key = await deriveKey(token);
   const plaintext = encoder.encode(JSON.stringify(snapshot));
@@ -315,8 +325,8 @@ export async function decodeSnapshot(fragment: string, token: string): Promise<B
   if (parts.length !== 4) throw corrupt("the fragment does not have four components");
 
   const [, linkToken, noncePart, cipherPart] = parts as [string, string, string, string];
-  if (!BASE64URL.test(linkToken) || !BASE64URL.test(noncePart) || !BASE64URL.test(cipherPart)) {
-    throw corrupt("a component is not base64url");
+  if (!isBase64urlComponent(linkToken) || !isBase64urlComponent(noncePart) || !isBase64urlComponent(cipherPart)) {
+    throw corrupt("a component is not base64url or has an impossible length");
   }
   const nonce = fromBase64url(noncePart);
   const ciphertext = fromBase64url(cipherPart);

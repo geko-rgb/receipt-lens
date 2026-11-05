@@ -57,6 +57,12 @@ export interface SettlementContext {
   readonly profile: CreatorProfile | null;
   /** Origin for the participant link; `""` yields a root-relative `/share#…`. */
   readonly origin?: string;
+  /**
+   * DECISIONS/0026 A7/A11: participantId → the encoded fragment, generated once when the bill is locked.
+   * Required rather than optional so no caller can offer a ticket-15-shaped placeholder by accident; a
+   * participant missing from it simply has no bill link.
+   */
+  readonly shareLinks: Readonly<Record<string, string>>;
 }
 
 export type SettlementRowState = "payer" | "nothing_to_pay" | "payable" | "refused";
@@ -200,10 +206,15 @@ export function buildWhatsAppMessage(input: WhatsAppMessageInput): string {
   ].join("\n");
 }
 
-/** The version prefix and bearer token ticket 16 will replace with the encrypted snapshot (S5/S8). */
-export function participantLinkFor(origin: string, token: string): string {
+/**
+ * DECISIONS/0026 A11: the fragment is the encoded snapshot link ticket 16 produces, already carrying its own
+ * `v1.` prefix. Ticket 15's `#v1.<token>` placeholder is gone rather than kept as a fallback — a link that
+ * decodes to nothing would look like a sent bill, and 0026 A4's rule is that no link is offered when the
+ * encoding did not succeed.
+ */
+export function participantLinkFor(origin: string, fragment: string): string {
   const base = origin.replace(/\/+$/, "");
-  return `${base}/share#v1.${token}`;
+  return `${base}/share#${fragment}`;
 }
 
 const EMPTY_ROW_LINKS = {
@@ -253,7 +264,8 @@ export function settlementRows(context: SettlementContext): SettlementView {
       return { ...base, state: "nothing_to_pay", ...EMPTY_ROW_LINKS };
     }
 
-    const participantLink = participant.token === "" ? null : participantLinkFor(origin, participant.token);
+    const fragment = context.shareLinks[participant.id];
+    const participantLink = fragment === undefined ? null : participantLinkFor(origin, fragment);
     const intent = buildUpiIntent({
       payerUpi,
       payerName,
@@ -288,7 +300,7 @@ export function settlementRows(context: SettlementContext): SettlementView {
 export function buildSettlement(
   document: BillDocument,
   profile: CreatorProfile | null,
-  options: { readonly origin?: string } = {}
+  options: { readonly origin?: string; readonly shareLinks?: Readonly<Record<string, string>> } = {}
 ): SettlementView {
   const shares = document.derived.shares;
   if (shares === null) return { ok: false, code: "shares_unavailable" };
@@ -311,5 +323,6 @@ export function buildSettlement(
     confirmedTotalPaise: document.derived.printedGrandTotal ?? document.derived.calculatedPayableTotal,
     profile,
     origin: options.origin,
+    shareLinks: options.shareLinks ?? {},
   });
 }
