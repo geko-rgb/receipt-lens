@@ -737,3 +737,7 @@ initiative*.
 ## Ticket 15 G5 deviation (2026-11-05)
 
 Ticket 15 G5 deviation: the primary NPCI spec 1.6 (2017) publishes no `pn`/`tn`/`tr` limits; the 40/50/35 constants are unverified against primary. Secondary sources only. A future ticket should verify against a newer NPCI specification or accept secondary-source authority. Recorded in `DECISIONS/0024` S7; ticket 16's pins are `DECISIONS/0025`.
+
+## Ticket 16 complete (2026-11-05)
+
+Ticket 16 complete (2026-11-05): snapshot assembly + /share route + codec all merged. DECISIONS/0025 (pins + P6 length constraint) and DECISIONS/0026 (assembly A1–A15) are the authoritative records. A15 codec fix (length-1-mod-4 bypass) means malformed fragments route to link_corrupt_or_tampered at the charset step, never to atob's DOMException. splittableFromSnapshot synthesizes no-claim values for omitted fields; non-dependence pinned per-field. Next tickets: 17 (service worker + WASM cache fix) and 18 (full privacy audit).
