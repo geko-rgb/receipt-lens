@@ -59,6 +59,11 @@ export function startServer({ withRig = false, recordRequests = false } = {}) {
     throw new Error("missing packages/pwa/rig/dist/rig.html — run `pnpm build:rig` first");
   }
 
+  const policyFile = path.join(repoRoot, "benchmarks", "dist", "footprint", "etag-policy.js");
+  if (!existsSync(policyFile)) {
+    throw new Error("missing benchmarks/dist/footprint/etag-policy.js — run `pnpm build`. Both servers answer conditional requests through that one module (DECISIONS/0029 P2), because two definitions of the caching policy is how a parity test ends up comparing two different policies and passing.");
+  }
+
   const child = spawn(
     process.execPath,
     [
@@ -74,6 +79,7 @@ export function startServer({ withRig = false, recordRequests = false } = {}) {
       const mime = ${JSON.stringify(MIME)};
       const record = ${JSON.stringify(recordRequests)};
       const CODE_LIKE = /\\.(js|mjs|css|wasm|webmanifest|json|png)$/;
+      const policy = require(${JSON.stringify(policyFile)});
       const pick = (dir, name) => {
         const file = path.join(dir, name);
         return fs.existsSync(file) && fs.statSync(file).isFile() ? file : null;
@@ -99,12 +105,24 @@ export function startServer({ withRig = false, recordRequests = false } = {}) {
         }
         if (!file) file = path.join(appDir, "index.html");
         const body = fs.readFileSync(file);
+        const type = mime[path.extname(file)] ?? "application/octet-stream";
+        // One policy, imported: code and app metadata answer 200 with no-cache + a content ETag and 304 to a
+        // matching If-None-Match; bulk binaries and the shell keep no-store and advertise no validator
+        // (DECISIONS/0029 P1-P3).
+        const mode = policy.cachePolicyFor(name).mode;
+        if (mode === "revalidate") {
+          const etag = policy.etagFor(file, new Uint8Array(body));
+          if (policy.shouldNotModify(req.headers["if-none-match"], etag)) {
+            log(name, 304, 0);
+            res.writeHead(304, policy.notModifiedHeaders(etag));
+            return res.end();
+          }
+          log(name, 200, body.byteLength);
+          res.writeHead(200, policy.revalidateHeaders(etag, body.byteLength, type));
+          return res.end(body);
+        }
         log(name, 200, body.byteLength);
-        res.writeHead(200, {
-          "content-type": mime[path.extname(file)] ?? "application/octet-stream",
-          "cache-control": "no-store",
-          "content-length": body.byteLength,
-        });
+        res.writeHead(200, policy.noStoreHeaders(body.byteLength, type));
         res.end(body);
       });
       function log(name, status, bodyBytes) {

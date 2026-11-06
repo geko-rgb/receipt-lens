@@ -57,6 +57,12 @@ jobs:
       # checkable is that the generator is deterministic and that dist/app holds exactly what it produces.
       - run: pnpm verify:icons
       - run: pnpm exec playwright install --with-deps chromium
+      # Ticket 17c's gate (DECISIONS/0029 P4/P5). `verify:warm-bytes` re-runs the warm-visit measurement in
+      # Chromium and fails unless the committed median matches what this tree's origins actually answer, so it
+      # is the only automated thing that catches the failure mode T7 warns about: a header change that ships
+      # while warm-bytes.json and footprint.json still describe the pre-change deployment. It needs the browser
+      # installed above, so it sits here rather than beside verify:footprint, and it costs ~4 minutes.
+      - run: pnpm verify:warm-bytes
       # Ticket 14's fixture gate (DECISIONS/0023 P9). `verify:storage-fixtures` re-runs the generator — which
       # drives the real app in Chromium, through the real save path — and then fails on `git diff --exit-code`
       # over packages/pwa/tests/persistence/fixtures. That is what makes a migration test's "before" state
