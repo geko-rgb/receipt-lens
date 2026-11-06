@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "warm-bytes",
+  "protocol": "receipt-lens-warm-bytes/1",
+  "measuredAt": "2026-11-05T20:25:15.187Z",
+  "git": {
+    "revision": "8349728ccc87f98d98b6a68a64ada6282bec756a",
+    "shortRevision": "8349728",
+    "branch": "ticket/17-service-worker-offline-cache"
+  },
+  "claim": "F12's remedy, measured: what one warm visit costs over the wire now that the service worker's Cache API holds the runtime WASM.",
+  "deployment": {
+    "entry": "packages/pwa/dist/app/index.html — the built PWA shell, not the §9 M1 harness",
+    "scope": "PWA shell + runtime WASM precached by the service worker; model set verified and activated by DECISIONS/0027 W5",
+    "servedBy": "scripts/serve-measure-app.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, cache-control: no-store, exactly as the shipping server",
+    "threads": "1 ORT thread: serve-app.mjs sends no COOP/COEP, so crossOriginIsolated is false and resolveThreadCount returns 1. The harness's 4-thread measurement is a different deployment in that respect too.",
+    "notMeasured": [
+      "latency (cold/warm/repeat) — ticket 17b's full re-derivation",
+      "the per-asset table F1's footprint artifact publishes, for the same reason",
+      "a real network link, a real phone, peak memory"
+    ]
+  },
+  "byteCounting": "summed from the origin's own request log (DECISIONS/0012 F5), so a response the worker served never appears as a byte moved over the wire",
+  "samples": {
+    "n": 5,
+    "min": 6527,
+    "max": 6527,
+    "median": 6527,
+    "mean": 6527,
+    "samples": [
+      6527,
+      6527,
+      6527,
+      6527,
+      6527
+    ]
+  },
+  "coldVisit": {
+    "n": 5,
+    "min": 21719410,
+    "max": 21719410,
+    "median": 21719410,
+    "mean": 21719410,
+    "samples": [
+      21719410,
+      21719410,
+      21719410,
+      21719410,
+      21719410
+    ]
+  },
+  "requests": {
+    "cold": {
+      "n": 5,
+      "min": 22,
+      "max": 22,
+      "median": 22,
+      "mean": 22,
+      "samples": [
+        22,
+        22,
+        22,
+        22,
+        22
+      ]
+    },
+    "warm": {
+      "n": 5,
+      "min": 3,
+      "max": 3,
+      "median": 3,
+      "mean": 3,
+      "samples": [
+        3,
+        3,
+        3,
+        3,
+        3
+      ]
+    }
+  },
+  "warmPerAsset": {
+    "/assets/models/manifest.json": 2700,
+    "/sw.js": 2872,
+    "/assets/cache-names-BCswqTtv.js": 955
+  },
+  "warmPaths": [
+    "/assets/cache-names-BCswqTtv.js",
+    "/assets/models/manifest.json",
+    "/sw.js"
+  ],
+  "before": {
+    "artifact": "benchmarks/results/footprint.json (ticket 08, harness deployment)",
+    "secondVisitBytesOverTheWire": 14848852,
+    "redownloadedOnEveryVisit": [
+      "/ort/ort-wasm-simd-threaded.wasm"
+    ],
+    "findingResolvedBy": null
+  },
+  "reduction": {
+    "fromBytes": 14848852,
+    "toBytes": 6527,
+    "factor": 2275
+  }
+}
