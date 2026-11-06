@@ -196,6 +196,14 @@ drivers measure, 17c is pinned to regenerate `footprint.json` **and** `warm-byte
 to restate T3's cross-check against the new number in the same commit. A header change and the two
 measurements it moves must never land separately.
 
+**Ruled at checkpoint 1 (2026-11-06), and it sharpens the escape hatch rather than following it.** The
+hatch in W14.3 and the brief split the work as *17b = bytes, 17c = latency*. The working split is
+**17b = the whole re-derivation (bytes *and* latency, both against the current shipping deployment) and 17c
+= the `ETag` server change plus the regeneration of the two artifacts it moves.** That is the better cut for
+one reason: the header change is a change to what users receive, and 17b is a change to what is measured.
+Only measurement belongs in the measurement ticket. 17c is opened at
+`.scratch/receipt-lens-v1/issues/17c-etag-code-assets.md` with this condition written into it.
+
 ## T8 — The artifact's findings, and `verify:footprint` surviving the move
 
 - `findings[]` keeps `warm_not_zero_ort_wasm_exceeds_cache_entity_limit` with `detail`, `evidence`, `remedy`
@@ -215,8 +223,24 @@ measurements it moves must never land separately.
   silently reads 0 because the mechanism changed would be the loudest possible understatement.
 - The harness artifact needs **no new archive copy**: `footprint.json` on `main` was measured at
   `2026-11-04T06:25:09.912Z` at revision `16ae8de`, and `benchmarks/results/footprint-2026-11-04-16ae8de.json`
-  is already byte-identical to it. W14.1's obligation is discharged by ticket 08's own archiving; 17b keeps
-  that file, and the driver's existing dated-archive write produces this run's copy automatically.
+  is already byte-identical to it (`cmp`, 2026-11-06). W14.1's obligation is discharged by ticket 08's own
+  archiving; 17b keeps that file, and the driver's existing dated-archive write produces this run's copy
+  automatically. **Closed question: nobody is to re-open it.** A pre-17b session that "notices" the archive
+  step is missing will duplicate a committed file and break `verify:footprint`'s byte-identical rule.
+- **Discovered while pinning (2026-11-06), and it is 17b's to fix:**
+  `measure-warm-bytes.mjs`'s `previousWarmBytes()` reads the **canonical** `footprint.json` for its `before`
+  block — `totals.secondVisitBytesOverTheWire.median`, `totals.assetsRedownloadedOnEveryVisit`,
+  `findings[].resolvedBy` and `measurement.deployment.entry`. Every one of those four fields changes when
+  17b regenerates the table. The artifact would then say ticket 17 reduced warm bytes from **6,527 B to
+  6,527 B**, a **1.0×** reduction, with an empty `redownloadedOnEveryVisit` list, `resolvedBy: "ticket 17"`
+  as the *before* state, and a hard-coded label calling the file "ticket 08, harness deployment" when it is
+  the PWA's own measurement. Nothing fails: `verify:warm-bytes` only compares `samples.median`, so the
+  corruption surfaces the next time anyone regenerates that artifact — which is the worst possible time,
+  because it will look like ticket 17's fix had never happened. **Pin: 17b points the baseline at the
+  archived harness artifact** (`footprint-2026-11-04-16ae8de.json`), so `before` keeps naming the deployment
+  it is actually comparing against, and `warm-bytes.json`'s published 6,527 B and 2,275× do not move. This
+  is a *source of a number* fix, not a re-measurement, which keeps it inside 17b's scope; the measured number
+  itself is untouched and `measure-warm-bytes.mjs` remains the only writer of that artifact.
 - **`pnpm verify:footprint` survives, and only its inputs change.** It remains `render-footprint-table.mjs
   --check`: regenerate the README block from `footprint.json`, fail on drift, re-stat and re-hash every
   committed asset, re-hash the manifest, and require the dated archive to be byte-identical. The renderer
@@ -282,7 +306,8 @@ cross-check (T3/T5); warm bytes contain no WASM and no model bytes (T5 condition
 fail-loud messages fire on their fixtures, including `sw_not_controlling_at_warm` and a deliberate
 cross-check disagreement; `NOT_RETAINABLE` greps to zero in `benchmarks/scripts/`; the committed
 `footprint.json` findings carry `resolvedBy: "ticket 17"` and the new measured finding; `deployment.entry`
-and `deployment.scope` name the PWA; and the renderer emits no harness text.
+and `deployment.scope` name the PWA; the renderer emits no harness text; **and the `warm-bytes` baseline
+reads the archived harness artifact, not the canonical `footprint.json` it is about to invalidate** (T8).
 
 ## What this record does not decide
 
@@ -294,3 +319,11 @@ and `deployment.scope` name the PWA; and the renderer emits no harness text.
   17 take W14.3's hatch without leaving F12's remedy unevidenced, and it stays as the independent second
   measurement of the same number — which is what makes T3's cross-check meaningful rather than circular.
 - **Whether 17c fixes the header.** 17b's job is to hand it a measured, honest baseline and a named defect.
+- **`docs/adr/0002`'s present-tense sentence about the warm visit.** That ADR records, from ticket 08, that
+  "the runtime binary is not held in the HTTP cache at that size, so a warm visit is not free. Both are in
+  the table with their measured values." Once 17b regenerates the table, that sentence describes the
+  *superseded harness deployment* — the worker holds the binary, so the warm visit is close to free. It is
+  reported here rather than edited, because 17b's approved edit surface is `DECISIONS/0012` and
+  `DECISIONS/0027`, and an ADR's wording about what is free is ticket 18's claim surface. **Hand it to 18
+  with a dated amendment, not a rewrite**: the ADR's own history (withdrawing "~4.3 MB") is evidence and must
+  not be quietly improved.
