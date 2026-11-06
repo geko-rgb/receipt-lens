@@ -323,6 +323,27 @@ that moment: a published number outlives the session that measured it only while
 (DECISIONS/0008), so pruning the artifact means annotating this record that the table is no longer
 re-derivable rather than leaving an orphan check pointing at a deleted file.
 
+### Deletion carried out — 2026-11-06, ticket 17 cleanup
+
+`scripts/pwa-framework/` is deleted: probe sources, `verify-evidence.mjs`, its `package.json` + lockfile and
+`results/framework-evidence.json`, together, as ruled. The directory had survived three tickets past the
+merge that should have removed it, and ticket 17 found it only because a claim in `DECISIONS/0027` W1.1
+needed checking against the tree rather than asserting from memory — it was the one place in the repo that
+still named `workbox`/`vite-plugin-pwa`.
+
+**Therefore, as this section's own rule requires in plain words: the G1 table above is no longer
+re-derivable.** Every number in D1–D5 (first-paint bytes per candidate stack, the 39 KB framework baseline,
+the 20 MiB ceiling behaviour, the 15,011,240 B precache figure) now lives on only in this record and in the
+shell's own tests — `playwright/shell.spec.ts`, `playwright/smoke.spec.ts` and `packages/pwa/tests/`. Nothing
+in the repository can regenerate the artifact or re-run the four probe builds. That is the accepted cost of
+the ruling, not an oversight: `DECISIONS/0008`'s principle is that a published number outlives its session
+*while its artifact exists*, and the owner decided in 2026-11-04 that keeping a permanent scaffold was worse.
+A future revision that wants the table re-derivable would have to rebuild the probe, and should say so here
+rather than discover it.
+
+G1 itself is unaffected: the decision, the criteria, and the shipped consequences (Svelte 5 + Vite 8, the
+lazy boundary, the hand-written router) are all tested in the suite that replaced the probe.
+
 ## What this record does not decide
 
 - **The IndexedDB schema and the precache plan as design** — ticket 10a's design note

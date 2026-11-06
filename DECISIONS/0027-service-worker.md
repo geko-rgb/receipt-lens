@@ -191,14 +191,32 @@ workspace — not in `pnpm-lock.yaml` (checked: zero matches for `workbox` or `v
 shipped package's dependencies, and not in `packages/pwa/vite.config.ts`. `pnpm build` failing on an incomplete
 precache is the setting that replaces it.
 
-**Stated precisely, because a nearby claim is not true.** Workbox does survive in this checkout, in exactly one
-place: `scripts/pwa-framework/package.json`, the self-contained ticket 10a G1 probe whose `node_modules` are
-git-ignored and which the workspace never builds. `HANDOFF` records an owner ruling of 2026-11-04 — *"Delete
-`scripts/pwa-framework/` after 10a merges … Do not leave `verify-evidence.mjs` pointing at a file that is
-gone"* — and that deletion was never carried out, so 38 probe files are still tracked three tickets after the
-merge that should have removed them. It is not ticket 17's to delete unasked, and it does not touch the shipped
-dependency tree, but a reader of "Workbox is absent" should read *absent from what the app builds and installs*,
-and the probe is an outstanding owner decision rather than a resolved one.
+The claim is now the broad one, because the cleanup made it true:
+
+> **The repository contains no Workbox reference.** `scripts/pwa-framework/` was deleted in this ticket's
+> cleanup (HANDOFF recorded the ruling on 2026-11-04; the deletion was missed for three tickets and is now
+> closed). W1.0's hand-written worker is therefore the only service-worker implementation in the tree, and
+> the absence of `vite-plugin-pwa` / `workbox-*` is verifiable with a repo-wide grep, not just a
+> shipped-package check.
+
+Verifiable, in the literal sense, and stated as the grep actually reports it. Case-insensitive, excluding
+`node_modules`, `.git` and `dist`:
+
+```text
+$ grep -rni "workbox\|vite-plugin-pwa" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist .
+```
+
+every remaining match is prose or a comment *about* the decision — `DECISIONS/0017`, this record,
+`docs/pwa-design.md`, `HANDOFF.md`, the two ticket files and `.scratch/.../notes/whatnext.md`, plus three
+lines in `packages/pwa/src/precache.ts` and `packages/pwa/vite.config.ts` that name Workbox only to explain
+which ceiling the completeness guard replaced. There is no import, no package, no config key and no lockfile
+entry: `grep -c workbox pnpm-lock.yaml` is `0`, `ls node_modules/.pnpm | grep -ci "workbox\|vite-plugin-pwa"`
+is `0`, no `workbox*` directory exists in the tree, and `packages/pwa`'s dependencies remain exactly
+`@receipt-lens/core` and `fflate`. A case-*sensitive* grep is even narrower and misses those three comment
+lines entirely, which is why the insensitive form is the one quoted — the stronger claim should be checked
+with the wider net, not the tidier one.
+
+`pnpm build` failing on an incomplete precache is the setting that replaces the ceiling.
 
 ### W1.2 The ruling (2026-11-05, checkpoint 2): hand-written worker, authorized as a scope change
 
