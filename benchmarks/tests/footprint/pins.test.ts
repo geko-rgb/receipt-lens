@@ -155,8 +155,13 @@ const pinnedModels = (): Map<string, number> =>
     [ASSETS.dict, 34_063],
   ]);
 
+/** Bytes a correctly-built PWA cold visit actually serves, so the pinned-model check is not tripped by the
+ *  fixture itself — the driver's job is to reject a *deployment* that moves, not a test that typed 100 KB. */
+const coldBytes = (p: string): number =>
+  pinnedModels().get(p) ?? (p === ASSETS.modelManifest ? WARM_MODEL_MANIFEST_BYTES : p === ASSETS.runtimeWasm ? 14_848_852 : 100_000);
+
 const coldSample = (overrides: Partial<ColdSample> = {}): ColdSample => ({
-  wire: COLD_PATHS.map((p) => entry(p, p === ASSETS.runtimeWasm ? 14_848_852 : 100_000)),
+  wire: COLD_PATHS.map((p) => entry(p, coldBytes(p))),
   origins: [ORIGIN],
   readySignalSeen: true,
   pinnedModelBytes: pinnedModels(),
@@ -236,17 +241,17 @@ describe("T2 — cold readiness is the W5 step-6 pointer, not a timing hook", ()
   });
 
   it("rejects a cold visit that saw a 304, because the context was not empty", () => {
-    const wire = COLD_PATHS.map((p) => entry(p)).concat(entry(ASSETS.sw, 0, 304));
+    const wire = COLD_PATHS.map((p) => entry(p, coldBytes(p))).concat(entry(ASSETS.sw, 0, 304));
     expect(fired(() => assertColdSample(coldSample({ wire }))).code).toBe("cold_conditional_response");
   });
 
   it("rejects a 200 that carried no body", () => {
-    const wire = COLD_PATHS.map((p) => (p === ASSETS.rec ? entry(p, 0) : entry(p)));
+    const wire = COLD_PATHS.map((p) => (p === ASSETS.rec ? entry(p, 0) : entry(p, coldBytes(p))));
     expect(fired(() => assertColdSample(coldSample({ wire }))).code).toBe("cold_zero_body");
   });
 
   it("rejects served model bytes that differ from the committed manifest, naming both", () => {
-    const wire = COLD_PATHS.map((p) => (p === ASSETS.det ? entry(p, 1_780_591) : entry(p)));
+    const wire = COLD_PATHS.map((p) => (p === ASSETS.det ? entry(p, 1_780_591) : entry(p, coldBytes(p))));
     const violation = fired(() => assertColdSample(coldSample({ wire })));
     expect(violation.code).toBe("cold_model_bytes_moved");
     expect(violation.message).toContain("1780590");
@@ -260,7 +265,7 @@ describe("T2 — cold readiness is the W5 step-6 pointer, not a timing hook", ()
   });
 
   it("rejects an interrupted download rather than summing it as a completed one", () => {
-    const wire = COLD_PATHS.map((p) => entry(p, 1_000, 200, p !== ASSETS.runtimeWasm));
+    const wire = COLD_PATHS.map((p) => entry(p, coldBytes(p), 200, p !== ASSETS.runtimeWasm));
     expect(fired(() => assertColdSample(coldSample({ wire }))).code).toBe("download_incomplete");
   });
 
@@ -439,7 +444,7 @@ describe("T6 — NOT_RETAINABLE is deleted in the commit that moves the deployme
 
 describe("T7 — the ETag defect is declared and owned by 17c, not fixed here", () => {
   it("names the 955 B module chunk, why it is there, and who fixes it", () => {
-    const defect = warmModuleChunkDefect();
+    const defect = warmModuleChunkDefect(WARM_MODULE_CHUNK_BYTES);
     expect(defect.findingCode).toBe("warm_worker_module_chunk_refetched");
     expect(defect.bytes).toBe(WARM_MODULE_CHUNK_BYTES);
     expect(defect.reason).toMatch(/intercept|own script|imports/i);
@@ -477,7 +482,7 @@ describe("T8 — findings close honestly, and cacheHeldBytes replaces retainedCa
       previousFinding: previous,
       warmBytes: WARM_BYTES,
       warmPaths: warmWire().map((e) => e.path),
-      moduleChunk: warmModuleChunkDefect(),
+      moduleChunk: warmModuleChunkDefect(WARM_MODULE_CHUNK_BYTES),
       measuredAt: "2026-11-06T00:00:00.000Z",
     });
     const closed = findings.find((f) => f.code === previous.code)!;
@@ -493,7 +498,7 @@ describe("T8 — findings close honestly, and cacheHeldBytes replaces retainedCa
       previousFinding: previous,
       warmBytes: WARM_BYTES,
       warmPaths: warmWire().map((e) => e.path),
-      moduleChunk: warmModuleChunkDefect(),
+      moduleChunk: warmModuleChunkDefect(WARM_MODULE_CHUNK_BYTES),
       measuredAt: "2026-11-06T00:00:00.000Z",
     });
     const added = findings.find((f) => f.code === "warm_visit_served_by_service_worker")!;
