@@ -56,6 +56,17 @@ unattributable — the exact error W14.1's dated archive exists to prevent.
 3. **The measurement.** Cold bytes are expected to fall by ~253 KB to 21,466,286 B, and warm is unaffected. Both
    artifacts regenerate in this ticket's commit exactly as 17c's do, with the ±0 cross-check intact.
 
+## Scope may grow, depending on what 17c measures
+
+Ticket 17c adds a content `ETag` + `no-cache` to code assets. If 17c's warm number does **not** fall — i.e. the
+browser never sends `If-None-Match` for the worker's module import — the explanation is this ticket's mechanism:
+`fetch(entry.url, { cache: "reload" })` bypasses the HTTP cache, so precaching never populates a copy that could
+be revalidated. **In that case 17e owns both symptoms of one mechanism**: the cold visit fetching the shell
+twice, and the warm visit being unimprovable by an origin-side validator. 17c records the finding and points
+here; it does not try to fix it, because the fix is a change to what the worker does at install.
+
+If 17c's number *does* fall, this ticket keeps its original, narrower scope: the cold repetition only.
+
 ## Work items
 
 - [ ] Decide (1) and (2) in a record — `DECISIONS/0027` W2/W6/W13.1 and `DECISIONS/0012` F7 own the relevant

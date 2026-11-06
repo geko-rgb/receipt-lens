@@ -6,13 +6,11 @@ visible effect is that the warm visit stops paying for the worker's 955 B module
 numbers move.
 
 **Blocked by:** 17b (re-derive the footprint on the PWA deployment)
-**Blocks:** *potentially* 18 (privacy audit and claims) — this needs an owner's sequencing call, not an
-assumption. 17b's merge unblocks 18 against the current honest table. 17c would then move one published number
-(a warm visit from 6,527 B to about 5,572 B), and any 18 claim quoting the warm figure would have to be
-re-cited. Two coherent options: (a) 18 waits for 17c so its claims are written against the final bytes, or
-(b) 18 proceeds now and 17c is a deliberate, recorded regeneration of a table 18 already cites. **The
-recommendation is (a) only if 17c lands quickly — it is a small change — otherwise 18's privacy audit is the
-gating work and should not wait on 955 bytes.**
+**Blocks:** **18** (privacy audit and claims) — ruled at checkpoint 1, 2026-11-06. The earlier "potentially"
+hinged on 17c moving one number by ~955 B; the measured range is wider than that (6,527 / 5,572 / 2,700 B, and
+6,527 is a live possibility if the worker's `cache: "reload"` precache means no HTTP-cached copy exists to
+revalidate). Any of those changes what the README must cite, so 18's per-claim evidence is written against the
+post-17c table. 45 minutes of 17c is cheap; README drift is expensive.
 **Status:** ready-for-agent
 **Effort:** ~2 h · **Roadmap:** workstream 3A · **Milestone:** M3
 
@@ -48,9 +46,14 @@ They are coupled by a cross-check 17b establishes (`DECISIONS/0028` T3):
    on the spot.
 2. `verify:footprint` additionally compares the two artifacts, so CI catches the same drift without needing a
    browser.
-3. The expected number after the change is **6,527 − 955 = 5,572 B**, and 17c must *measure* that rather than
-   publish it: if the browser then caches `/sw.js` too, or the probe cost changes, the artifact says so and
-   `DECISIONS/0028` T3 is amended in a record before the number moves.
+3. **The expected number is not 5,572 B, and the arithmetic here was wrong.** It read
+   `6,527 − 955 + ~200 B of 304 headers`. `DECISIONS/0012` F7 excludes header bytes from every total and both
+   drivers sum `bodyBytes` at the origin, so a `304` costs **0 B** — the outcomes are discrete:
+   **6,527 B** (neither revalidates: the worker's `cache: "reload"` precache never populates the HTTP cache, so
+   no `If-None-Match` is ever sent), **5,572 B** (module chunk revalidates, `/sw.js` still downloads), or
+   **2,700 B** (both revalidate, leaving only W6's manifest probe). 17c measures which one it is and publishes
+   that, amending `DECISIONS/0028` T3 in the same commit if the answer differs from the ticket file's
+   prediction. See `DECISIONS/0029` P4.
 
 The one thing 17c must not do is ship the header and leave `warm-bytes.json` and `footprint.json` describing
 the pre-change deployment. That is the state 17b exists to leave behind, and a ticket that recreates it in
@@ -89,3 +92,10 @@ measurement only ("not a change to the PWA, service worker, or model tier"), and
 a change to what users receive. Separating the shipping change from the measurement change is also what keeps
 `DECISIONS/0028` T3's ±0 cross-check meaningful — one variable per ticket, which is the rule
 `DECISIONS/0012` F3 is built on.
+
+**2026-11-06 — checkpoint 1 rulings folded in.** Blocker A (the unwired harness baseline in
+`measure-warm-bytes.mjs`) lands in this ticket's commit 1, not a separate ticket. The null-result branch is
+pre-authorized with its mechanism named (`DECISIONS/0029` P5). `no-cache` is restricted to code and metadata;
+`/assets/models/*.onnx`, `/assets/models/*.txt` and `/assets/ort-wasm-simd-threaded-*.wasm` keep `no-store`, so
+this ticket never doubles a 21 MB binary footprint to optimize 955 bytes. `17e` now exists as the owner of the
+duplicate-fetch/copy-bypass mechanism whether or not 17c's number moves.
