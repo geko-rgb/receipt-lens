@@ -128,6 +128,23 @@ anything a service worker would cache (there is no service worker yet — ticket
 assets answered `304` on the warm visit; it is not a claim about IndexedDB, the Cache API, or anything
 ticket 17 will add.
 
+**Amendment, 2026-11-06 (ticket 17b, `DECISIONS/0028` T8): `retainedCacheBytes` is renamed
+`cacheHeldBytes`, and "cache" now means the active caches.** The sentence above is retained because it is
+what ticket 08 measured and how it defined the word, but the definition is tied to a mechanism the shipped
+deployment no longer uses. `scripts/serve-measure-app.mjs` answers `cache-control: no-store` with no `ETag`
+(W17.3), so a warm visit on the PWA answers **zero `304`s** — under F7's original wording the field computes
+to 0 and the table would publish "0 bytes retained" about a deployment whose worker holds ~21.7 MB. That is
+not a smaller number, it is an inverted claim, and publishing it would be the same class of dishonesty as
+the "~4.3 MB" this record exists to end.
+
+The amended form: **`totals.cacheHeldBytes` is the sum of the bytes the active caches hold — the shell
+precache manifest plus the verified, activated model set — which is what a reader actually wants to know
+when they ask what the second visit will not have to download.** It is derived from the built worker's
+embedded precache manifest and `assets/models/manifest.json`, not from response statuses, and
+`verify:footprint` re-derives it from both. The first sentence of this section is amended the same way:
+"cache" in a post-17 artifact means the Cache API (`DECISIONS/0027` W3), and the HTTP cache is not part of
+this deployment's story — F12's whole finding was that it cannot be.
+
 ## F8 — Phases, and which are required
 
 | phase | required | definition |
@@ -167,6 +184,36 @@ is not allowed to publish a table with a silent hole in it.
 14. `pnpm verify:footprint`: README drift, a missing or non-byte-identical archive, a committed asset
     whose size or SHA-256 moved, a manifest hash that no longer matches the measured one, or a
     provider-reported asset sum that no longer matches the table.
+
+**Amendment, 2026-11-06 (ticket 17b, `DECISIONS/0028` T5): conditions 2, 3, 4 and 13 do not survive a
+service worker unchanged, and three conditions are added.** The list above is kept verbatim as the record of
+what ticket 08 ran against the harness; a deployment with no worker and an origin that answers `304` is not
+the deployment that ships. Post-17b:
+
+- **2 (full-body warm re-download outside the declared set)** — the declared set is gone (`NOT_RETAINABLE`
+  deleted with the deployment move, F12's designed trigger arriving on schedule). The check is now capability
+  shaped, not exception shaped: **no `.wasm` and no model byte (`.onnx`, dictionary) may appear in the warm
+  origin log at all**, and the warm total must equal the committed `warm-bytes.json` median exactly. An
+  unexpected asset moves the total, so the total is the guard — no list to go stale.
+- **3 ("warm revalidates nothing and reads no cache" fails)** — **inverted.** A `no-store` origin answers no
+  304s and a working worker empties the origin log, so the old failure condition is the new pass condition.
+  The pass test is *"no network request served the body"*: absent from the warm origin log **and**
+  `transferSize === 0` page-side. Recorded here rather than in a script edit precisely because inverting a
+  fail-loud silently would look like a green run measuring the opposite of what it claims.
+- **1 and 4** — re-expressed over the origin log: *for every asset the origin logged on a cold visit the
+  status is `200` with a non-zero body*. A worker-served asset the origin never saw is not a zero-body 200;
+  it is no origin response, and the old wording could fire on a deployment working correctly.
+- **13 (declared non-retainable is now retained)** — deleted with the declaration it guarded.
+- **new: `sw_not_controlling_at_warm`** — `navigator.serviceWorker.controller` must be set before the warm
+  log window opens, or the warm number measures pre-17 behaviour.
+- **new: `warm_cross_check_disagrees`** — `measure-footprint.mjs` and `measure-warm-bytes.mjs` count the same
+  bytes at the same origin; if their warm medians differ, one is not measuring what it says, the run fails,
+  and the delta is reported. Neither driver may write the other's artifact.
+- **new: `uncatalogued_cold_asset`** — every path the cold visit serves must match a `ROLES` row; a table
+  with an unnamed row in it is not a measured footprint.
+
+Conditions 5–8, 9–12 and 14 carry over as written, with condition 8 read from the DOM (a draft that renders
+the `zero-items-state` produced no usable parse) because the PWA exposes no `window.__receiptLensHarness`.
 
 ## F10 — The one measured exception: the warm visit is not zero bytes, and cannot be
 

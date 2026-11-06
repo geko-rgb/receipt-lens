@@ -1,46 +1,76 @@
 #!/usr/bin/env node
 /**
- * Ticket 08 — measure the footprint, do not claim it.
+ * Ticket 17b — re-derive the measured footprint on the deployment users actually receive.
  *
- *   node benchmarks/scripts/measure-footprint.mjs [--samples 5] [--image path]
+ *   node benchmarks/scripts/measure-footprint.mjs [--samples 5] [--dry-run] [--debug]
  *
- * What is measured, in one sentence: what a user's browser must download and keep, and how
- * long it takes, to get one receipt image through the pipeline on the only browser deployment
- * this repo has today — the PROJECT(1).md §9 M1 harness page.
+ * What changed here, in one sentence: this file used to measure the §9 M1 inference scaffold — its page and its
+ * own dev server — because on the day `DECISIONS/0012` F1 pinned that choice it was the only browser deployment
+ * in the repo. Tickets 10a, 10 and 17 merged, so F11 trigger 1 expired that measurement, and
+ * `DECISIONS/0028` is the pin set for replacing it. This now measures `packages/pwa/dist/app` served by
+ * `scripts/serve-measure-app.mjs`, driven through the real capture UI, with a service worker installed.
  *
- * Each sample is one fresh browser context against one fresh server instance, in three phases:
- *   cold    first visit, empty cache;
- *   warm    same context, page reloaded — every asset the HTTP cache retains answers 304 with no
- *           body; an asset larger than the browser's cache-entity limit is re-downloaded in full,
- *           which is published as the finding it is rather than assumed away (DECISIONS/0012 F10);
- *   repeat  second receipt in the same page — WASM and both inference sessions already in memory.
- * Bytes are counted by the origin that served them (harness/serve.mjs request log), because the
- * WebAssembly and worker loads never appear in the page's own resource timings. Latency is
- * taken inside the page against `performance.timeOrigin`, so no Playwright round-trip is hidden
- * in a published number — the one it does carry is reported as `harnessLatencyMs`.
+ * Three consequences, each of which is a published change rather than an implementation detail:
  *
- * Output: `benchmarks/results/footprint.json` (canonical, what the table generator reads) and the
- * archive copy `footprint-<date>-<git-sha>.json` named after the revision it was measured from.
- * Both are committed. Nothing in the README is typed by hand.
+ * 1. **The worker is the cache.** The origin answers `cache-control: no-store` with no `ETag`, so no visit —
+ *    cold or warm — ever sees a `304`. F9's condition 3 is therefore inverted (T5): warm liveness is proven by
+ *    *nothing reaching the origin* plus `transferSize === 0` page-side, not by conditional revalidation. The
+ *    declared non-retainable set that guarded the scaffold's 14.85 MB WASM re-download is deleted in this
+ *    commit, because this is the commit that moved the measurement to the deployment where the declaration
+ *    stopped being true (T6, F12's designed trigger arriving on schedule).
+ * 2. **There is no timing hook in what ships.** `window.__receiptLensHarness` does not exist in the PWA bundle
+ *    ticket 17 refused to add a timing hook to it (W15, following `DECISIONS/0023` S1). So `appReadyMs` is the
+ *    `load` event and `firstResultMs` is navigation start to the DOM state `capture.spec.ts` already treats as
+ *    proof a draft was produced, and `ocrReadyMs`, `modelLoadMs` and `inferenceMs` are published as **not
+ *    separable** with the reason where F1 put the harness-bundle caveat (T4).
+ * 3. **The warm number has a witness.** `measure-warm-bytes.mjs` counts the same bytes at the same origin, so
+ *    this run must land on its published median at ±0. If it does not, the run fails and prints the delta and
+ *    both path sets — and neither artifact gets rewritten to flatter the other (T3). That check runs per
+ *    sample, so a disagreement costs seconds, not the whole measurement.
+ *
+ * Samples: a fresh **browser** per sample, not merely a fresh context. Ticket 17 measured why
+ * (`measure-warm-bytes.mjs`:65) — Cache API storage is accounted per browser process, and several contexts
+ * each holding ~21 MB evicted each other's model cache, which then measured "the worker is not serving" when
+ * the truth was "the worker's cache is gone".
+ *
+ * Output: `benchmarks/results/footprint.json` plus the dated archive the run was measured from, both committed,
+ * and the README table regenerated from them by `render-footprint-table.mjs`. Nothing in the README is typed
+ * by hand. `--dry-run` measures and reports without writing, which is how the ±0 cross-check is checked before
+ * spending the full 5 × 2 classes.
  */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
-import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { chromium } from "@playwright/test";
-import { startServer } from "../../harness/serve.mjs";
+import { startMeasureServer } from "../../scripts/serve-measure-app.mjs";
+import {
+  assertColdSample,
+  assertRepeatSample,
+  assertWarmCrossCheck,
+  assertWarmSample,
+  buildFindings,
+  cacheHeldBytes,
+  classifyRole,
+  classes,
+  coldReady,
+  deployment,
+  domAnchors,
+  harnessBaseline,
+  latencyBases,
+  sequencing,
+  warmModuleChunkDefect,
+  FootprintFailLoud,
+} from "../dist/footprint/rules.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "..", "..");
 const resultsDir = path.join(repoRoot, "benchmarks", "results");
-const PROTOCOL = "receipt-lens-footprint/1";
+const appDir = path.join(repoRoot, "packages/pwa", "dist", "app");
+const PROTOCOL = "receipt-lens-footprint/2";
 const SCHEMA_VERSION = "1.0";
-const PHASE_LABEL = {
-  cold: "Cold start — first visit, empty cache",
-  warm: "Warm visit — same browser, assets revalidated from cache",
-  repeat: "Second receipt — same page, sessions already in memory",
-};
 
 const argv = process.argv.slice(2);
 const flagValue = (name, fallback) => {
@@ -48,97 +78,46 @@ const flagValue = (name, fallback) => {
   return index === -1 ? fallback : argv[index + 1];
 };
 const samplesPerState = Number(flagValue("samples", "5"));
+const dryRun = argv.includes("--dry-run");
 const debug = argv.includes("--debug");
 const started = Date.now();
 const trace = (message) => {
   if (debug) console.log(`[+${((Date.now() - started) / 1000).toFixed(1)}s] ${message}`);
 };
-const imagePath = path.resolve(
-  flagValue("image", path.join(repoRoot, "benchmarks/datasets/raw/sroie/assets/ex.jpg")),
-);
 if (!Number.isInteger(samplesPerState) || samplesPerState < 2) {
   throw new Error(`--samples must be an integer >= 2, got ${samplesPerState}`);
 }
 
 /**
- * Declared classes. Both are this machine and this browser build; the second is an emulated CPU
- * throttle, which is a stated proxy for slower hardware and explicitly NOT a phone. A real device
- * class needs a real device; inventing one here would be exactly the folklore this ticket exists
- * to end.
+ * Windows and budgets. The two settle values are copied from `measure-warm-bytes.mjs` deliberately: the warm
+ * total this run publishes has to be the same quantity that artifact already published, and a window of a
+ * different length is a different quantity (T3).
  */
-const CLASSES = [
-  {
-    id: "desktop-chromium-unthrottled",
-    label: "Desktop Chromium (headless), this machine at native speed",
-    cpuThrottleRate: 1,
-    declaredAs: "physical desktop machine, loopback origin, no bandwidth throttling, no network emulation",
-  },
-  {
-    id: "desktop-chromium-cpu4x",
-    label: "Desktop Chromium (headless), 4x emulated CPU throttle",
-    cpuThrottleRate: 4,
-    declaredAs:
-      "the same physical machine with Chromium's Emulation.setCPUThrottlingRate at 4x (the Lighthouse slow-4x convention). Emulation, not a device: it slows script, WASM compile and inference, and says nothing about a phone's memory, GPU or network stack.",
-  },
-];
+const CONTROLLER_TIMEOUT_MS = 60_000;
+const IDLE_TIMEOUT_MS = 240_000;
+const BUSY_APPEAR_TIMEOUT_MS = 20_000;
+const SETTLE_BEFORE_WARM_MS = 6_000;
+const SETTLE_BEFORE_WARM_LOG_MS = 9_000;
+const SETTLE_BEFORE_REPEAT_LOG_MS = 3_000;
 
-/**
- * The rows the ticket requires. `required` entries must appear in every cold sample, which is what
- * stops a silent shape change (an ORT upgrade that swaps the WASM build, a renamed asset) from
- * publishing a table with a missing row.
- */
-const ROLES = [
-  { test: (url) => url === "/" || url === "/index.html", role: "Harness page (HTML)", category: "app", required: true },
-  { test: (url) => url === "/dist/main.js", role: "Application script (core + runtime JS glue)", category: "app", required: true },
-  { test: (url) => url === "/assets/models/manifest.json", role: "Model manifest", category: "model", required: true },
-  { test: (url) => url.endsWith("/PP-OCRv6_tiny_det.onnx"), role: "Detection model (PP-OCRv6 Tiny)", category: "model", required: true },
-  { test: (url) => url.endsWith("/PP-OCRv6_tiny_rec.onnx"), role: "Recognition model (PP-OCRv6 Tiny)", category: "model", required: true },
-  { test: (url) => url.endsWith("/PP-OCRv6_tiny_rec.txt"), role: "Recognition dictionary", category: "model", required: true },
-  { test: (url) => url.startsWith("/ort/") && url.endsWith(".wasm"), role: "Inference runtime WASM", category: "runtime", required: true },
-  { test: (url) => url.startsWith("/ort/"), role: "Inference runtime JS loader", category: "runtime", required: false },
-];
-
-/**
- * Assets this deployment's HTTP cache provably does not retain, with the measured reason. This is an
- * exception list the warm phase verifies against, not a permission slip: anything outside it that
- * arrives with a full body on a warm visit still fails the run, and an entry here that starts being
- * retained fails the run too (the declaration would be stale). DECISIONS/0012 F10 has the evidence.
- */
-const NOT_RETAINABLE = new Map([
-  [
-    "/ort/ort-wasm-simd-threaded.wasm",
-    "larger than this Chromium build's HTTP-cache entity limit — it answers 200 with its full body on every warm visit while all seven smaller assets answer 304 (DECISIONS/0012 F10)",
-  ],
-]);
-
-const classify = (url) => ROLES.find((entry) => entry.test(url)) ?? { role: `uncatalogued ${url}`, category: "other", required: false };
+/** The receipt this run measures inference against — see `declaredImage` below for why it is drawn, not loaded. */
+const RECEIPT_LINES = ["RECEIPT", "COFFEE 4.50", "TOTAL 100.00", "CASH 100.00"];
 
 const git = (args) => execFileSync("git", args, { cwd: repoRoot, encoding: "utf8" }).trim();
 const gitInfo = {
   revision: git(["rev-parse", "HEAD"]),
   shortRevision: git(["rev-parse", "--short", "HEAD"]),
   branch: git(["rev-parse", "--abbrev-ref", "HEAD"]),
-  dirtyPaths: git(["status", "--porcelain"]).split("\n").filter((line) => line.trim() !== "").map((line) => line.slice(3)),
+  // Ask for the file lists directly rather than parsing `status --porcelain` columns: slicing a fixed offset
+  // out of a formatted line is how a first draft of this field published "ECISIONS/0028-…", a path that does
+  // not exist, because the line it was cut from did not have the shape the offset assumed.
+  dirtyPaths: [
+    ...git(["diff", "--name-only", "HEAD"]).split("\n"),
+    ...git(["ls-files", "--others", "--exclude-standard"]).split("\n"),
+  ]
+    .map((line) => line.trim())
+    .filter((line) => line !== ""),
 };
-
-const readFileOf = async (file) => readFile(file);
-const byteLengthOf = async (file) => (await readFileOf(file)).byteLength;
-const sha256Of = async (file) => createHash("sha256").update(await readFileOf(file)).digest("hex");
-
-/** The committed model bytes: the manifest the provider verifies against is the same record. */
-const modelManifestPath = path.join(repoRoot, "assets/models/manifest.json");
-const modelManifest = JSON.parse(await readFile(modelManifestPath, "utf8"));
-const pinnedModelBytes = new Map(
-  modelManifest.assets.map((asset) => [`/assets/models/${asset.file}`, { bytes: asset.bytes, sha256: asset.sha256 }]),
-);
-
-/** onnxruntime-web is a dependency of packages/core, so it resolves from there (as serve.mjs does). */
-const coreRequire = createRequire(path.join(repoRoot, "packages/core/package.json"));
-const ortDistDir = path.dirname(coreRequire.resolve("onnxruntime-web/wasm"));
-const ortPackage = JSON.parse(await readFile(path.join(ortDistDir, "..", "package.json"), "utf8"));
-
-const imageBytes = await readFile(imagePath);
-const appBundleFile = "harness/dist/main.js";
 
 const round = (value) => Math.round(value * 10) / 10;
 const medianOf = (values) => {
@@ -159,399 +138,501 @@ function summarize(values) {
   };
 }
 
-/**
- * One phase: hand the image to the page and wait for a *new* result object.
- *
- * Every call here is short-lived. A pending `page.evaluate` whose promise resolves inside the
- * browser never returns to the driver here (the poll loop stops running once the page is busy),
- * which stalls the whole sample; `waitForFunction` is the primitive that survives it. The marker
- * is stashed in the page rather than passed in, because `harness.last` from the previous phase is
- * a live object that cannot cross the boundary — and comparing against a serialized `null` would
- * make the repeat phase return the warm run a second time.
- */
-async function runPhase(page, file) {
-  const startedAtMs = await page.evaluate(() => {
-    window.__footprintMarker = window.__receiptLensHarness?.last;
-    return performance.now();
-  });
-  await page.setInputFiles("#file", file);
-  trace("  image handed over; waiting for a new result object");
-  await page.waitForFunction(
-    () => {
-      const harness = window.__receiptLensHarness;
-      if (!harness) return true;
-      return Boolean(harness.last && harness.last !== window.__footprintMarker) || Boolean(harness.error);
-    },
-    undefined,
-    { timeout: 120_000, polling: "raf" },
-  );
-  const run = await page.evaluate((started) => {
-    const harness = window.__receiptLensHarness;
-    if (harness?.error) {
-      throw new Error(`harness reported ${harness.error.code ?? harness.error.name}: ${harness.error.message}`);
-    }
-    const last = harness?.last;
-    if (!last || last === window.__footprintMarker) {
-      throw new Error("the served page never exposed a new harness result — wrong build?");
-    }
-    const tenth = (value) => Math.round(value * 10) / 10;
-    return {
-      detectedAtMs: performance.now(),
-      startedAtMs: started,
-      timings: last.timings,
-      assets: last.assets,
-      session: last.session,
-      executionProvider: last.executionProvider,
-      provider: last.result.provider,
-      version: last.result.version,
-      lines: last.result.lines.length,
-      words: last.result.lines.reduce((count, line) => count + line.words.length, 0),
-      imageSize: last.result.imageSize,
-      crossOriginIsolated: globalThis.crossOriginIsolated === true,
-      userAgent: navigator.userAgent,
-      navigation: performance
-        .getEntriesByType("navigation")
-        .map((entry) => ({
-          responseEndMs: tenth(entry.responseEnd),
-          domContentLoadedMs: tenth(entry.domContentLoadedEventEnd),
-          loadEventMs: tenth(entry.loadEventEnd),
-        }))[0],
-      resources: performance.getEntriesByType("resource").map((entry) => ({
-        url: new URL(entry.name, location.href).pathname,
-        transferBytes: entry.transferSize,
-        encodedBytes: entry.encodedBodySize,
-        decodedBytes: entry.decodedBodySize,
-        servedWithoutValidation: entry.transferSize === 0 && entry.encodedBodySize > 0,
-      })),
-    };
-  }, startedAtMs);
-  trace(`  run finished: load ${Math.round(run.timings.loadMs)} ms, inference ${Math.round(run.timings.inferenceMs)} ms`);
-  return run;
+/* ------------------------------------------------------------------ committed inputs */
+
+if (!existsSync(path.join(appDir, "sw.js"))) {
+  throw new Error("missing packages/pwa/dist/app/sw.js — run `pnpm build` first. A footprint measurement without a service worker measures the pre-17 deployment.");
 }
 
-async function measureSample(browser, cpuThrottleRate) {
-  const server = await startServer(0, { cacheMode: "validate" });
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
-  const page = await context.newPage();
-  const consoleErrors = [];
-  const origins = new Set();
-  page.on("console", (message) => {
-    if (message.type() === "error") consoleErrors.push(message.text());
+/** F9.10: the model bytes a cold visit must serve, as the committed manifest pins them. */
+if (!existsSync(path.join(repoRoot, "assets/models/manifest.json"))) {
+  throw new Error("assets/models/manifest.json is missing — the provider verifies against it, so so must this measurement");
+}
+const modelManifest = JSON.parse(readFileSync(path.join(repoRoot, "assets/models/manifest.json"), "utf8"));
+const pinnedModelBytes = new Map(
+  modelManifest.assets.map((asset) => [`/assets/models/${asset.file}`, asset.bytes]),
+);
+const modelManifestHash = createHash("sha256").update(readFileSync(path.join(repoRoot, "assets/models/manifest.json"))).digest("hex");
+
+/** T3's witness, read from the committed artifact rather than restated from memory. */
+const warmBytesArtifact = path.join(resultsDir, "warm-bytes.json");
+if (!existsSync(warmBytesArtifact)) {
+  throw new Error("benchmarks/results/warm-bytes.json is missing — this run cross-checks its warm total against it (DECISIONS/0028 T3)");
+}
+const warmBytesPublished = JSON.parse(readFileSync(warmBytesArtifact, "utf8"));
+
+/**
+ * The worker's own precache list, read out of the built worker. `DECISIONS/0027` W1.1 makes the build emit it
+ * and fail if the list is incomplete, so the built worker is the authoritative statement of what the shell
+ * cache holds — and `totals.cacheHeldBytes` is derived from it rather than observed from a live cache (T8).
+ */
+function readPrecacheManifest() {
+  const source = readFileSync(path.join(appDir, "sw.js"), "utf8");
+  const match = source.match(/=\s*(\[\{"url":.*?\}\])/s);
+  if (match === null) throw new Error("could not find the precache manifest inside packages/pwa/dist/app/sw.js");
+  const entries = JSON.parse(match[1]);
+  return entries.map((entry) => {
+    const file = path.join(appDir, entry.url === "/" ? "index.html" : entry.url.replace(/^\//, ""));
+    if (!existsSync(file)) throw new Error(`the built worker precaches ${entry.url} but packages/pwa/dist/app does not contain it`);
+    return { url: entry.url, bytes: statSync(file).size, revision: entry.revision };
   });
-  page.on("pageerror", (error) => consoleErrors.push(String(error)));
+}
+const precacheManifest = readPrecacheManifest();
+
+/** onnxruntime-web's version is still worth naming: it is what the emitted WASM build came from. */
+const coreRequire = createRequire(path.join(repoRoot, "packages/core/package.json"));
+const ortDistDir = path.dirname(coreRequire.resolve("onnxruntime-web/wasm"));
+const ortPackage = JSON.parse(readFileSync(path.join(ortDistDir, "..", "package.json"), "utf8"));
+
+/* ------------------------------------------------------------------ in-page observers */
+
+/**
+ * The OCR in flight signal: Capture.svelte renders `busy-state` only while `{#if busy}` holds.
+ *
+ * Every function below is *serialized into the page* by `evaluate`/`waitForFunction`, so it must not close over
+ * anything in this file — a driver-side identifier is `undefined` on the other side of that boundary, which is
+ * how the first draft of this rewrite died on a selector that existed only in Node. The selectors are repeated
+ * as literals here and cross-checked against `domAnchors()` at startup, so the drift is caught at launch rather
+ * than twelve minutes into a measurement.
+ */
+const DRAFT_SELECTOR = '[data-testid="draft-review"]';
+const ZERO_ITEMS_SELECTOR = '[data-testid="zero-items-state"]';
+const PROCESS_BUTTON_SELECTOR = '[data-testid="process-btn"]';
+const FILE_INPUT_SELECTOR = '[data-testid="file-input"]';
+
+const anchors = domAnchors();
+for (const [field, expected] of [
+  ["firstResult", DRAFT_SELECTOR],
+  ["zeroItems", ZERO_ITEMS_SELECTOR],
+  ["fileInput", '[data-testid="file-input"]'],
+]) {
+  if (anchors[field] !== expected) {
+    throw new Error(`DECISIONS/0028 T4 says wait on ${expected}, but domAnchors().${field} says ${anchors[field]} — fix the rules, not the run`);
+  }
+}
+
+function busyPresent() {
+  return document.querySelector('[data-testid="busy-state"]') !== null;
+}
+
+/**
+ * The observable ready signal (T2): a pointer naming a verified, smoke-tested model set.
+ *
+ * This is polled by `waitUntilTrue` below rather than by `waitForFunction`, because `waitForFunction` treats
+ * the *Promise object* a predicate returns as truthy and resolves on the first poll without awaiting it —
+ * measured, not assumed: an async predicate that always resolves `false` still made it resolve in 17 ms, and
+ * the handle then yielded the awaited `false`. An async condition inside `waitForFunction` is therefore a gate
+ * that opens immediately, which is precisely the decorative check this ticket exists to avoid.
+ */
+function activePointerPresent() {
+  return (async () => {
+    const hit = await (await caches.open("receipt-lens-active-model-cache")).match("/active");
+    return Boolean(hit);
+  })();
+}
+
+/** Poll an in-page condition from the driver until it is true or the budget runs out. No silent fallback. */
+async function waitUntilTrue(page, predicate, { timeoutMs, pollingMs }) {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if ((await page.evaluate(predicate)) === true) return true;
+    if (Date.now() >= deadline) return false;
+    await page.waitForTimeout(pollingMs);
+  }
+}
+
+/** Everything the page can honestly report once a phase's inference has finished. */
+function pageEvidence() {
+  const tenth = (value) => Math.round(value * 10) / 10;
+  const navigation = performance.getEntriesByType("navigation").map((entry) => ({
+    responseEndMs: tenth(entry.responseEnd),
+    domContentLoadedMs: tenth(entry.domContentLoadedEventEnd),
+    loadEventMs: tenth(entry.loadEventEnd),
+  }))[0] ?? null;
+  return {
+    appReadyMs: navigation?.loadEventMs ?? null,
+    navigation,
+    draftReview: document.querySelector('[data-testid="draft-review"]') !== null,
+    zeroItems: document.querySelector('[data-testid="zero-items-state"]') !== null,
+    itemRows: document.querySelectorAll('[data-testid="item-row"]').length,
+    chargeRows: document.querySelectorAll('[data-testid="charge-row"]').length,
+    crossOriginIsolated: globalThis.crossOriginIsolated === true,
+    swController: Boolean(navigator.serviceWorker.controller),
+    userAgent: navigator.userAgent,
+    // F5: the page's own view is a cross-check and the header cost, never the byte total.
+    resources: performance.getEntriesByType("resource").map((entry) => ({
+      path: new URL(entry.name, location.href).pathname,
+      transferBytes: entry.transferSize,
+      encodedBytes: entry.encodedBodySize,
+      decodedBytes: entry.decodedBodySize,
+    })),
+  };
+}
+
+/** Draw the receipt in the page and hand the PNG bytes back to the driver, exactly as `capture.spec.ts` does. */
+async function drawReceipt(page) {
+  const dataUrl = await page.evaluate(async (lines) => {
+    await document.fonts.ready;
+    const canvas = document.createElement("canvas");
+    canvas.width = 900;
+    canvas.height = 1200;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = "#000000";
+    context.font = "bold 56px monospace";
+    lines.forEach((line, index) => context.fillText(line, 60, 220 + index * 160));
+    return canvas.toDataURL("image/png");
+  }, RECEIPT_LINES);
+  return Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+}
+
+/**
+ * Hand a receipt to the app and return the page-side instant the inference finished.
+ *
+ * Both timestamps come from `performance.now()` observed inside the page, so no driver round-trip is hidden in
+ * a published number and no Playwright latency is mistaken for inference time (0012 F6). Waiting for `busy` to
+ * *appear* and then *disappear* is what makes the repeat phase measurable without a navigation to anchor on.
+ */
+async function runInference(page, handover) {
+  const at = await page.evaluate(() => performance.now());
+  await handover();
+  trace("  receipt handed over; waiting for the OCR busy signal");
+  await page.waitForFunction(busyPresent, undefined, { timeout: BUSY_APPEAR_TIMEOUT_MS, polling: "raf" });
+  const handle = await page.waitForFunction(
+    () => (document.querySelector('[data-testid="busy-state"]') ? undefined : performance.now()),
+    undefined,
+    { timeout: IDLE_TIMEOUT_MS, polling: "raf" },
+  );
+  const finishedAt = await handle.jsonValue();
+  await handle.dispose();
+  return { startedAtMs: at, finishedAtMs: finishedAt };
+}
+
+/* ------------------------------------------------------------------ one sample */
+
+async function measureSample(classSpec, sampleIndex) {
+  const browser = await chromium.launch({ args: ["--disk-cache-size=536870912"] });
+  const server = startMeasureServer();
+  const url = await server.url;
+  const context = await browser.newContext({ serviceWorkers: "allow", viewport: { width: 1280, height: 900 } });
+  const origins = new Set();
+  const consoleErrors = [];
   context.on("request", (request) => {
     try {
       origins.add(new URL(request.url()).origin);
     } catch {
-      /* blob:/data: URLs are not origins */
+      /* blob: and data: URLs have no origin, and neither leaves the machine */
     }
   });
+  const page = await context.newPage();
+  page.on("console", (message) => {
+    if (message.type() === "error") consoleErrors.push(message.text());
+  });
+  page.on("pageerror", (error) => consoleErrors.push(String(error)));
 
   let cdp = null;
   try {
-    trace(`sample up: ${server.url} (${server.cacheMode})`);
-    if (cpuThrottleRate !== 1) {
+    trace(`sample up: ${url} at ${classSpec.cpuThrottleRate}x`);
+    if (classSpec.cpuThrottleRate !== 1) {
       cdp = await context.newCDPSession(page);
-      await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottleRate });
-      trace(`  CPU throttle set to ${cpuThrottleRate}x`);
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: classSpec.cpuThrottleRate });
     }
 
-    const phases = {};
-    const cut = () => server.requests.length;
+    // COLD — the log window opens before the navigation, because the document and its script are part of what
+    // a cold visit downloads (F5's note in the harness driver, and truer here: the worker's install precache
+    // fetches the whole shell in the same window).
+    server.reset();
+    await page.goto(`${url.replace(/\/$/, "")}/capture`, { waitUntil: "load" });
+    await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), undefined, { timeout: CONTROLLER_TIMEOUT_MS });
+    const pointer = await waitUntilTrue(page, activePointerPresent, {
+      timeoutMs: coldReady().timeoutMs,
+      pollingMs: coldReady().pollingMs,
+    });
+    trace(`  cold: ready pointer ${pointer} — install precache, model verification and smoke inference`);
 
-    // The mark is taken before the navigation, not after it: the page and its script are part of
-    // what a cold visit downloads, and cutting at the load event would silently drop them.
-    let mark = cut();
-    await page.goto(server.url, { waitUntil: "load" });
-    trace("  navigation settled; COLD");
-    phases.cold = await runPhase(page, imagePath);
-    phases.cold.wire = server.requests.slice(mark);
+    const receipt = await drawReceipt(page);
+    const coldRun = await runInference(page, () =>
+      page.locator(FILE_INPUT_SELECTOR).setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: receipt }),
+    );
+    const coldEvidence = await page.evaluate(pageEvidence);
+    const coldWire = server.since();
 
-    mark = cut();
+    // The settle that `measure-warm-bytes.mjs` uses, for the same reason: the cold preparation is still
+    // reporting persistence after the pointer lands, and counting its requests as warm ones is how ticket 17
+    // first measured a warm visit at 6 MB.
+    await page.waitForTimeout(SETTLE_BEFORE_WARM_MS);
+
+    // WARM — worker in control before the log window opens, or this is not a post-17 number (T5).
+    const swControlling = await page.evaluate(() => Boolean(navigator.serviceWorker.controller));
+    server.reset();
     await page.reload({ waitUntil: "load" });
-    trace("  reload settled; WARM");
-    phases.warm = await runPhase(page, imagePath);
-    phases.warm.wire = server.requests.slice(mark);
+    await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller), undefined, { timeout: CONTROLLER_TIMEOUT_MS });
+    await waitUntilTrue(page, activePointerPresent, { timeoutMs: CONTROLLER_TIMEOUT_MS, pollingMs: coldReady().pollingMs });
+    const warmRun = await runInference(page, () =>
+      page.locator(FILE_INPUT_SELECTOR).setInputFiles({ name: "receipt.png", mimeType: "image/png", buffer: receipt }),
+    );
+    const warmEvidence = await page.evaluate(pageEvidence);
+    await page.waitForTimeout(SETTLE_BEFORE_WARM_LOG_MS);
+    const warmWire = server.since();
 
-    // Clearing first guarantees a change event for the same file, so the repeat phase cannot
-    // quietly measure the warm run a second time. It costs no request.
-    mark = cut();
-    await page.setInputFiles("#file", []);
-    trace("  input cleared; REPEAT");
-    phases.repeat = await runPhase(page, imagePath);
-    phases.repeat.wire = server.requests.slice(mark);
+    // REPEAT — no navigation, both sessions already in memory: the app's own re-run of the same receipt.
+    server.reset();
+    const repeatRun = await runInference(page, () => page.locator(PROCESS_BUTTON_SELECTOR).click());
+    await page.waitForTimeout(SETTLE_BEFORE_REPEAT_LOG_MS);
+    const repeatWire = server.since();
+    const repeatEvidence = await page.evaluate(pageEvidence);
 
     if (consoleErrors.length > 0) {
       throw new Error(`console errors during the measured run:\n- ${consoleErrors.join("\n- ")}`);
     }
-    return { phases, origins: [...origins].sort(), cacheMode: server.cacheMode };
+
+    const phases = {
+      cold: { run: coldRun, evidence: coldEvidence, wire: coldWire, pointer },
+      warm: { run: warmRun, evidence: warmEvidence, wire: warmWire, pointer: swControlling },
+      repeat: { run: repeatRun, evidence: repeatEvidence, wire: repeatWire, pointer: true },
+    };
+
+    const toEntries = (wire) => wire.map((entry) => ({ path: entry.path, status: entry.status, bodyBytes: entry.bodyBytes, completed: entry.completed }));
+    const bytesOf = (wire) => wire.reduce((sum, entry) => sum + entry.bodyBytes, 0);
+
+    // Fail-loud per sample, before anything is aggregated: the ±0 cross-check in particular should cost
+    // seconds of a run, not the whole 5 × 2 classes.
+    assertColdSample({
+      wire: toEntries(phases.cold.wire),
+      origins: [...origins].sort(),
+      readySignalSeen: phases.cold.pointer === true,
+      pinnedModelBytes,
+      renderedZeroItems: phases.cold.evidence.zeroItems,
+    });
+    assertWarmSample({
+      wire: toEntries(phases.warm.wire),
+      origins: [...origins].sort(),
+      swControlling: phases.warm.pointer === true,
+      warmBytes: bytesOf(phases.warm.wire),
+      pageTransferred: phases.warm.evidence.resources.map((resource) => ({ path: resource.path, transferBytes: resource.transferBytes })),
+    });
+    assertRepeatSample(toEntries(phases.repeat.wire));
+    assertWarmCrossCheck({
+      measured: bytesOf(phases.warm.wire),
+      committed: warmBytesPublished.samples.median,
+      measuredPaths: phases.warm.wire.map((entry) => entry.path),
+      committedPaths: warmBytesPublished.warmPaths,
+    });
+    if (!phases.warm.evidence.draftReview || phases.warm.evidence.itemRows === 0) {
+      throw new FootprintFailLoud(
+        "draft_produced_nothing",
+        `the warm visit rendered draft=${phases.warm.evidence.draftReview} items=${phases.warm.evidence.itemRows}: a warm run that read nothing cannot price a warm visit`,
+      );
+    }
+
+    return {
+      class: classSpec.id,
+      sample: sampleIndex,
+      browserVersion: browser.version(),
+      origins: [...origins].sort(),
+      phases,
+      receiptBytes: receipt.byteLength,
+      receiptSha: createHash("sha256").update(receipt).digest("hex"),
+    };
   } finally {
-    trace("  closing context");
-    await context.close();
-    trace("  closing server");
+    trace("  closing server, context, browser");
     await server.close();
+    await context.close();
+    await browser.close();
     trace("  sample down");
   }
 }
 
-/** Publish one raw sample, asserting the cache state each phase claims to be in. */
-function publishSample(classId, sampleIndex, sample) {
-  const published = [];
-  for (const [phase, run] of Object.entries(sample.phases)) {
-    const where = `${classId} sample ${sampleIndex} (${phase})`;
-    // First use of a URL in a phase is the one a cache could have answered; anything after it is a
-    // repeat fetch inside the same page. onnxruntime-web's threaded build re-fetches its loader for
-    // every worker, so a genuinely cold visit shows one 200 plus N-1 conditionals. That is a
-    // property of the deployment, not a stale cache, and it is published as conditionalFetches.
-    const firstUse = new Map();
-    for (const entry of run.wire) {
-      const url = new URL(entry.url, "http://o/").pathname;
-      if (!firstUse.has(url)) firstUse.set(url, entry);
-    }
-    const repeatFetches = run.wire.filter(
-      (entry) => firstUse.get(new URL(entry.url, "http://o/").pathname) !== entry,
-    );
-    const fullBodies = run.wire.filter((entry) => entry.status === 200);
-    const failures = run.wire.filter((entry) => entry.status >= 400);
-    const assets = Object.fromEntries(
-      [...firstUse].filter(([, entry]) => entry.status === 200).map(([url, entry]) => [url, entry.bodyBytes]),
-    );
-    const servedWithoutValidation = run.resources.filter((entry) => entry.servedWithoutValidation).length;
+/* ------------------------------------------------------------------ run */
 
-    if (phase === "cold") {
-      for (const [url, entry] of firstUse) {
-        if (entry.status !== 200) {
-          throw new Error(`${where}: ${url} first arrived as ${entry.status} — the context was not empty, so this is not a cold measurement`);
-        }
-      }
-      for (const entry of fullBodies) {
-        const pinned = pinnedModelBytes.get(new URL(entry.url, "http://o/").pathname);
-        if (pinned && entry.bodyBytes !== pinned.bytes) {
-          throw new Error(`${where}: served ${entry.url} is ${entry.bodyBytes} bytes, the committed manifest pins ${pinned.bytes}`);
-        }
-      }
-    } else if (phase === "warm") {
-      // A warm visit must cost nothing except the assets this browser provably cannot retain. A full
-      // body for anything else means the cache contract broke, and a 200 with no body means the
-      // server or browser is lying — both fail loudly. An asset that the declaration covers but the
-      // browser now revalidates is caught after aggregation (stale declaration), not here.
-      if (firstUse.size === 0 && servedWithoutValidation === 0) {
-        throw new Error(`${where}: the warm visit neither revalidated nor read its own cache — no cache was in use, so "warm" would be a fiction`);
-      }
-      for (const [url, entry] of firstUse) {
-        if (entry.status === 200 && entry.bodyBytes === 0) {
-          throw new Error(`${where}: ${url} answered 200 with no body — server or browser is lying about the cache`);
-        }
-        if (entry.status === 200 && !NOT_RETAINABLE.has(url)) {
-          throw new Error(
-            `${where}: ${url} was re-downloaded in full on a warm visit — the browser retains it, so a full body here is a broken cache contract (declared non-retainable: ${[...NOT_RETAINABLE.keys()].join(", ")})`,
-          );
-        }
-      }
-    } else if (run.wire.length > 0) {
-      throw new Error(`${where}: the second receipt touched the network (${run.wire.map((entry) => `${entry.status} ${entry.url}`).join(", ")})`);
-    }
-    if (failures.length > 0) {
-      throw new Error(`${where}: ${failures.length} failed requests (${failures.map((e) => `${e.status} ${e.url}`).join(", ")})`);
-    }
-    if (!fullBodies.every((entry) => entry.completed)) {
-      throw new Error(`${where}: an asset download did not complete`);
-    }
-    if (run.lines === 0 || run.words === 0) {
-      throw new Error(`${where}: ${run.lines} lines / ${run.words} words — footprint numbers from a run that read nothing are meaningless`);
-    }
-    if (sample.origins.length !== 1) {
-      throw new Error(`${where}: ${sample.origins.length} request origins (${sample.origins.join(", ")}) — expected the same origin only (PROJECT(1).md §9)`);
-    }
+console.log(`footprint: ${deployment().entry} (${deployment().scope}), ${samplesPerState} samples x ${classes().length} classes${dryRun ? " — DRY RUN, nothing is written" : ""}`);
 
-    // cold and warm begin at a navigation, so their latency is measured from navigation start.
-    // The repeat phase has none: it is the duration from "receipt handed over" to "result in hand".
-    const fromNavigation = phase !== "repeat";
-    const base = fromNavigation ? run.startedAtMs : 0;
-    published.push({
-      class: classId,
-      phase,
-      sample: sampleIndex,
-      appReadyMs: fromNavigation ? round(run.startedAtMs) : null,
-      ocrReadyMs: fromNavigation ? round(run.startedAtMs + run.timings.loadMs) : null,
-      firstResultMs: round(base + run.timings.totalMs),
-      modelLoadMs: round(run.timings.loadMs),
-      inferenceMs: round(run.timings.inferenceMs),
-      harnessLatencyMs: round(run.detectedAtMs - run.startedAtMs - run.timings.totalMs),
-      sinceNavigationMs: fromNavigation ? round(run.detectedAtMs) : null,
-      downloadBytes: fullBodies.reduce((sum, entry) => sum + entry.bodyBytes, 0),
-      fullBodyRequests: fullBodies.length,
-      conditionalFetches: repeatFetches.length,
-      firstUseStatus: Object.fromEntries([...firstUse].map(([url, entry]) => [url, entry.status])),
-      assetBytes: assets,
-      pageObservedTransferBytes: run.resources.reduce((sum, entry) => sum + entry.transferBytes, 0),
-      // transferSize includes response headers; the body total does not. The difference is the
-      // header cost the page could see, and it is why the byte totals exclude headers explicitly.
-      pageObservedHeaderBytes: run.resources.reduce((sum, entry) => sum + entry.transferBytes, 0)
-        - fullBodies.reduce((sum, entry) => sum + entry.bodyBytes, 0),
-      resourcesServedWithoutValidation: servedWithoutValidation,
-      providerName: run.provider,
-      lines: run.lines,
-      words: run.words,
-      imageSize: run.imageSize,
-      manifestHash: run.assets.manifestHash,
-      providerVersion: run.version,
-      providerAssetBytes: run.assets.bytes,
-      wasmThreads: run.session?.numThreads ?? null,
-      crossOriginIsolated: run.crossOriginIsolated,
-      executionProvider: run.executionProvider,
-      navigation: run.navigation,
-      wire: run.wire.map((entry) => ({
-        url: new URL(entry.url, "http://o/").pathname,
-        status: entry.status,
-        bodyBytes: entry.bodyBytes,
-        completed: entry.completed,
-      })),
-    });
-  }
-  return published;
-}
-
-console.log(`footprint: ${samplesPerState} samples x ${CLASSES.length} classes, image ${path.relative(repoRoot, imagePath)}`);
-
-// A 512 MB HTTP disk cache — far larger than any real profile — so that anything the browser still
-// re-downloads on a warm visit cannot be blamed on the cache being too small. Recorded in
-// environment.browser.launchArgs for exactly that reason.
-const launchArgs = ["--disk-cache-size=536870912"];
-const browser = await chromium.launch({ args: launchArgs });
-const runs = [];
-for (const classSpec of CLASSES) {
+const observed = [];
+for (const classSpec of classes()) {
   for (let index = 0; index < samplesPerState; index += 1) {
-    const sample = await measureSample(browser, classSpec.cpuThrottleRate);
-    const published = publishSample(classSpec.id, index, sample);
-    runs.push(...published);
-    const byPhase = Object.fromEntries(published.map((run) => [run.phase, run]));
-    console.log(
-      `  ${classSpec.id} #${index}: cold ${Math.round(byPhase.cold.firstResultMs)} ms / ${(byPhase.cold.downloadBytes / 1e6).toFixed(2)} MB · ` +
-        `warm ${Math.round(byPhase.warm.firstResultMs)} ms / ${byPhase.warm.downloadBytes} B over the wire · ` +
-        `repeat ${Math.round(byPhase.repeat.firstResultMs)} ms`,
-    );
+    const sample = await measureSample(classSpec, index);
+    observed.push(sample);
+    const line = (phase) => {
+      const wire = sample.phases[phase].wire;
+      return `${phase} ${Math.round(sample.phases[phase].run.finishedAtMs - (phase === "repeat" ? sample.phases[phase].run.startedAtMs : 0))} ms / ${wire.reduce((sum, entry) => sum + entry.bodyBytes, 0)} B over ${wire.length} requests`;
+    };
+    console.log(`  ${classSpec.id} #${index}: ${line("cold")} · ${line("warm")} · ${line("repeat")}`);
   }
 }
-const meta = runs[0];
-await browser.close();
 
 /* ------------------------------------------------------------------ inventory */
 
-const coldRuns = runs.filter((run) => run.phase === "cold");
-const warmRuns = runs.filter((run) => run.phase === "warm");
-/**
- * Did the browser keep it? A URL that answers 304 on every warm visit was retained; one that
- * answers 200 with its full body every time was not. Measured, not assumed: this is what tells a
- * user whether the second visit costs them anything.
- */
-const warmFirstUse = warmRuns.map((run) => run.firstUseStatus);
-const cacheBehaviour = (url) => {
-  const statuses = warmFirstUse.map((map) => map[url] ?? null);
-  const revalidated = statuses.filter((status) => status === 304).length;
-  const redownloaded = statuses.filter((status) => status === 200).length;
-  if (redownloaded > 0 && revalidated > 0) {
-    throw new Error(`${url}: ${revalidated} warm visits revalidated it, ${redownloaded} re-downloaded it — inconsistent caching, and no number about it is safe to publish`);
-  }
-  return redownloaded > 0 ? "redownloaded" : revalidated > 0 ? "retained" : "not-requested-again";
-};
-
-const urls = [...new Set(coldRuns.flatMap((run) => Object.keys(run.assetBytes)))].sort();
+const urls = [...new Set(observed.flatMap((sample) => sample.phases.cold.wire.map((entry) => entry.path)))].sort();
 const assets = [];
 for (const url of urls) {
-  const observed = coldRuns.map((run) => run.assetBytes[url] ?? null);
-  const hits = observed.filter((bytes) => bytes !== null);
-  const { role, category, required } = classify(url);
+  const role = classifyRole(url);
+  if (role === null) throw new FootprintFailLoud("uncatalogued_cold_asset", `${url} reached the aggregate and ROLES has no row for it`);
+  const coldBytesPerSample = observed.map((sample) => sample.phases.cold.wire.find((entry) => entry.path === url)?.bodyBytes ?? null);
+  const hits = coldBytesPerSample.filter((bytes) => bytes !== null);
+  const warmHits = observed.filter((sample) => sample.phases.warm.wire.some((entry) => entry.path === url)).length;
+  const warmBytes = observed.flatMap((sample) => sample.phases.warm.wire.filter((entry) => entry.path === url).map((entry) => entry.bodyBytes));
   const pinned = pinnedModelBytes.get(url);
-  const localFile = url.startsWith("/ort/")
-    ? path.join(ortDistDir, path.basename(url))
-    : url === "/dist/main.js"
-      ? path.join(repoRoot, appBundleFile)
-      : url === "/assets/models/manifest.json"
-        ? modelManifestPath
-        : url === "/" || url === "/index.html"
-          ? path.join(repoRoot, "harness/index.html")
-          : null;
+  const committedModel = url.startsWith("/assets/models/");
+  const servedFile = committedModel
+    ? path.join("assets/models", path.basename(url))
+    : /\.html$/.test(url) || url === "/capture" || url === "/"
+      ? "packages/pwa/dist/app/index.html"
+      : `packages/pwa/dist/app${url}`;
   assets.push({
     url,
-    role,
-    category,
-    required,
+    role: role.role,
+    category: role.category,
+    required: role.required,
     wireBytes: hits[0] ?? 0,
     bytesStable: hits.every((bytes) => bytes === hits[0]),
     fetchedByColdVisits: hits.length,
-    ofColdSamples: coldRuns.length,
-    revalidatedOnWarmVisits: warmRuns.filter((run) => run.wire.some((entry) => entry.url === url && entry.status === 304)).length,
-    warmVisitCacheState: cacheBehaviour(url),
-    bytesOfRecord: pinned
-      ? { kind: "committed", file: `assets/models/${path.basename(url)}`, bytes: pinned.bytes, sha256: pinned.sha256 }
-      : url === "/assets/models/manifest.json"
-        ? { kind: "committed", file: "assets/models/manifest.json" }
-        : url === "/" || url === "/index.html"
-          ? { kind: "committed", file: "harness/index.html" }
-          : url === "/dist/main.js"
-            ? { kind: "built", file: appBundleFile, note: "git-ignored build output: pnpm build produces it, so its bytes are re-derivable but not committed" }
-            : {
-                kind: "installed",
-                file: localFile ? path.relative(repoRoot, localFile) : `node_modules/onnxruntime-web/dist/${path.basename(url)}`,
-                note: `pinned by pnpm-lock.yaml (onnxruntime-web@${ortPackage.version}); git-ignored, but the lockfile makes it re-derivable`,
-              },
-    localFileBytes: localFile ? (await stat(localFile)).size : null,
+    ofColdSamples: observed.length,
+    requestedOnWarmVisits: warmHits,
+    warmVisitBytesPaid: warmHits === 0 ? 0 : warmBytes[0],
+    warmVisitCacheState: warmHits === 0 ? "held-by-worker" : "requested-from-origin",
+    bytesOfRecord:
+      pinned !== undefined
+        ? {
+            kind: "committed",
+            file: servedFile,
+            bytes: pinned,
+            sha256: modelManifest.assets.find((asset) => `/assets/models/${asset.file}` === url)?.sha256,
+          }
+        : committedModel
+          ? { kind: "committed", file: servedFile }
+          : {
+              kind: "built",
+              file: servedFile,
+              note: "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed",
+            },
+    localFileBytes: existsSync(path.join(repoRoot, servedFile)) ? statSync(path.join(repoRoot, servedFile)).size : null,
   });
 }
 assets.sort((a, b) => (a.category === b.category ? a.url.localeCompare(b.url) : a.category.localeCompare(b.category)));
 
-for (const role of ROLES.filter((entry) => entry.required)) {
-  const matched = assets.filter((asset) => role.test(asset.url));
-  if (matched.length === 0) {
-    throw new Error(`required footprint row "${role.role}" was never requested — the deployment changed shape and the table would be incomplete`);
-  }
-  for (const asset of matched) {
-    if (asset.fetchedByColdVisits !== coldRuns.length) {
-      throw new Error(`required row "${role.role}" (${asset.url}) was fetched in ${asset.fetchedByColdVisits} of ${coldRuns.length} cold visits — an intermittent asset cannot carry a published total`);
-    }
-  }
-}
 const unstable = assets.filter((asset) => !asset.bytesStable);
 if (unstable.length > 0) {
-  throw new Error(`asset bytes differ between cold samples: ${unstable.map((asset) => asset.url).join(", ")} — there is nothing reproducible about that`);
+  throw new FootprintFailLoud("required_row_missing", `asset bytes differ between cold samples: ${unstable.map((a) => a.url).join(", ")} — there is nothing reproducible about that`);
+}
+for (const asset of assets.filter((row) => row.required)) {
+  if (asset.fetchedByColdVisits !== observed.length) {
+    throw new FootprintFailLoud(
+      "required_row_missing",
+      `${asset.role} (${asset.url}) was fetched in ${asset.fetchedByColdVisits} of ${observed.length} cold visits — an intermittent asset cannot carry a published total (DECISIONS/0012 F9.11)`,
+    );
+  }
 }
 
-// The non-retainable declaration is a measurement too: if the browser starts keeping the asset, the
-// finding this ticket publishes (a per-visit cost) has changed, and a stale declaration would hide it.
-for (const [url, reason] of NOT_RETAINABLE) {
-  const asset = assets.find((candidate) => candidate.url === url);
-  if (!asset) {
-    throw new Error(`${url} is declared non-retainable (${reason}) but this deployment never requested it — re-measure and update DECISIONS/0012`);
-  }
-  if (asset.warmVisitCacheState !== "redownloaded") {
-    throw new Error(`${url} is declared non-retainable (${reason}) but the warm visits report "${asset.warmVisitCacheState}" — re-measure and update DECISIONS/0012 F10`);
-  }
+// The warm path set must be identical across samples: an intermittent warm asset would make the published
+// median a description of whichever sample you happened to quote (F9.12), and the ±0 cross-check needs a
+// single answer.
+const warmPathSets = [...new Set(observed.map((sample) => sample.phases.warm.wire.map((entry) => `${entry.path}:${entry.bodyBytes}`).sort().join("|")))];
+if (warmPathSets.length !== 1) {
+  throw new FootprintFailLoud(
+    "warm_cross_check_disagrees",
+    `the warm visit is not the same request twice over: ${warmPathSets.join("  |  ")}. An intermittent warm asset cannot carry a published total`,
+  );
+}
+
+/**
+ * The header cost of one page-observed resource. `transferSize` is 0 for anything served by a cache without
+ * revalidation, and such a resource moved no headers either — pricing it as `0 - encodedBodySize` is what
+ * produced a first draft that reported negative millions.
+ */
+const headerCost = (resource) => (resource.transferBytes === 0 ? 0 : Math.max(0, resource.transferBytes - resource.encodedBytes));
+
+/**
+ * What the *document* could see, per phase. Reported beside the totals and never added to them (F5): the
+ * worker's install precache, the WASM and the model downloads are not document resources, so the page's view is
+ * a cross-check on a subset, not a second measurement of the same set.
+ */
+function pageObservedOf(phase) {
+  const fromRuns = observed.map((sample) => {
+    const resources = sample.phases[phase].evidence.resources;
+    return {
+      transferBytes: resources.reduce((sum, resource) => sum + resource.transferBytes, 0),
+      headerBytes: resources.reduce((sum, resource) => sum + headerCost(resource), 0),
+      resources: resources.length,
+      withoutNetwork: resources.filter((resource) => resource.transferBytes === 0).length,
+    };
+  });
+  return {
+    transferBytes: summarize(fromRuns.map((row) => row.transferBytes)),
+    headerBytes: summarize(fromRuns.map((row) => row.headerBytes)),
+    resources: summarize(fromRuns.map((row) => row.resources)),
+    servedWithoutNetwork: summarize(fromRuns.map((row) => row.withoutNetwork)),
+  };
 }
 
 const perCategoryBytes = {};
-for (const asset of assets) {
-  perCategoryBytes[asset.category] = (perCategoryBytes[asset.category] ?? 0) + asset.wireBytes;
-}
+for (const asset of assets) perCategoryBytes[asset.category] = (perCategoryBytes[asset.category] ?? 0) + asset.wireBytes;
+
+const warmTotalPerSample = observed.map((sample) => sample.phases.warm.wire.reduce((sum, entry) => sum + entry.bodyBytes, 0));
+const coldTotalPerSample = observed.map((sample) => sample.phases.cold.wire.reduce((sum, entry) => sum + entry.bodyBytes, 0));
+const heldByWorker = assets.filter((asset) => asset.warmVisitCacheState === "held-by-worker").map((asset) => asset.url);
+const paidOnWarm = assets.filter((asset) => asset.warmVisitCacheState === "requested-from-origin");
 
 const latency = {};
-for (const classSpec of CLASSES) {
+const notSeparable = latencyBases().notSeparable;
+for (const classSpec of classes()) {
   latency[classSpec.id] = {};
   for (const phase of ["cold", "warm", "repeat"]) {
-    const subset = runs.filter((run) => run.class === classSpec.id && run.phase === phase);
+    const subset = observed.filter((sample) => sample.class === classSpec.id);
+    const at = (sample) => (phase === "repeat" ? sample.phases[phase].run.finishedAtMs - sample.phases[phase].run.startedAtMs : sample.phases[phase].run.finishedAtMs);
     latency[classSpec.id][phase] = {
-      label: PHASE_LABEL[phase],
-      appReadyMs: summarize(subset.map((run) => run.appReadyMs)),
-      ocrReadyMs: summarize(subset.map((run) => run.ocrReadyMs)),
-      firstResultMs: summarize(subset.map((run) => run.firstResultMs)),
-      modelLoadMs: summarize(subset.map((run) => run.modelLoadMs)),
-      inferenceMs: summarize(subset.map((run) => run.inferenceMs)),
-      downloadBytes: summarize(subset.map((run) => run.downloadBytes)),
+      required: phase !== "repeat",
+      label:
+        phase === "cold"
+          ? "Cold start — first visit, empty context, worker installs and verifies"
+          : phase === "warm"
+            ? "Warm visit — same context, page.reload(), answered by the active caches"
+            : "Second receipt — same page, sessions already in memory",
+      appReadyMs: summarize(subset.map((sample) => (phase === "repeat" ? null : sample.phases[phase].evidence.appReadyMs))),
+      firstResultMs: summarize(subset.map(at)),
+      downloadBytes: summarize(subset.map((sample) => sample.phases[phase].wire.reduce((sum, entry) => sum + entry.bodyBytes, 0))),
+      notSeparable,
+      basis:
+        phase === "repeat"
+          ? "no navigation: the duration from handing the receipt over to the draft arriving, with the runtime and both sessions already in memory"
+          : "timed from performance.timeOrigin of this navigation, inside the page: appReadyMs is the load event and firstResultMs is the instant the draft-review node was observed",
     };
   }
 }
 
-const harnessPageBytes = assets.find((asset) => asset.role.startsWith("Harness page"))?.wireBytes ?? null;
+const runs = [];
+for (const sample of observed) {
+  for (const phase of ["cold", "warm", "repeat"]) {
+    const entry = sample.phases[phase];
+    const total = entry.wire.reduce((sum, item) => sum + item.bodyBytes, 0);
+    runs.push({
+      class: sample.class,
+      phase,
+      sample: sample.sample,
+      appReadyMs: phase === "repeat" ? null : round(entry.evidence.appReadyMs),
+      firstResultMs: round(phase === "repeat" ? entry.run.finishedAtMs - entry.run.startedAtMs : entry.run.finishedAtMs),
+      downloadBytes: total,
+      requests: entry.wire.length,
+      origins: sample.origins,
+      swController: entry.evidence.swController,
+      itemRows: entry.evidence.itemRows,
+      chargeRows: entry.evidence.chargeRows,
+      zeroItems: entry.evidence.zeroItems,
+      crossOriginIsolated: entry.evidence.crossOriginIsolated,
+      pageObservedTransferBytes: entry.evidence.resources.reduce((sum, resource) => sum + resource.transferBytes, 0),
+      pageObservedHeaderBytes: entry.evidence.resources.reduce((sum, resource) => sum + headerCost(resource), 0),
+      pageObservedResources: entry.evidence.resources.length,
+      pageObservedWithoutNetwork: entry.evidence.resources.filter((resource) => resource.transferBytes === 0).length,
+      wire: entry.wire.map((item) => ({ url: item.path, status: item.status, bodyBytes: item.bodyBytes, completed: item.completed })),
+    });
+  }
+}
+
+const first = observed[0];
+const baseline = harnessBaseline();
+const moduleChunkBytes = paidOnWarm.find((asset) => /^\/assets\/cache-names-/.test(asset.url))?.warmVisitBytesPaid ?? 0;
+const previousFindingArtifact = JSON.parse(readFileSync(path.join(repoRoot, baseline.artifactPath), "utf8"));
+const previousFinding = previousFindingArtifact.findings.find((finding) => finding.code === "warm_not_zero_ort_wasm_exceeds_cache_entity_limit");
 
 const report = {
   schemaVersion: SCHEMA_VERSION,
@@ -561,164 +642,192 @@ const report = {
   git: gitInfo,
   measurement: {
     deployment: {
-      entry: "harness/index.html — the PROJECT(1).md §9 M1 minimal inference harness page",
-      scope: "core runtime + harness wrapper; PWA not built",
-      remeasureRequiredAfter: "tickets 10a, 10",
-      harnessOnlyBytes: {
-        separable: { file: "harness/index.html", bytes: harnessPageBytes },
-        bundled:
-          "not separable in the current bundle: harness/dist/main.js is one esbuild output combining harness/src/main.ts, packages/core/dist and the onnxruntime-web JS glue, so the harness wrapper's share of those bytes is not isolated. The bundle total is not the eventual PWA's total.",
-      },
-      servedBy: "harness/serve.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, no reverse proxy",
-      cacheContract: "cache-control: no-cache + ETag revalidation (serve.mjs cacheMode=validate, added by ticket 08; the default stays no-store)",
-      contentEncoding: "identity — nothing is compressed, so wire bytes equal file bytes",
-      appScript: `harness/dist/main.js: esbuild ESM bundle of packages/core/dist plus onnxruntime-web/dist/ort.wasm.bundle.min.mjs (${(await byteLengthOf(path.join(ortDistDir, "ort.wasm.bundle.min.mjs"))).toLocaleString("en-US")} bytes of runtime JS glue). Not minified at the core layer, and not the PWA — tickets 10a and 10 do not exist yet.`,
-      sourceMaps: "harness/dist/main.js.map exists but a headless page without devtools never requests it",
-      threads: `ORT runs on the WASM execution provider with ${meta.wasmThreads} threads under COOP/COEP cross-origin isolation (serve.mjs sets both headers)`,
+      ...deployment(),
+      precacheEntries: precacheManifest.length,
+      workerScriptBytes: statSync(path.join(appDir, "sw.js")).size,
+      notSeparable,
+      warmStructuralRequests: paidOnWarm.map((asset) => ({
+        path: asset.url,
+        bytes: asset.warmVisitBytesPaid,
+        reason: warmRequestReason(asset.url),
+      })),
+      warmStructuralRequestsNote:
+        "Each of these is structural, not a cache miss: a service worker cannot intercept the fetch of its own script or that script's imports, and W6's version probe deliberately bypasses the cache. An unexplained warm request fails the run, so this list is exhaustive by construction.",
     },
     phases: {
-      cold: { required: true, description: PHASE_LABEL.cold },
-      warm: { required: true, description: PHASE_LABEL.warm },
-      repeat: {
-        required: false,
-        description: "supplementary — second inference in the same page, sessions warm",
+      cold: { required: true, description: "first visit, empty context and empty caches, fresh server instance" },
+      warm: {
+        required: true,
+        description: "same context, page.reload() — DECISIONS/0012 F8's revalidation clause is replaced by 'answered by the active caches' (DECISIONS/0027 W15), because this origin answers no 304",
       },
+      repeat: { required: false, description: "supplementary — a second inference in the same page with both sessions warm, driven by the app's own Re-run OCR" },
     },
-    byteCounting: "summed from the origin's own request log (harness/serve.mjs), which sees WASM and worker loads that page resource timings do not; HTTP header bytes are excluded",
-    timingAnchor: "performance.timeOrigin of the measured document. appReadyMs is the instant the page was handed to the driver to attach the image, so it carries one Playwright round-trip; harnessLatencyMs reports the polling lag on the other side of the run.",
-    centralValue: "median, with min and max published beside it. With n=5 no percentile is claimed.",
-    latencyBases: "cold and warm are timed from their own navigation, page load included; the repeat phase has no navigation and is the duration from the receipt being handed over to the result arriving, with everything already in memory. That is why the repeat row carries no app-ready or OCR-ready figure.",
+    byteCounting:
+      "summed from the origin's own request log (scripts/serve-measure-app.mjs), which sees the worker's install precache, the WASM and the model downloads that page resource timings do not; HTTP header bytes are excluded",
+    timingAnchor:
+      "performance.timeOrigin of the measured document. appReadyMs is the navigation's load event; firstResultMs is the instant a page-side poll observed the inference finish (busy-state gone) with the draft rendered. No Playwright round-trip is inside either number.",
+    centralValue: "median, with min and max published beside it. With n=5 no percentile is claimed (DECISIONS/0012 F2).",
+    latencyBases:
+      "cold and warm are timed from their own navigation. The repeat phase has no navigation, so its firstResultMs is the duration from handover to result. appReadyMs is published for cold and warm only.",
     image: {
-      ...imagePathInfo(imagePath, imageBytes),
-      width: meta.imageSize.width,
-      height: meta.imageSize.height,
-      note: "user data, not app footprint: it is never a network request (the page reads the File object directly). Declared because it sets the inference time.",
+      kind: "drawn in the page",
+      lines: RECEIPT_LINES,
+      width: 900,
+      height: 1200,
+      bytes: first.receiptBytes,
+      sha256: first.receiptSha,
+      note:
+        "re-derivable from this script rather than from a gitignored dataset snapshot: the receipt is drawn on a canvas exactly as playwright/capture.spec.ts draws it, so the declared image is committed code. It is user data either way and never a network request. This supersedes the harness run's benchmarks/datasets/raw/sroie/assets/ex.jpg, which needs the 2.7 GB raw snapshot to re-derive — a published number nobody else can reproduce is not a measured one.",
     },
     samplesPerState: samplesPerState,
+    crossCheck: {
+      warmBytesThisRun: medianOf(warmTotalPerSample),
+      warmBytesPublished: warmBytesPublished.samples.median,
+      toleranceBytes: 0,
+      artifact: "benchmarks/results/warm-bytes.json",
+      harnessBaseline: baseline.artifactPath,
+      harnessWarmBytesOverTheWire: baseline.warmBytes,
+      rule: "DECISIONS/0028 T3: two drivers count the same bytes at the same origin, so they must agree exactly. Neither artifact may be rewritten to match the other.",
+    },
     excludedFromFootprint: [
       "the receipt image itself — user data, and never a network request",
       "HTTP request/response header bytes (a few hundred bytes per asset per visit)",
-      "anything a service worker would cache: this deployment has no service worker yet (ticket 17), so the HTTP cache is the whole cache",
     ],
     notMeasured: [
       "any real phone, tablet or low-end laptop — the 4x class is an emulated CPU rate, not a device",
-      "network latency and bandwidth beyond loopback; on a real link add RTT and whatever the connection delivers, which is why bytes are published per asset and not only as a total",
+      "network latency and bandwidth beyond loopback; bytes are published per asset so a reader can apply RTT",
       "peak memory: the WASM heap, the decoded image buffers and both inference graphs are resident after load and are not sized here",
-      "parse() and validate() separately: they run in the same frame as inference on this page, so firstResultMs includes them and modelLoadMs does not",
-      "PP-OCRv6 Small, quantized builds, or a lazy/deferred model load (1E.3, ticket 09b, and the risk R2 contingencies)",
+      "parse() and validate() separately: they run inside firstResultMs and cannot be split without a hook the shipped bundle does not have",
+      "PP-OCRv6 Small, quantized builds, or a lazy/deferred model load (1E.3, ticket 09b, R2 contingencies)",
     ],
   },
   environment: {
-    classes: CLASSES.map((classSpec) => ({
-      id: classSpec.id,
-      label: classSpec.label,
-      declaredAs: classSpec.declaredAs,
-      cpuThrottleRate: classSpec.cpuThrottleRate,
+    classes: classes().map((classSpec) => ({
+      ...classSpec,
+      declaredAs:
+        classSpec.cpuThrottleRate === 1
+          ? "physical desktop machine, loopback origin, no bandwidth throttling, no network emulation"
+          : "the same physical machine with Chromium's Emulation.setCPUThrottlingRate at 4x (the Lighthouse slow-4x convention). Emulation, not a device: it slows script, WASM compile and inference, and says nothing about a phone's memory, GPU or network stack.",
       samples: samplesPerState,
     })),
     device: {
       platform: `${os.platform()} ${os.arch()}`,
       kernel: os.release(),
-      cpuModel: (await readFile("/proc/cpuinfo", "utf8")).match(/^model name\s*:\s*(.+)$/m)?.[1].trim() ?? "unknown",
+      cpuModel: readFileSync("/proc/cpuinfo", "utf8").match(/^model name\s*:\s*(.+)$/m)?.[1].trim() ?? "unknown",
       logicalCores: os.cpus().length,
       totalMemoryBytes: os.totalmem(),
     },
     browser: {
       name: "chromium",
       headless: true,
-      version: browser.version(),
-      userAgent: meta.userAgent,
-      launchArgs,
+      version: first.browserVersion,
+      userAgent: first.phases.cold.evidence.userAgent,
+      launchArgs: ["--disk-cache-size=536870912"],
       httpDiskCacheBytes: 536_870_912,
-      contextIsolation: "a fresh BrowserContext per sample; every cold sample re-downloaded every asset, so contexts do not share an HTTP cache here",
+      diskCacheNote:
+        "kept from the harness run for continuity, but it no longer carries the argument it was made for: this origin sends no-store and no ETag, so the HTTP cache holds nothing on purpose and the Cache API is the cache that matters (DECISIONS/0012 F7's amendment)",
+      contextIsolation: "a fresh browser *and* context per sample: Cache API storage is accounted per browser process, and ticket 17 measured contexts evicting each other's model cache (DECISIONS/0028 T2)",
     },
     toolchain: {
-      playwright: JSON.parse(await readFile(path.join(repoRoot, "node_modules/@playwright/test/package.json"), "utf8")).version,
+      playwright: JSON.parse(readFileSync(path.join(repoRoot, "node_modules/@playwright/test/package.json"), "utf8")).version,
       node: process.version,
     },
     runtime: {
       onnxruntimeWeb: ortPackage.version,
-      executionProvider: meta.executionProvider,
-      wasmThreads: meta.wasmThreads,
-      crossOriginIsolated: meta.crossOriginIsolated,
+      executionProvider: "wasm",
+      wasmThreads: 1,
+      threadBasis:
+        "derived, not read from a session object: resolveThreadCount (packages/core/src/ocr/pp-ocrv6.ts:77) returns 1 unless crossOriginIsolated, and the measured page reports the value below. The harness's 4-thread run is superseded by this one, and the difference is stated in the generated table.",
+      crossOriginIsolated: first.phases.cold.evidence.crossOriginIsolated,
       webgpu: "not attempted (the WASM-only ORT entry point is what core imports)",
     },
     underTest: {
-      package: "@receipt-lens/core",
-      packageVersion: JSON.parse(await readFile(path.join(repoRoot, "packages/core/package.json"), "utf8")).version,
-      provider: meta.providerName,
-      providerVersion: meta.providerVersion,
+      package: "@receipt-lens/pwa",
+      packageVersion: JSON.parse(readFileSync(path.join(repoRoot, "packages/pwa/package.json"), "utf8")).version,
+      provider: "pp-ocrv6",
+      providerVersion: modelManifest.providerVersion,
       modelPreset: modelManifest.preset,
       modelVersion: modelManifest.providerVersion,
       modelLicense: modelManifest.license,
-      manifestHash: meta.manifestHash,
-      providerReportedAssetBytes: meta.providerAssetBytes,
-      linesAndWords: `${meta.lines} lines / ${meta.words} words on the declared image`,
+      manifestHash: modelManifestHash,
+      providerReportedAssetBytes: modelManifest.assets.reduce((sum, asset) => sum + asset.bytes, 0),
+      draftEvidence: `${first.phases.cold.evidence.itemRows} item rows / ${first.phases.cold.evidence.chargeRows} charge rows rendered from the declared image, zero-items state ${first.phases.cold.evidence.zeroItems}`,
     },
   },
   assets,
-  findings: [
-    {
-      code: "warm_not_zero_ort_wasm_exceeds_cache_entity_limit",
-      detail:
-        "Chromium HTTP cache retains ~6-8 MiB per entity; the 14.85 MB ort-wasm-simd-threaded.wasm answers 200 with full body on every warm visit, while 7 of 8 assets revalidate as 304",
-      evidence:
-        "session probe: 6 MiB entity retained, 8 MiB entity not retained, same server/headers as harness; 512 MB disk cache rules out eviction",
-      remedy: "ticket 17 Cache API; header changes cannot fix browser per-entity limits",
-      affectsClaim:
-        "section 9 initial-download / re-fetch cost, not the local-processing claim (same-origin only)",
-    },
-  ],
+  findings: buildFindings({
+    previousFinding,
+    warmBytes: medianOf(warmTotalPerSample),
+    warmPaths: first.phases.warm.wire.map((entry) => entry.path),
+    moduleChunk: warmModuleChunkDefect(moduleChunkBytes),
+    measuredAt: new Date().toISOString(),
+  }),
   totals: {
     perCategoryBytes,
-    initialDownloadBytes: summarize(coldRuns.map((run) => run.downloadBytes)),
-    secondVisitBytesOverTheWire: summarize(warmRuns.map((run) => run.downloadBytes)),
-    secondVisitRevalidationOverheadPageObserved: summarize(warmRuns.map((run) => run.pageObservedTransferBytes)),
-    retainedCacheBytes: assets
-      .filter((asset) => asset.warmVisitCacheState === "retained")
-      .reduce((sum, asset) => sum + asset.wireBytes, 0),
-    assetsRetainedInCache: assets.filter((asset) => asset.warmVisitCacheState === "retained").length,
-    assetsRedownloadedOnEveryVisit: assets.filter((asset) => asset.warmVisitCacheState === "redownloaded").map((asset) => asset.url),
-    redownloadedOnEveryVisitBytes: assets
-      .filter((asset) => asset.warmVisitCacheState === "redownloaded")
-      .reduce((sum, asset) => sum + asset.wireBytes, 0),
+    initialDownloadBytes: summarize(coldTotalPerSample),
+    secondVisitBytesOverTheWire: summarize(warmTotalPerSample),
+    cacheHeldBytes: cacheHeldBytes({
+      precacheManifest,
+      modelAssets: modelManifest.assets.filter((asset) => !/manifest\.json$/.test(asset.file)),
+    }),
+    cacheHeldBasis:
+      "deterministic: the built worker's precache manifest (packages/pwa/dist/app/sw.js, stat'd from disk) plus the verified model set named by assets/models/manifest.json. Not 'bytes currently in the named caches', which would depend on eviction (DECISIONS/0028 T8, DECISIONS/0027 W18).",
+    assetsHeldByWorker: heldByWorker.length,
+    assetsRequestedFromOriginEveryWarmVisit: paidOnWarm.map((asset) => asset.url),
+    requestedFromOriginEveryWarmVisitBytes: paidOnWarm.reduce((sum, asset) => sum + asset.warmVisitBytesPaid, 0),
     assets: assets.length,
-    requestsPerColdVisit: summarize(coldRuns.map((run) => run.wire.length)),
-    conditionalFetchesPerColdVisit: summarize(coldRuns.map((run) => run.conditionalFetches)),
-    requestsPerWarmVisit: summarize(warmRuns.map((run) => run.wire.length)),
-    coldHeaderOverheadBytesPageObserved: summarize(coldRuns.map((run) => run.pageObservedHeaderBytes)),
-    warmHeaderOverheadBytesPageObserved: summarize(warmRuns.map((run) => run.pageObservedHeaderBytes)),
+    requestsPerColdVisit: summarize(observed.map((sample) => sample.phases.cold.wire.length)),
+    requestsPerWarmVisit: summarize(observed.map((sample) => sample.phases.warm.wire.length)),
+    duplicateFetchesPerColdVisit: summarize(
+      observed.map((sample) => sample.phases.cold.wire.length - new Set(sample.phases.cold.wire.map((entry) => entry.path)).size),
+    ),
+    coldPageObserved: pageObservedOf("cold"),
+    warmPageObserved: pageObservedOf("warm"),
+    pageObservationNote:
+      "The page's own resource timings cover only the resources the *document* fetched. The worker's install precache, the WASM and the model downloads are not document resources and never appear here — that is why F5 counts bytes at the origin. So this pair is reported beside the totals and never added to them, and it is not the header cost of the whole visit.",
   },
   latency,
   runs,
   provenance: {
     script: "benchmarks/scripts/measure-footprint.mjs",
+    rules: "benchmarks/src/footprint/rules.ts (DECISIONS/0028 T1-T10, pinned by benchmarks/tests/footprint/pins.test.ts)",
     regenerate: "node benchmarks/scripts/measure-footprint.mjs && node benchmarks/scripts/render-footprint-table.mjs --write",
     table: "packages/core/README.md, between the footprint markers, generated by benchmarks/scripts/render-footprint-table.mjs",
-    supersedes: "the withdrawn \"~4.3 MB complete OCR pipeline\" claim (ADR-002, PROJECT(1).md §2). The claim stays withdrawn; this file carries the measured number.",
-    note: "measuredAt and the request log are the record of one run on one machine. Latency is not a stable constant: it is a distribution of n samples on the declared class, and a different machine class will produce a different table.",
+    supersedes:
+      "the harness measurement archived at benchmarks/results/footprint-2026-11-04-16ae8de.json (21,299,089 B cold / 14,848,852 B warm at 4 ORT threads). Also the withdrawn \"~4.3 MB complete OCR pipeline\" claim (ADR-002), which stays withdrawn.",
+    sequencing: sequencing(),
+    note: "measuredAt and the request log are the record of one run on one machine. Latency is not a constant: it is a distribution of n samples on the declared class, and a different machine class will produce a different table.",
   },
 };
 
-function imagePathInfo(file, bytes) {
-  return { path: path.relative(repoRoot, file), bytes: bytes.byteLength, sha256: createHash("sha256").update(bytes).digest("hex") };
+/** Why a warm request is structural rather than a cache miss (T5, and the reason each is declared not tolerated). */
+function warmRequestReason(url) {
+  if (url === "/sw.js") return "the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script";
+  if (/^\/assets\/cache-names-/.test(url)) return "the worker's module import — the open defect ticket 17c owns (DECISIONS/0028 T7)";
+  if (url === "/assets/models/manifest.json") return "W5 step 1's version probe, deliberately cache: 'reload' (DECISIONS/0027 W6)";
+  return "unexplained — and an unexplained warm request fails the run, so this line should be unreachable";
 }
 
+/* ------------------------------------------------------------------ write */
+
 const serialized = `${JSON.stringify(report, null, 2)}\n`;
+const summary = [
+  `initial download: ${report.totals.initialDownloadBytes.median.toLocaleString("en-US")} B median = ${(report.totals.initialDownloadBytes.median / 1e6).toFixed(2)} MB`,
+  `warm visit:     ${report.totals.secondVisitBytesOverTheWire.median.toLocaleString("en-US")} B (warm-bytes.json says ${warmBytesPublished.samples.median.toLocaleString("en-US")} B — cross-check passed at ±0)`,
+  `cache held:     ${report.totals.cacheHeldBytes.toLocaleString("en-US")} B = ${(report.totals.cacheHeldBytes / 1e6).toFixed(2)} MB (precache + verified model set)`,
+  ...classes().map(
+    (classSpec) =>
+      `${classSpec.id}: cold app ${Math.round(latency[classSpec.id].cold.appReadyMs.median)} ms / result ${Math.round(latency[classSpec.id].cold.firstResultMs.median)} ms · warm result ${Math.round(latency[classSpec.id].warm.firstResultMs.median)} ms · repeat ${Math.round(latency[classSpec.id].repeat.firstResultMs.median)} ms`,
+  ),
+].join("\n");
+
+if (dryRun) {
+  console.log(`DRY RUN — nothing written\n${summary}`);
+  process.exit(0);
+}
+
 await mkdir(resultsDir, { recursive: true });
 await writeFile(path.join(resultsDir, "footprint.json"), serialized, "utf8");
 const archive = `footprint-${report.measuredAt.slice(0, 10)}-${gitInfo.shortRevision}.json`;
 await writeFile(path.join(resultsDir, archive), serialized, "utf8");
-
-const download = report.totals.initialDownloadBytes;
-console.log(
-  [
-    `wrote benchmarks/results/footprint.json + benchmarks/results/${archive}`,
-    `initial download: ${download.median.toLocaleString("en-US")} B median (${download.min}–${download.max}, n=${download.n}) = ${(download.median / 1e6).toFixed(2)} MB`,
-    `retained cache:   ${report.totals.retainedCacheBytes.toLocaleString("en-US")} B = ${(report.totals.retainedCacheBytes / 1e6).toFixed(2)} MB`,
-    ...CLASSES.map(
-      (classSpec) =>
-        `${classSpec.id}: cold ${latency[classSpec.id].cold.firstResultMs.median} ms · warm ${latency[classSpec.id].warm.firstResultMs.median} ms · receipt again ${latency[classSpec.id].repeat.firstResultMs.median} ms`,
-    ),
-  ].join("\n"),
-);
+console.log(`wrote benchmarks/results/footprint.json + benchmarks/results/${archive}\n${summary}`);
