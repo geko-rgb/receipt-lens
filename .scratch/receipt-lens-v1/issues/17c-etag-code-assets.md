@@ -126,9 +126,9 @@ Latency needs an honest caveat rather than a clean bill of health. The committed
 unthrottled cold median is 1,257 ms against 17b's 1,206 ms, and the two runs' *within-run ranges do not overlap*
 (1,186.7–1,226.1 vs 1,228.6–1,310.0), which is the trigger `DECISIONS/0029` P8 set for stopping. What the
 same-code evidence says: the identical 17c code measured **1,213 ms** in the earlier pass on this branch and
-**1,257 ms** in the committed one, and the committed run's five samples drift monotonically
-(1,228.6 → 1,310.0). The candidate mechanism from the header change is one extra conditional round trip over
-loopback, which is microseconds, not 51 ms. So the shift is reported as **not attributable to 17c** and
+**1,257 ms** in the committed one, and the committed run spans 81 ms with its **maximum in the first sample**
+(1,310.0, then 1,228.6 → 1,276.3) while 17b's five samples span 39 ms with no direction. The candidate mechanism
+from the header change is one extra conditional round trip over loopback, which is microseconds, not 51 ms. So the shift is reported as **not attributable to 17c** and
 **not smoothed over**: it is published as measured, with the variance evidence in
 `DECISIONS/0029`'s checkpoint-3 findings, and every other cell (warm unthrottled 624 ms against 619, warm 4×
 2,375 against 2,309, cold 4× 3,818 against 3,671) overlaps its 17b range.
@@ -137,3 +137,15 @@ Two things this ticket found that were not in its scope and are recorded rather 
 `assertColdSample` rejected any `304` in the cold window instead of a first-use one (17b's implementation of F9
 condition 1, tighter than the condition it claims), and `verify:warm-bytes` had no CI gate at all, so T7's
 both-artifacts condition was enforced only by the author remembering it.
+
+**Pre-merge verification (2026-11-06), before `gh pr merge`.** Three confirmations were asked for and each one
+found something. The monotonic-drift claim in the paragraph above was **this paragraph's own error** — the sorted
+`samples[]` array read as a timeline; run order puts the maximum first, and `DECISIONS/0029` carries the
+correction with the comparison table that makes the same point without the trend. The 2,700 B residual was
+already legible from the artifact (`warmStructuralRequests`, `totals.requestedFromOriginEveryWarmVisit*`) but the
+*warm finding* did not name it, so the finding now says "the whole of it is `/assets/models/manifest.json` at
+2,700 B" with W6's `cache: "reload"` probe as the mechanism. And three published strings turned out to still
+describe the pre-17c origin — `footprint.json`'s warm phase asserted "this origin answers no `304`" in a file
+whose own totals list two per warm sample. The prose is now derived from `rules.ts` and pinned against the
+committed artifacts, so a header change cannot leave a stale sentence behind again
+(`DECISIONS/0029` implementation finding 9). No measurement field was edited to do it.
