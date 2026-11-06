@@ -270,6 +270,9 @@ where a package-manager binary happens to be directly spawnable is a check that 
 egress. The guarantee P8 asks for is unchanged — the scanner is **invoked, never reimplemented**, there is exactly
 one definition of the scan, and the test log prints the command it ran.
 
+**Ruling 2026-11-06:** direct `pnpm scan:egress` spawn returns `ENOEXEC` in this environment; test 5 invokes the
+command named in `package.json`'s `scan:egress` script, read from the file, keeping one definition.
+
 ## P9 — The canary, and the rule that makes the audit non-vacuous
 
 Negative control, one split test, injected at run time in the page (0013 T6's reasoning holds: editing shipped
@@ -389,6 +392,11 @@ limit set. Both go in the generated blocks, per (C).
 - **Whether COOP/COEP isolation headers get added.** They change latency and regenerate the footprint table
   (W20); that is a separate measurement with a separate record.
 - **The `privacy` required-check flip** (P10's open item), which is an owner-side settings action.
+- **The service-worker-mediated GET gap.** P3 and P12 record it as measured: a cross-origin GET issued from a
+  worker-controlled page was not observed by witness 1, while a cross-origin POST from the same page was. Whether CDP
+  `Fetch.enable`, a fourth `page.on("request")` witness, or worker-scope interception (`Worker.on("request")`) closes
+  it is **ticket 22**, opened as a post-v1 follow-up. The claim published today is scoped to the egress the audit
+  observes, and the README limitation is to be reopened when — and only when — a fix lands and is measured.
 
 ## Re-derivability
 

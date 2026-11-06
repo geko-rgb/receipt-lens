@@ -4,15 +4,58 @@
 
 **Blocked by:** 15 (shares, UPI and WhatsApp), 16 (fragment share links), 17 (installable offline model cache)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Effort:** ~40 h · **Roadmap:** workstream 3G (tasks 3G.1–3G.6) · **Week:** W19–20 · **Milestone:** M3
 **Verify:** full-flow audit passes in Playwright; a deliberately injected canary egress makes it fail; `privacy.yml` green in CI
 
-- [ ] The audit drives the complete workflow in Playwright with request interception at the browser-context level, including service-worker-originated traffic, and documents the limits of that interception
-- [ ] No request anywhere in the flow, including first load, is cross-origin
-- [ ] No receipt-image bytes and no OCR text appear in any request URL, header or body, covering URL-borne exfiltration as well as bodies
-- [ ] Deliberate sharing actions are identified in the audit output and excluded from the local-processing claim rather than hidden
-- [ ] CI blocks a merge when the workflow produces unexpected egress, and passes with egress blocked once assets are cached
-- [ ] A first-party static scan runs as a documented supplement to the runtime audit, not as evidence in its own right
-- [ ] README wording is the scoped claim — local inference after assets load, verified against unexpected egress and uploads, sharing separate and free of image and OCR data — with no universal zero-network or security-proof phrasing
+- [x] **The audit drives the complete workflow in Playwright with request interception at the browser-context level,
+  including service-worker-originated traffic, and documents the limits of that interception.** `playwright/privacy.spec.ts`
+  drives one workflow — profile, capture, OCR, parse, review, rename/add/delete, roster, assign, exclude, lock, mint
+  three share links, a participant context opens one, both holders mark paid — and reads one accumulated log in six
+  split tests. Three witnesses: `context.on("request")` asserts, `context.route("**/*")` + `routeWebSocket` enforce,
+  and the origin's own log (`startAppServer({ recordRequests: true })`) proves witness 1 is not blind. Workers run at
+  `serviceWorkers: "allow"`. Limits are in the spec header, `DECISIONS/0030` P3/P12, and the generated README block —
+  including the measured worker-mediated GET gap filed as ticket 22.
+- [x] **No request anywhere in the flow, including first load, is cross-origin.** Green in CI (Privacy run
+  `42253625437`, step "Full-workflow PWA privacy audit (M3, ticket 18)"). Vacuity guards: an empty log, an empty
+  origin log or an unreached share phase throws rather than passes. Negative control: a canary injected into the real
+  flow turns this assertion red —
+  `"the audit observed http(s) traffic to an origin that is not the application" / "POST http://127.0.0.1:49152/canary"`.
+- [x] **No receipt-image bytes and no OCR text appear in any request URL, header or body.** The image is hashed at
+  handover and checked byte-for-byte plus a 4 KB sliding window across every `http(s)` request body, URL, query and
+  header value. OCR scanning covers URL, query, body (percent-decoded once) and header names (values never recorded).
+  The needle set is the three lines that carry a printed amount plus the image digest: "receipt" alone is the
+  bill's default title and the product's own icon prefix (`/icons/receipt-lens-*.png`), so it cannot discriminate —
+  recorded in `DECISIONS/0030` P7 rather than left implicit. `blob:`/`data:` are recorded but never counted as egress
+  (P4.1), and the image assertion still proves the bytes reach no network request.
+- [x] **Deliberate sharing actions are identified in the audit output and excluded from the local-processing claim
+  rather than hidden.** `whatsapp-intent`, `upi-intent` and `share-link-minted` are tagged, aborted by the routing
+  layer, and printed as "excluded-not-exempt"; every minted fragment and the WhatsApp message body are content-scanned
+  as artifacts (clear, percent-decoded, and each base64url part), and no fragment appears in any query or body.
+- [x] **CI blocks a merge when the workflow produces unexpected egress, and passes with egress blocked once assets are
+  cached.** The job fails red on every PR and passes on this branch; the *merge-blocking* half is a repository setting
+  this plan refuses — `gh api …/protection/required_status_checks` answers `403 — Upgrade to GitHub Pro`, and `main`
+  reports `protected: false`. Recorded as `DECISIONS/0030` P10 with its resolution timeline (public at v1's npm
+  publish) and as a HANDOFF action item. Ticked as far as this repository can take it; the gap is named, not hidden.
+- [x] **A first-party static scan runs as a documented supplement to the runtime audit, not as evidence in its own
+  right.** Test 5 invokes it (`package.json`'s `scan:egress` command, read from the file — one definition, invoked not
+  reimplemented), asserts exit 0, prints its output verbatim, and its test name and the README both say "supplement,
+  not proof". `ENOEXEC` workaround recorded in `DECISIONS/0030` P8.
+- [x] **README wording is the scoped claim — local inference after assets load, verified against unexpected egress and
+  uploads, sharing separate and free of image and OCR data — with no universal zero-network or security-proof
+  phrasing.** Generated by `scripts/render-privacy-table.mjs` between `<!-- privacy:begin/end -->` (with the limits
+  list beside the claim) and re-derived in CI by `verify:privacy-table`; the footprint paragraph is generated from
+  `footprint.json` + `warm-bytes.json` and re-derived by `verify:footprint`. Neither block can be hand-edited into
+  agreement with a claim.
+
+## Evidence
+
+- `DECISIONS/0030-privacy-audit-pins.md` — the pins (P1–P13, including P4.1 blob/data scheme rule, P6.1 driver
+  preconditions, P7's recorded exclusion, P8's amendment, P12's limits, P13's ticket-22 reference).
+- `DECISIONS/0031-llm-fallback-deferred.md` — the M2 deferral.
+- Commits `fa5fdac` (claims), `230049c` (rulings), `e55b4f4` (red stubs), `7a1a499` (pins), `a40cefe` (implementation).
+- Local: `pnpm typecheck` ok, six privacy tests pass, `verify:footprint` / `verify:accuracy-table` /
+  `verify:privacy-table` clean. CI: CI + Privacy green on `a40cefe`.
+- Canary evidence (injected into the real flow, then reverted): cross-origin POST and OCR-text POST both fail the audit
+  with the failing entries quoted above.
