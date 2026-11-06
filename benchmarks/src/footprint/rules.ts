@@ -75,7 +75,17 @@ export interface OriginEntry {
   readonly bodyBytes: number;
   /** F9.7: an interrupted download may not be summed as a completed one. */
   readonly completed: boolean;
+  /** The validator the origin answered with, once ticket 17c sends one. */
+  readonly etag?: string | null;
 }
+
+/**
+ * How a warm visit treated one asset (DECISIONS/0029 P7). Three states, because 17b's two states were written
+ * when the only reason a path could appear in the warm origin log was a full re-download. After 17c a
+ * `304` is an expected appearance and a *success*, so labelling it the way 17b labelled a re-download would
+ * report the ticket's win as a failure: "**no** — 0 B paid again".
+ */
+export type WarmOutcome = "worker-served" | "revalidated-304" | "redownloaded-200";
 
 /** T1 — what is measured, in the words the artifact publishes. */
 export interface DeploymentIdentity {
@@ -162,6 +172,8 @@ export interface Finding {
   readonly resolvedBy?: string | null;
   readonly resolvedAt?: string | null;
   readonly resolution?: string;
+  /** Superseded measurements of the same quantity, appended rather than edited (DECISIONS/0029 P6). */
+  readonly history?: readonly Record<string, string | number | null>[];
 }
 
 /** The inputs `buildFindings` needs to close ticket 08's finding from a measurement. */
@@ -172,6 +184,12 @@ export interface FindingsInput {
   readonly warmPaths: readonly string[];
   readonly moduleChunk: WarmModuleChunkDefect;
   readonly measuredAt: string;
+  /** Per-path warm state from this run (DECISIONS/0029 P7). Findings key their claims to it. */
+  readonly warmOutcomes?: Readonly<Record<string, WarmOutcome>>;
+  /** The warm figure the *previous* artifact published, for the history entry (P6). */
+  readonly previousWarmBytesPublished?: number | null;
+  readonly previousMeasuredAt?: string | null;
+  readonly supersedesArtifact?: string | null;
 }
 
 /** T8 — the pre-17 baseline, read from the artifact that still describes the harness. */
@@ -215,7 +233,7 @@ export function deployment(): DeploymentIdentity {
     scope: "PWA",
     servedBy: "scripts/serve-measure-app.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, no reverse proxy, the request log F5 counts bytes from",
     cacheContract:
-      "cache-control: no-store with no ETag: this origin answers no 304 to anything, so warm liveness is proven by the worker's caches plus the origin log, never by a conditional response (DECISIONS/0027 W17.3, DECISIONS/0028 T5)",
+      "two policies, one module (DECISIONS/0029 P2): code and app metadata answer `cache-control: no-cache` with a content `ETag` and reply `304` to a matching `If-None-Match`; model weights, the recognition dictionary and the runtime WASM keep `no-store` and advertise no validator, because the worker's Cache API owns them and a second copy in the HTTP cache would be dead weight and a staleness path. Warm liveness is proven by *no body served over the origin* for anything the caches hold — and after ticket 17c a `304` is evidence for that claim rather than a violation of it.",
     contentEncoding: "identity — nothing is compressed, so wire bytes equal file bytes",
     threads: threadNote(),
     remeasureRequiredAfter:
@@ -275,7 +293,7 @@ export function coldReady(): ColdReadySignal {
   };
 }
 
-export function assertColdSample(sample: ColdSample): void {
+export function assertColdSample(sample: ColdSample & { conditionalRefetches?: OriginEntry[] }): void {
   if (!sample.readySignalSeen) {
     throw new FootprintFailLoud(
       "cold_pointer_never_ready",
@@ -301,18 +319,33 @@ export function assertColdSample(sample: ColdSample): void {
     throw new FootprintFailLoud("required_row_missing", `required footprint rows never arrived: ${missing.join(", ")}`);
   }
 
+  // F9.1 is about the *first* use of a URL: an empty cache cannot answer a first request with a 304. Ticket 17b
+  // wrote the loop over every logged entry instead, which was invisible while the origin answered no 304s at all
+  // and became a false alarm the moment ticket 17c put validators on code assets: a cold visit fetches the
+  // worker's module chunk twice (once with cache: "reload" for the precache, once as the worker's own import),
+  // and the second fetch legitimately revalidates. First use must be a body; a later use may be a 304, and that
+  // 304 is evidence for the fix rather than proof of a stale context.
+  const firstUse = new Map<string, OriginEntry>();
+  for (const entry of sample.wire) {
+    if (!firstUse.has(entry.path)) firstUse.set(entry.path, entry);
+  }
+  const conditionalRefetches = sample.wire.filter(
+    (entry) => entry.status === 304 && firstUse.get(entry.path) !== entry,
+  );
+  const unexpected304 = [...firstUse.values()].filter((entry) => entry.status === 304);
+  if (unexpected304.length > 0) {
+    throw new FootprintFailLoud(
+      "cold_conditional_response",
+      `${unexpected304.map((entry) => entry.path).join(", ")} answered 304 on its FIRST use in a cold visit — the context was not empty, so this is not a cold measurement`,
+    );
+  }
+
   for (const entry of sample.wire) {
     if (entry.status >= 400) {
       throw new FootprintFailLoud("failed_request_status", `${entry.path} answered ${entry.status} on a cold visit`);
     }
-    if (entry.status === 304) {
-      throw new FootprintFailLoud(
-        "cold_conditional_response",
-        `${entry.path} answered 304 on a cold visit — the context was not empty, so this is not a cold measurement`,
-      );
-    }
-    if (entry.status === 200 && entry.bodyBytes === 0) {
-      throw new FootprintFailLoud("cold_zero_body", `${entry.path} answered 200 with no body — origin or browser is lying about the cache`);
+    if (entry.status === 200 && entry.bodyBytes === 0 && firstUse.get(entry.path) === entry) {
+      throw new FootprintFailLoud("cold_zero_body", `${entry.path} answered 200 with no body on first use — origin or browser is lying about the cache`);
     }
     if (!entry.completed) {
       throw new FootprintFailLoud("download_incomplete", `${entry.path} did not finish: an interrupted download may not be summed as a completed one`);
@@ -326,12 +359,43 @@ export function assertColdSample(sample: ColdSample): void {
     }
   }
 
+  sample.conditionalRefetches = conditionalRefetches;
+
   if (sample.renderedZeroItems) {
     throw new FootprintFailLoud(
       "draft_produced_nothing",
       `the draft rendered ${domAnchors().zeroItems}: F9.8's condition, in the DOM form a deployment without a harness hook has to use — footprint numbers from a run that read nothing are meaningless`,
     );
   }
+}
+
+/* ------------------------------------------------------------------ T3 */
+
+/**
+ * Classify how a warm visit treated the paths of interest, from the origin's own log.
+ *
+ * An empty interest set means nothing is being asked about, which classifies as `worker-served` — that is the
+ * state the table claims, and it must not be reachable by accident. `redownloaded-200` outranks the rest
+ * because it is the state that fails the run; a `304` for a path of interest is `revalidated-304`, where a
+ * request happened and no footprint moved.
+ */
+export function warmOutcomeFor(
+  entries: readonly OriginEntry[],
+  paths: readonly string[],
+): WarmOutcome {
+  const cared = paths.length === 0 ? [] : entries.filter((entry) => paths.includes(entry.path));
+  if (cared.some((entry) => entry.status === 200 && entry.bodyBytes > 0)) return "redownloaded-200";
+  if (cared.some((entry) => entry.status === 304)) return "revalidated-304";
+  return "worker-served";
+}
+
+/** Which validator each answered path carried, so a published `304` can be tied to the response that earned it. */
+export function warmValidators(entries: readonly OriginEntry[]): Record<string, string> {
+  const answered: Record<string, string> = {};
+  for (const entry of entries) {
+    if (typeof entry.etag === "string" && entry.etag.length > 0) answered[entry.path] = entry.etag;
+  }
+  return answered;
 }
 
 /* ------------------------------------------------------------------ T3 */
@@ -444,10 +508,13 @@ export function assertWarmSample(sample: WarmSample): void {
     if (!entry.completed) {
       throw new FootprintFailLoud("download_incomplete", `${entry.path} did not finish on a warm visit`);
     }
-    if (classifyRole(entry.path) !== null && !warmRequestIsStructural(entry.path)) {
+    // Post-17c the violation is a *body*, not an appearance. A `304` for a path the caches hold is the fix
+    // working: the browser held a copy, asked whether it was still valid, was told yes, and moved 0 bytes.
+    // Rejecting appearance-in-the-log instead would fail the run on the thing this ticket exists to ship.
+    if (entry.status === 200 && entry.bodyBytes > 0 && classifyRole(entry.path) !== null && !warmRequestIsStructural(entry.path)) {
       throw new FootprintFailLoud(
         "warm_asset_over_the_wire",
-        `${entry.path} reached the origin with ${entry.bodyBytes} bytes on a warm visit while the worker was controlling, and the active caches could have answered it. DECISIONS/0012 F12's remedy is the Cache API, so a full re-download here is the broken cache contract, not a declared exception — there is no exception set any more (T6).`,
+        `${entry.path} was served with a ${entry.bodyBytes} B body on a warm visit while the worker was controlling, and the active caches could have answered it. DECISIONS/0012 F12's remedy is the Cache API, so a full re-download here is the broken cache contract, not a declared exception — there is no exception set any more (T6).`,
       );
     }
   }
@@ -488,6 +555,24 @@ export function warmModuleChunkDefect(observedBytes: number): WarmModuleChunkDef
 
 export function buildFindings(input: FindingsInput): readonly Finding[] {
   const previous = input.previousFinding;
+  const outcomes = input.warmOutcomes ?? {};
+  const moduleChunkPaths = Object.keys(outcomes).filter((pathname) => /^\/assets\/cache-names-/.test(pathname));
+  const moduleChunkRedownloaded = moduleChunkPaths.some((pathname) => outcomes[pathname] === "redownloaded-200");
+  const swState = outcomes["/sw.js"];
+
+  const history =
+    input.previousWarmBytesPublished === undefined || input.previousWarmBytesPublished === input.warmBytes
+      ? undefined
+      : [
+          {
+            warmBytesOverTheWire: input.previousWarmBytesPublished,
+            measuredAt: input.previousMeasuredAt ?? null,
+            artifact: input.supersedesArtifact ?? null,
+            supersededBy: "ticket 17c",
+            why: "the origin began answering code assets with an ETag, so a warm visit revalidates instead of re-downloading",
+          },
+        ];
+
   return [
     {
       ...previous,
@@ -501,15 +586,35 @@ export function buildFindings(input: FindingsInput): readonly Finding[] {
       detail: `a warm visit moves ${input.warmBytes} B over the wire, and the requests that reached the origin are ${input.warmPaths.join(", ") || "none"}`,
       evidence: "this artifact's warm runs[]: five samples per class, counted from the origin's own request log (DECISIONS/0012 F5), cross-checked at ±0 against benchmarks/results/warm-bytes.json",
       affectsClaim: "section 9 initial-download / re-fetch cost: the second visit is no longer priced at the runtime WASM",
+      ...(history === undefined ? {} : { history }),
     },
     {
-      code: input.moduleChunk.findingCode,
-      detail: `${input.moduleChunk.bytes} B of the warm total is the worker's own module chunk, re-fetched on every instantiation: ${input.moduleChunk.reason}`,
-      evidence: `the warm runs[] path list in this artifact, against benchmarks/results/warm-bytes.json's warmPerAsset`,
+      code: "warm_worker_module_chunk_refetched",
+      detail: moduleChunkRedownloaded
+        ? `${input.moduleChunk.bytes} B of the warm total is the worker's own module chunk, re-fetched with its full body on every instantiation: ${input.moduleChunk.reason}`
+        : `the worker's module chunk no longer moves a body on a warm visit; it answers ${outcomes[moduleChunkPaths[0] ?? ""] ?? "revalidated-304"} at 0 B`,
+      evidence: `the warm runs[] path list and per-path status in this artifact, against benchmarks/results/warm-bytes.json's warmPerAsset`,
       remedy: `ticket 17c: an ETag on code assets, which DECISIONS/0012 F10 measured already revalidating correctly under the entity limit. ${input.moduleChunk.condition}`,
       affectsClaim: "the warm-visit byte total, not the local-processing claim",
-      resolvedBy: null,
+      resolvedBy: moduleChunkRedownloaded ? null : "ticket 17c",
+      ...(moduleChunkRedownloaded ? {} : { resolvedAt: input.measuredAt.slice(0, 10) }),
     },
+    // The ticket file's open question, answered by the run in whichever direction it went. Recording only the
+    // favourable half is how a measurement becomes a story.
+    ...(swState === undefined
+      ? []
+      : [
+          {
+            code: swState === "redownloaded-200" ? "sw_js_byte_check_unconditional" : "sw_js_byte_check_conditional",
+            detail:
+              swState === "redownloaded-200"
+                ? `the browser still downloads /sw.js (${input.moduleChunk.bytes > 0 ? "and the worker module chunk with it" : "with its full body"}) on a warm visit even though code assets now carry an ETag — a service worker script fetch is the browser's own update check, and it may bypass the HTTP cache the way the worker's cache: "reload" precache does (DECISIONS/0029 P5)`
+                : "the browser's /sw.js byte-check now sends If-None-Match and is answered with a 304 carrying no body, so the worker script costs 0 B on a warm visit",
+            evidence: "the warm runs[] entry for /sw.js in this artifact: its status, bodyBytes and etag",
+            affectsClaim: "which of the three warm line items the ETag actually removed",
+            resolvedBy: null,
+          },
+        ]),
   ];
 }
 

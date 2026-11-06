@@ -174,12 +174,29 @@ estimate is not.** Whatever it is, `DECISIONS/0028` T3's cross-check target and 
 warm set are restated in the same commit, and the README row that reads "2,275×" is regenerated from the two
 artifacts rather than edited.
 
-**Cold must not move: 21,719,232 B, ±0.** A fresh context has an empty HTTP cache, so every cold response is a
-200 with a full body; if cold bytes change at all, 17c has altered what the *app requests*, not how the origin
-answers, and that is a finding to stop on and report — the worker's precache and the model probe are 17e's
-subject, not this ticket's. `cacheHeldBytes` must also hold at **21,459,809 B ±0**, for the same reason: P8 of
-17b made it a derivation from committed files (the built precache manifest plus the verified model set), so
-nothing about a response header can move it. If it does move, the derivation was never a derivation.
+**Cold was pinned at ±0 and the run falsified it: 21,719,232 B became 21,718,277 B, −955 B. Reported, not
+absorbed.** The reasoning was sound and the outcome was not: a fresh context does have an empty HTTP cache, so
+every *first* use of a URL is a 200 with a body — but a cold visit is not one fetch per URL. The worker fetches
+its own module chunk with `cache: "reload"` for the precache, and then the worker's module graph fetch asks for
+the same path again. Under 17b that second fetch downloaded 955 B again; under 17c it carries
+`If-None-Match` and is answered `304`. So 17c did **not** change what the app requests, and cold moved anyway —
+it changed how the origin answered a request the app already made twice. The consequence is published as
+`totals.conditionalRefetchesPerColdVisit` and `conditionalRefetchPathsPerColdVisit`, and the cold-delta
+paragraph in the README names it, because a table whose total shifted by an unexplained 955 B is exactly the
+thing this ticket lineage was built to prevent.
+
+**Falsified by the same measurement: 17b's own cold gate.** `assertColdSample` rejected *any* 304 in the cold
+window, where `DECISIONS/0012` F9 condition 1 is about the **first use of a URL**. Invisible while the origin
+answered no 304s; a false alarm the moment it could. Fixed to first-use scope, which also means the artifact now
+reports revalidated refetches as what they are — evidence the fix landed — instead of failing a working run.
+The original 0012 text was right; 17b's implementation of it was not, and the pin that caught it was the
+measurement, not the test suite: `pins.test.ts`'s cold-304 fixture appended a *repeat* 304, which is now legal,
+so that fixture had to be rewritten to fail a first-use 304. A test that stays green when the behaviour it
+describes becomes permitted is the same "green rule, wrong behaviour" family as Blocker A.
+
+`cacheHeldBytes` **did** hold at 21,459,809 B ±0, as pinned: it is a derivation from the built precache manifest
+plus the committed model manifest, so nothing a response header does can move it — which is the check that makes
+the derivation an actual derivation rather than a restated number.
 
 ## P5 — The cross-check is unchanged, and three pins change on purpose
 
@@ -206,18 +223,23 @@ validator cannot help. If that is what the run shows, then:
 **That branch is the difference between a ticket and a wish.** Forcing the number down by suppressing the actual
 mechanism is the failure F12 was written to end.
 
-**Pins that go red and must be updated in the implementation commit — exactly these three:**
+**Pins that go red and must be updated in the implementation commit. Three were predicted; a fourth appeared
+when the artifacts regenerated, and it is the instructive one — see the note under the table.**
 
 | Pin | Where | From | To |
 |---|---|---|---|
 | cache contract | `pins.test.ts:194` | `cacheContract` contains `no-store` | contains `no-cache` **and** `ETag`, and still says no `304` is *required* for the pass condition |
 | header guard | `pins.test.ts:467` | server contains `no-store`, no ETag | server emits a content-derived ETag and `no-cache` for code assets, `no-store` for the document |
+| baseline witness | `pins.test.ts` T3 "holds the live baseline this ticket must not move" | `warm-bytes.json` reads 6,527 B | the witness exists, is deterministic across its 5 samples, describes the PWA, and **equals** the footprint table's warm median — a relationship, not a snapshot value |
+| cold 304 fixture | `pins.test.ts` T2 | any 304 in the cold window fails | a 304 on a URL's **first use** fails; a repeat one is the fix working |
+| baseline constants | `baseline-pins.test.ts` | `canonicalWarmBytes === 6527` | read from the tree, asserted only to *differ* from the 14,848,852 B archive |
 | deployment text | `rules.ts` `deployment().cacheContract` | "answers no 304 to anything, so warm liveness is proven by …" | "answers `200` or `304`; code assets revalidate under `no-cache` + `ETag`, bulk binaries stay `no-store` with no validator; warm liveness is proven by **no body served over the origin** for anything the caches hold, and a `304` is evidence *for* the claim, not against it" |
 
-`DECISIONS/0012` F9's 17b amendment (condition 3: "no network request served the body") needs a matching
-sentence, because a `304` is a network request that serves no body — the amended wording said "absent from the
-warm origin log **and** `transferSize === 0`", and after 17c the honest test is on **status and body bytes**, not
-on absence.
+**What the fourth red pin teaches.** It was written in 17b as "assert the witness file says 6,527 B", which is a
+copy of a measurement wearing the clothes of a property. The moment 17c legitimately regenerated that
+measurement, the pin went red for no defect at all. The rewritten form asserts the *relationship* — witness
+exists, independent, deterministic, same deployment, equal to the table — and will survive any future number.
+Pins should hold invariants; values belong in artifacts.
 
 ## P6 — Findings: append, never rewrite
 

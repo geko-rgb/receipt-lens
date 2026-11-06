@@ -189,10 +189,19 @@ describe("T1 — the measured deployment is the PWA, and every row is named", ()
     expect(identity.entry).not.toContain("harness");
   });
 
-  it("records a cache contract that answers no 304, which is what forces T5 and T8", () => {
+  // Updated by ticket 17c, deliberately (DECISIONS/0029 P5 row 1). This pin asserted `no-store` with no
+  // `ETag`, which was the shipping contract 17b measured and the reason its warm-liveness rule had to be
+  // written without 304s. 17c replaces that contract for code assets, so the pin moves to the new one rather
+  // than being deleted — and it still pins the half that did NOT change, because "both policies exist" is only
+  // honest if the bulk group is named.
+  it("records the two-policy contract 17c shipped, and that a 304 is evidence rather than a violation", () => {
     const identity = deployment();
-    expect(identity.cacheContract).toContain("no-store");
-    expect(identity.cacheContract.toLowerCase()).toContain("no etag");
+    const contract = identity.cacheContract.toLowerCase();
+    expect(contract).toContain("no-cache");
+    expect(contract).toContain("etag");
+    expect(contract).toContain("no-store");
+    expect(contract).toContain("304");
+    expect(contract).toMatch(/evidence for that claim|not a violation/);
     expect(identity.contentEncoding).toContain("identity");
   });
 
@@ -240,8 +249,15 @@ describe("T2 — cold readiness is the W5 step-6 pointer, not a timing hook", ()
     expect(() => assertColdSample(coldSample())).not.toThrow();
   });
 
-  it("rejects a cold visit that saw a 304, because the context was not empty", () => {
-    const wire = COLD_PATHS.map((p) => entry(p, coldBytes(p))).concat(entry(ASSETS.sw, 0, 304));
+  // Amended by ticket 17c (DECISIONS/0029 P4). The condition is about the FIRST use of a URL — an empty cache
+  // cannot answer a first request with a 304. 17b wrote the gate over every logged entry, which was invisible
+  // while the origin answered no 304s at all and became a false alarm the moment validators existed: a cold
+  // visit fetches the worker's module chunk twice and the second fetch now legitimately revalidates. So the pin
+  // fires on a first-use 304 and, in etag-pins.test.ts, declines to fire on a repeat one.
+  it("rejects a cold visit whose FIRST use of a URL was a 304, because the context was not empty", () => {
+    const wire = COLD_PATHS.map((p) =>
+      p === ASSETS.runtimeWasm ? entry(p, 0, 304) : entry(p, coldBytes(p)),
+    );
     expect(fired(() => assertColdSample(coldSample({ wire }))).code).toBe("cold_conditional_response");
   });
 
@@ -309,14 +325,27 @@ describe("T3 — the warm number cross-checks against warm-bytes.json at ±0", (
     expect(violation.message).toContain(ASSETS.workerModule);
   });
 
-  it("holds the live baseline this ticket must not move", () => {
+  // Amended by ticket 17c, deliberately (the fourth red pin; DECISIONS/0029 P5 listed three). As written this
+  // pinned 17b's *value* rather than 17b's *property*: it asserted warm-bytes.json says 6,527 B, which was true
+  // only until the ETag ticket regenerated that artifact. What the pin actually guards is that the witness
+  // exists, is independent, is a PWA measurement, is deterministic across samples, and agrees with the
+  // footprint table — so it now reads the cross-check relationship instead of a constant.
+  it("keeps an independent, deterministic PWA witness that agrees with the footprint table", () => {
     const artifact = JSON.parse(read("benchmarks/results/warm-bytes.json")) as {
-      samples: { median: number; n: number };
+      samples: { median: number; n: number; min: number; max: number };
       deployment: { scope: string };
     };
-    expect(artifact.samples.median).toBe(WARM_BYTES);
-    expect(artifact.samples.n).toBe(5);
+    const footprint = JSON.parse(read("benchmarks/results/footprint.json")) as {
+      totals: { secondVisitBytesOverTheWire: { median: number } };
+      measurement: { crossCheck: { warmBytesPublished: number; toleranceBytes: number } };
+    };
     expect(artifact.deployment.scope).toContain("PWA");
+    expect(artifact.samples.n).toBe(5);
+    expect(artifact.samples.min).toBe(artifact.samples.median);
+    expect(artifact.samples.max).toBe(artifact.samples.median);
+    expect(artifact.samples.median).toBe(footprint.totals.secondVisitBytesOverTheWire.median);
+    expect(footprint.measurement.crossCheck.warmBytesPublished).toBe(artifact.samples.median);
+    expect(footprint.measurement.crossCheck.toleranceBytes).toBe(0);
   });
 
   it("never writes warm-bytes.json from the footprint driver", () => {
@@ -462,10 +491,23 @@ describe("T7 — the ETag defect is declared and owned by 17c, not fixed here", 
     expect(body).toMatch(/one commit|same commit/);
   });
 
-  it("changes no shipping header while it is at it", () => {
-    const server = read("scripts/serve-measure-app.mjs");
-    expect(server).toContain("no-store");
-    expect(server.toLowerCase()).not.toMatch(/["']etag["']\s*:/);
+  // Replaced by ticket 17c, deliberately (DECISIONS/0029 P5 row 2). As written, this pin was 17b's guard
+  // against doing header work at all: it asserted the measure server had no ETag and kept `no-store`. The
+  // `no-store` half still passes now purely because the 404 path mentions it — a pin that stays green while the
+  // behaviour it guards has changed is the failure mode 17c exists to fix, so it now asserts the real thing:
+  // both servers answer through ONE policy module, and the live behaviour is checked over HTTP in
+  // etag-pins.test.ts rather than by grepping text.
+  it("routes both origins through the single policy module 17c shipped", () => {
+    for (const file of ["scripts/serve-app.mjs", "scripts/serve-measure-app.mjs"]) {
+      const server = read(file);
+      expect(server).toContain("etag-policy.js");
+      expect(server).toContain("cachePolicyFor");
+      expect(server).toContain("shouldNotModify");
+    }
+    const policy = read("benchmarks/src/footprint/etag-policy.ts");
+    expect(policy).toMatch(/BULK/);
+    expect(policy).toMatch(/DOCUMENT/);
+    expect(policy).toContain("no-store");
   });
 });
 
