@@ -169,6 +169,10 @@ Every figure below is generated from committed results JSON in `benchmarks/resul
 
 Strict means *every field that dataset supports agrees on that receipt* (§8 Tier 1). It is one number per row, not a rate to be read as usable-or-not: the CORD rows carry nine scored fields including four item fields, the SROIE rows carry one. `Macro F1` averages the dataset's scored fields unweighted.
 
+**What parser-only does not count.** Parser-only accuracy measures what the parser classifies automatically. Rows the parser cannot classify are preserved as ambiguous rows and can be manually added to the bill via the review screen — the review workflow exists for exactly this reason. A user who reviews ambiguous rows will see higher effective accuracy than the parser-only number suggests, because the parser-only number is what the automated path alone achieves without any manual recovery. Ticket 21 tracks the prevalence of priced-but-ambiguous rows; v1 does not publish a percentage for this.
+
+**Where the automated path loses money, and what happens to it.** `arithmetic_item_sum` is not accuracy evidence — where it fires, it is a 05/20 classifier gap, not a price bug. Unrecognised charge labels (labels outside the dictionary in §5) are currently dropped rather than preserved as `otherCharges` entries; this is tracked as ticket 20 for post-v1.
+
 ### Tier 2 — field-level precision / recall / F1
 
 | Mode | Dataset · split | Field | TP | FP | FN | Precision | Recall | F1 | Gold cells | Gold left blank |

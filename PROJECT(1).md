@@ -1129,6 +1129,8 @@ No owner choice is pending for DQ-01 through DQ-04.
 10. UPI links pass parameter-format/length tests, the current primary-spec numeric limits are verified before constants lock, and settlement remains manually confirmed.
 11. The decision about any LLM fallback is recorded with measured data.
 
+Owner-authorized note (ticket 18, 2026-11-06): **Item 11 is deferred to v2 per owner decision.** The decision record in `DECISIONS/0031` satisfies the “recorded” requirement; “measured data” is explicitly deferred to v2. No candidate model was selected and none of M2's five fields — accuracy, correction rate, download size, cold/warm latency, browser compatibility — was measured, so `DECISIONS/0031` records the deferral and states plainly that it does not satisfy M2's original exit criteria. This is the same authorization pattern as the §19 note (ticket 11) and the §10 note (ticket 13).
+
 
 
 ## Appendix A. Review remediation traceability
