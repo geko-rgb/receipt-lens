@@ -7,6 +7,10 @@ worker and measured the headline warm-visit number separately (`DECISIONS/0027` 
 the table wholesale so the published "measured footprint" claim is the product's, not the scaffold's.
 
 **Blocked by:** 17 (installable, offline, self-updating)
+**Blocks:** 18 (privacy audit and claims) — ticket 18's README claims require the footprint table to reflect
+the PWA deployment, which this ticket delivers. The ordering was corrected at ticket 17's checkpoint 3: 17b
+comes *before* 18, because a privacy audit that writes claims against a pre-17b table would be writing them
+against harness bytes.
 **Status:** ready-for-agent
 **Effort:** ~10 h · **Roadmap:** workstream 3A (task 3A.7 completion) · **Milestone:** M3
 **Verify:** `pnpm measure:footprint && pnpm verify:footprint` clean, `git diff --exit-code` on the README
