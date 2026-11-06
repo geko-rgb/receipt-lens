@@ -350,8 +350,9 @@ export function warmToleranceBytes(): number {
  * - `/assets/models/manifest.json` — W5 step 1's version probe, which W6 pins as a deliberate
  *   `cache: "reload"` request. It is the app asking the origin what it serves, which is the point.
  *
- * Anything else that the active caches could have answered must not appear. And unlike `NOT_RETAINABLE`, this
- * is not a permission slip: a new asset moves the warm total, and `assertWarmCrossCheck` fails on ±0.
+ * Anything else that the active caches could have answered must not appear. And unlike the declared
+ * non-retainable set this replaced (T6), this is not a permission slip: a new asset moves the warm total, and
+ * `assertWarmCrossCheck` fails on ±0.
  */
 function warmRequestIsStructural(pathname: string): boolean {
   return (
