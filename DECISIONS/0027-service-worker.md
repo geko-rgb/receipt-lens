@@ -1057,6 +1057,19 @@ of them is the drift guard F12 designed to break.
   number becomes unreportable rather than dishonest. `firstResultMs` and `inferenceMs` remain measured. A published number that cannot
   be separated is reported as unseparable — not quietly kept in the table from the old deployment.
 
+  **Amendment, 2026-11-06 (ticket 17b, `DECISIONS/0028` T4): `inferenceMs` is not separable either — three
+  fields, not two, and the reason is empirical.** The sentence above claims `inferenceMs` survives. It does
+  not: the PWA never surfaces an OCR duration to the DOM, so there is nothing for a driver to time against.
+  Verified by grep over `packages/pwa/src` for `inferenceMs`, `durationMs`, `elapsed` and `timings` — **zero
+  matches in any source or component file**. The harness got that number from
+  `window.__receiptLensHarness.last.timings`, the very hook W15 refuses to add to the shipped bundle, so the
+  pin that made `ocrReadyMs` unreportable applies to `inferenceMs` unchanged and for the same reason.
+  Post-17b the published set is: **measured — `appReadyMs` (the `load` event) and `firstResultMs`
+  (timeOrigin → `[data-testid="draft-review"]` exists, the DOM state `capture.spec.ts` already treats as
+  proof a draft was produced); not separable, each with its reason in the artifact — `ocrReadyMs`,
+  `modelLoadMs`, `inferenceMs`.** Keeping a 4-thread harness `inferenceMs` under a 1-thread PWA row would
+  have been the dishonesty W14 exists to prevent.
+
 `pnpm verify:footprint` continues to be the drift check, and after ticket 17 it additionally re-hashes the
 built worker's embedded precache manifest against the built assets: a `footprint.json` that no longer
 matches what `dist/app` contains fails CI, which is what makes regeneration a deliverable rather than a
