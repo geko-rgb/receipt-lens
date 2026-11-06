@@ -538,6 +538,33 @@ export function harnessBaseline(): HarnessBaseline {
   };
 }
 
+/**
+ * The `before` block `warm-bytes.json` publishes, built entirely from the archived harness artifact.
+ *
+ * This exists as a rule-module function rather than inline in the driver because ticket 17b proved the inline
+ * version wrong: it read the canonical `footprint.json` for its own comparison baseline, so once 17b regenerated
+ * that file the artifact would have claimed ticket 17 reduced warm bytes from 6,527 B to 6,527 B, labelled
+ * "ticket 08, harness deployment" while pointing at PWA numbers, and quietly dropped
+ * `redownloadedOnEveryVisit` because the field 17b renamed no longer exists (`JSON.stringify` discards
+ * `undefined`). A rule that lives in the module can be tested; a rule that lives in a caller cannot.
+ */
+export function warmBytesBeforeBlock(): {
+  readonly artifact: string;
+  readonly secondVisitBytesOverTheWire: number;
+  readonly redownloadedOnEveryVisit: readonly string[];
+  readonly findingResolvedBy: string | null;
+  readonly deploymentEntry: string;
+} {
+  const baseline = harnessBaseline();
+  return {
+    artifact: `${baseline.artifactPath} (ticket 08, the §9 M1 harness deployment this replaces)`,
+    secondVisitBytesOverTheWire: baseline.warmBytes,
+    redownloadedOnEveryVisit: baseline.redownloaded,
+    findingResolvedBy: baseline.findingResolvedBy,
+    deploymentEntry: baseline.deploymentEntry,
+  };
+}
+
 /* ------------------------------------------------------------------ T9 */
 
 export function threadNote(): string {
