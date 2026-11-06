@@ -53,6 +53,11 @@ jobs:
       # The measurement itself is deliberately NOT run in CI: shared-runner timings would
       # publish a table whose declared device class is "whatever pod hosted the job".
       - run: pnpm verify:footprint
+      # Ticket 18's gate (DECISIONS/0030 P11). The README's local-processing paragraph is generated from
+      # playwright/privacy.spec.ts, the M3 workflow step and DECISIONS/0030, so a block that describes an audit
+      # somebody has since deleted fails here instead of shipping as a claim nothing backs. The audit itself runs in
+      # privacy.yml — this is the "does the README still describe it" half, and it needs no browser.
+      - run: pnpm verify:privacy-table
       # Ticket 17 (W11): the launcher icons are emitted by the build rather than committed, so what is
       # checkable is that the generator is deterministic and that dist/app holds exactly what it produces.
       - run: pnpm verify:icons

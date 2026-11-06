@@ -94,6 +94,18 @@ layer. So the audit does not *depend* on any single browser-side mechanism being
 coverage is browser-dependent and Chromium-specific (§9 M3.4). Everything below is measured on
 `chromium` / Desktop Chrome and nothing else.
 
+**Measured at checkpoint 3, and it is narrower than the sentence above.** With the real workflow driving, two
+canaries were injected into the flow from the same page: `fetch("https://example.com/canary")` and a cross-origin
+`POST` of `NAAN 60.00` to a loopback port. Witness 1 recorded the **POST** and did not record the **GET** — the page
+was under a controlling service worker by then, and the GET is the one the worker's own `fetch` handler could
+mediate. The audit cannot tell from its log whether the browser never issued that GET or whether witness 1 missed
+it, so it does not claim either: **what is published is that a cross-origin GET issued from a worker-controlled
+page was not observed, and that a worker-mediated GET leak would therefore not be caught by witnesses 1 or 2.** The
+uncontrolled-page canary (P9's test) does catch a cross-origin GET, so the detector is not broken — this is the
+worker case specifically, which is exactly the case P3 already refuses to call trustworthy. Recorded rather than
+explained away, because "the audit passes" and "the audit can see this" are different claims and only the first is
+measured here. An owner decision on whether to chase the mechanism belongs to a follow-up, not to this record.
+
 ## P4 — Three witnesses, and which one asserts
 
 | # | witness | what it sees | job |
@@ -228,9 +240,12 @@ Three rules follow:
    **One word of that list is checked on the wire but not inside the minted payload, and the product is the reason
    rather than convenience.** The bill's default title is the literal word `Receipt` (`mapping.ts`), so every
    minted fragment carries `RECEIPT` as *bill wording* — a participant view shows it as the title — and a payload
-   scan for that word would fail on every share link the product can mint. The payload scan therefore looks for
-   the three lines that carry a printed amount (`COFFEE 4.50`, `NAAN 60.00`, `TOTAL 100.00`) plus the image
-   digest, while `RECEIPT` stays in P5's four-place **wire** scan, where it can never legitimately appear. The
+   scan for that word would fail on every share link the product can mint — and it is not a discriminator on the
+   wire either, because every launcher icon is `/icons/receipt-lens-*.png` and the manifest and worker paths that
+   the browser fetches are named after the product. **The word is therefore a needle nowhere**, in neither the
+   four places P5 names nor the payload: the scan uses the three lines that carry a printed amount
+   (`COFFEE 4.50`, `NAAN 60.00`, `TOTAL 100.00`) plus the image digest, which are strings only the receipt can
+   have produced. The
    exclusion is recorded here because an unrecorded exclusion is indistinguishable from a hole; the claim it
    protects — no excluded row, no image, no raw receipt line in a payload — is unchanged, and `share.spec.ts`
    already proves the same payload carries no excluded row word.
@@ -247,6 +262,13 @@ proof (§9 M1/M3.5, DECISIONS/0013 T7)"** — the test name says `supplement, no
 What it catches that the runtime audit structurally cannot: a code path this flow never reaches. That sentence is
 in the spec header too, because "the runtime audit passes" and "there is no other egress in the source" are
 different claims and only the first one is what P6 measures.
+
+**Amended at checkpoint 3.** The test spawns the command `package.json`'s `scan:egress` script names (`node
+scripts/scan-egress.mjs`), read from `package.json` rather than restated in the spec, instead of spawning `pnpm`
+itself: `spawnSync("pnpm", …)` answers `ENOEXEC` on the machine this was developed on, and a check that only runs
+where a package-manager binary happens to be directly spawnable is a check that fails for a reason unrelated to
+egress. The guarantee P8 asks for is unchanged — the scanner is **invoked, never reimplemented**, there is exactly
+one definition of the scan, and the test log prints the command it ran.
 
 ## P9 — The canary, and the rule that makes the audit non-vacuous
 
@@ -331,7 +353,11 @@ limit set. Both go in the generated blocks, per (C).
   browser, on this deployment, produced no unexpected egress. It cannot show that an untested code path would not.
 - **Chromium, and one version of it.** Playwright's service-worker interception coverage is browser-dependent
   (P3); a different engine may hand routes a different set. Witness 3 is why that limitation is bounded rather than
-  open-ended: the origin is not a Playwright abstraction.
+  open-ended: the origin is not a Playwright abstraction — but witness 3 only sees the *application* origin, so it
+  cannot bound a blind spot on a foreign one. Measured at checkpoint 3: a cross-origin **GET** issued from a
+  worker-controlled page did not appear in witness 1, while a cross-origin **POST** from the same page did. The
+  audit's claim is therefore about the egress it observes, not about every request the browser could conceivably
+  make, and the README says so in the same breath as the claim.
 - **Deliberate sharing is outside the local-processing claim** (P7), and the audit's exclusion list is printed, so
   the exclusion is auditable rather than a `continue()` in a loop.
 - **Headers are checked, not logged** (P4/P5) — the audit can say no header matched a receipt signature; it does
