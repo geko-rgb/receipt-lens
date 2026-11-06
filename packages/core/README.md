@@ -389,52 +389,122 @@ Re-derive a row: `pnpm measure:accuracy -- --split dev` (parser-only, CI-runnabl
 ## Footprint, measured
 
 Not claimed — measured. Every number below is generated from the committed results file
-`benchmarks/results/footprint.json` (protocol `receipt-lens-footprint/1`, schema `1.0`, measured `2026-11-04` at `16ae8de`, 5 samples per phase per class).
+`benchmarks/results/footprint.json` (protocol `receipt-lens-footprint/2`, schema `1.0`, measured `2026-11-06` at `6b3ca50`, 5 samples per phase per class).
 CI regenerates this block and fails on drift. The old "~4.3 MB complete OCR pipeline" figure is withdrawn (ADR-002) and does not reappear here; what follows is this deployment's measurement.
+
+**Measured deployment:** `packages/pwa/dist/app/index.html` — the built, installable PWA. Served by `scripts/serve-measure-app.mjs`,
+the same origin the offline and capture specs run against.
 
 ### What a first visit downloads
 
-| Component | Request | Bytes | MB | Kept for the next visit | Bytes of record |
+| Component | Request | Bytes | MB | Held for the next visit | Bytes of record |
 |---|---|---:|---:|---|---|
 | **Model and dictionary** | | **6,279,992** | **6.28** | | |
-| Model manifest | `/assets/models/manifest.json` | 2,700 | 0.00 | yes — 304 | committed · assets/models/manifest.json |
-| Detection model (PP-OCRv6 Tiny) | `/assets/models/PP-OCRv6_tiny_det.onnx` | 1,780,590 | 1.78 | yes — 304 | committed · assets/models/PP-OCRv6_tiny_det.onnx |
-| Recognition model (PP-OCRv6 Tiny) | `/assets/models/PP-OCRv6_tiny_rec.onnx` | 4,462,639 | 4.46 | yes — 304 | committed · assets/models/PP-OCRv6_tiny_rec.onnx |
-| Recognition dictionary | `/assets/models/PP-OCRv6_tiny_rec.txt` | 34,063 | 0.03 | yes — 304 | committed · assets/models/PP-OCRv6_tiny_rec.txt |
-| **Inference runtime (onnxruntime-web, WASM)** | | **14,873,590** | **14.87** | | |
-| Inference runtime JS loader | `/ort/ort-wasm-simd-threaded.mjs` | 24,738 | 0.02 | yes — 304 | lockfile-pinned · ort-wasm-simd-threaded.mjs |
-| Inference runtime WASM | `/ort/ort-wasm-simd-threaded.wasm` | 14,848,852 | 14.85 | **no** | lockfile-pinned · ort-wasm-simd-threaded.wasm |
-| **Application** | | **145,507** | **0.15** | | |
-| Harness page (HTML) | `/` | 981 | 0.00 | yes — 304 | committed · harness/index.html |
-| Application script (core + runtime JS glue) | `/dist/main.js` | 144,526 | 0.14 | yes — 304 | built · harness/dist/main.js |
-| **Initial download, empty cache** | 11 requests for 8 assets (3 re-fetches of the runtime loader, one per WASM worker thread) | **21,299,089** | **21.30** | | min 21,299,089 / max 21,299,089; 2,019 B of response headers on top, as counted by the page |
-| **Kept by the browser cache** | 7 of 8 assets | **6,450,237** | **6.45** | returned as 304 on later visits | this is the whole cache today: no service worker yet (§9 cache keying is ticket 17) |
-| **Not kept: re-downloaded every visit** | `/ort/ort-wasm-simd-threaded.wasm` | **14,848,852** | **14.85** | no | paid again on each of the 10 warm samples |
-| **Second visit, over the network** | 11 requests | **14,848,852** | **14.85** | | 3,000 B of response headers on top, as counted by the page |
+| Model manifest | `/assets/models/manifest.json` | 2,700 | 0.00 | **no** — 2,700 B paid again, 10/10 warm visits | committed · assets/models/manifest.json |
+| Detection model (PP-OCRv6 Tiny) | `/assets/models/PP-OCRv6_tiny_det.onnx` | 1,780,590 | 1.78 | yes — worker cache, 0 B over the wire | committed · assets/models/PP-OCRv6_tiny_det.onnx |
+| Recognition model (PP-OCRv6 Tiny) | `/assets/models/PP-OCRv6_tiny_rec.onnx` | 4,462,639 | 4.46 | yes — worker cache, 0 B over the wire | committed · assets/models/PP-OCRv6_tiny_rec.onnx |
+| Recognition dictionary | `/assets/models/PP-OCRv6_tiny_rec.txt` | 34,063 | 0.03 | yes — worker cache, 0 B over the wire | committed · assets/models/PP-OCRv6_tiny_rec.txt |
+| **Inference runtime (onnxruntime-web, WASM)** | | **14,923,174** | **14.92** | | |
+| Inference runtime WASM | `/assets/ort-wasm-simd-threaded-qh98TCA_.wasm` | 14,848,852 | 14.85 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/assets/ort-wasm-simd-threaded-qh98TCA_.wasm |
+| Inference runtime JS loader | `/assets/ort.wasm.bundle.min-DEokbyO3.js` | 74,322 | 0.07 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/assets/ort.wasm.bundle.min-DEokbyO3.js |
+| **Application** | | **263,120** | **0.26** | | |
+| Service worker module chunk | `/assets/cache-names-BCswqTtv.js` | 955 | 0.00 | **no** — 955 B paid again, 10/10 warm visits | built · packages/pwa/dist/app/assets/cache-names-BCswqTtv.js |
+| Application entry script (shell + core + OCR glue) | `/assets/index-0itO_252.js` | 242,513 | 0.24 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/assets/index-0itO_252.js |
+| Application styles | `/assets/index-DSs-D2Tf.css` | 7,980 | 0.01 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/assets/index-DSs-D2Tf.css |
+| Bundle runtime | `/assets/rolldown-runtime-CEoa-xHZ.js` | 543 | 0.00 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/assets/rolldown-runtime-CEoa-xHZ.js |
+| App shell served for a route navigation | `/capture` | 905 | 0.00 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/index.html |
+| Launcher icon | `/icons/receipt-lens-192.png` | 562 | 0.00 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/icons/receipt-lens-192.png |
+| Launcher icon | `/icons/receipt-lens-512-maskable.png` | 2,515 | 0.00 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/icons/receipt-lens-512-maskable.png |
+| Launcher icon | `/icons/receipt-lens-512.png` | 2,642 | 0.00 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/icons/receipt-lens-512.png |
+| App shell document (precached) | `/index.html` | 905 | 0.00 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/index.html |
+| Web app manifest | `/manifest.webmanifest` | 728 | 0.00 | yes — worker cache, 0 B over the wire | built · packages/pwa/dist/app/manifest.webmanifest |
+| Service worker script | `/sw.js` | 2,872 | 0.00 | **no** — 2,872 B paid again, 10/10 warm visits | built · packages/pwa/dist/app/sw.js |
+| **Initial download, empty cache** | 22 requests for 17 assets (5 repeat fetches inside the same visit) | **21,719,232** | **21.72** | | min 21,719,232 / max 21,719,232 |
+| **Held for the next visit** | 14 of 17 assets | **21,459,809** | **21.46** | the service worker's Cache API, not the HTTP cache | derived: built precache manifest + verified model set |
+| **Paid again on every visit** | `/assets/cache-names-BCswqTtv.js` `/sw.js` `/assets/models/manifest.json` | **6,527** | **0.01** | no | the worker's module import — the open defect ticket 17c owns (DECISIONS/0028 T7); the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script; W5 step 1's version probe, deliberately cache: 'reload' (DECISIONS/0027 W6) |
+| **Second visit, over the network** | 3 requests | **6,527** | **0.01** | | `benchmarks/results/warm-bytes.json` measures the same quantity with a different driver |
+
+| What the page itself observed | 10 cold / 11 warm document resources, of which 11 warm ones moved zero bytes | 3,393,787 cold / 0 B warm | | of which 1,800 B / 0 B are response headers | The page's own resource timings cover only the resources the *document* fetched. The worker's install precache, the WASM and the model downloads are not document resources and never appear here — that is why F5 counts bytes at the origin. So this pair is reported beside the totals and never added to them, and it is not the header cost of the whole visit. |
 
 MB = 10⁶ bytes. The receipt image is not in this table on purpose: it is user data, never a network request.
 
-**Initial download: 21.30 MB. Second visit: 14.85 MB** — lower than cold because 7 of 8 assets revalidate from HTTP cache (304), but not zero, because Chromium's HTTP cache retains ~6–8 MiB per entity and the 14.85 MB ONNX Runtime WASM exceeds that limit. Ticket 17's service-worker Cache API is expected to reduce second-visit bytes to zero for cached assets. Until then, users re-download the WASM on every reload.
-Re-downloaded in full every visit: `/ort/ort-wasm-simd-threaded.wasm` (14,848,852 B). Measured with a 512 MB HTTP disk cache, so this is not a too-small-cache artifact.
+**Reconciled to the three rows ticket 11 asks for.** These add to the initial download, and the fourth row
+is why the first two do not: a cold visit is 22 requests for
+17 assets, so some assets move more than once inside one visit.
+
+| | Bytes | MB |
+|---|---:|---:|
+| App shell (document, entry script, styles, worker and its module, icons, web manifest) | 263,120 | 0.26 |
+| Models + inference runtime (WASM and its JS loader) | 21,203,166 | 21.20 |
+| Repeat fetches within the same visit | 252,946 | 0.25 |
+| **Total, first visit, empty cache** | **21,719,232** | **21.72** |
+
+**Initial download: 21.72 MB. Second visit: 6,527 B** — a warm visit moves 6,527 bytes over 3 requests where the superseded scaffold measurement moved 14,848,852 (2275×), and the runtime WASM is not among the bytes it pays. This origin answers `cache-control: no-store` with no `ETag`, so Chromium's HTTP cache never held that binary in the first place (ADR-002, `DECISIONS/0012` F10/F12); what holds it now is the worker's Cache API, which has no per-entity ceiling (`DECISIONS/0027` W2.2).
+
+The 3 items a warm visit still pays are structural, not a cache miss, and each is named with its reason above. The worker's own module
+chunk is the one of them that could be fixed — an `ETag` on code assets — and that change is ticket 17c's, because a header change whose only visible
+effect is a smaller published number belongs in a ticket that says so (`DECISIONS/0028` T7). Durability is requested, not assumed: the Cache API is
+exempt from the per-entity limit but not from origin quota or eviction (`DECISIONS/0027` W18).
+
+
+### Why this cold figure is larger than the one it replaced
+
+The superseded measurement published 21,299,089 B for a first visit, in
+`benchmarks/results/footprint-2026-11-04-16ae8de.json`. This deployment is `packages/pwa/dist/app/index.html`, and the
+difference of **420,143 B** is a change in what ships, not a regression in what any one file
+costs. It decomposes exactly, and `verify:footprint` re-checks that arithmetic on every run:
+
+| | Bytes | What it is |
+|---|---:|---|
+| Models and dictionary | 0 | unchanged — the same committed 6,279,992 B set, verified against the same manifest |
+| Inference runtime | +49,584 | the WASM is byte-identical at 14,848,852 B; the runtime's JS loader grew, because the build emits it into the app's asset graph instead of mounting it from a dependency directory |
+| Application | +117,613 | the Svelte shell, its stylesheet, the worker and its module chunk, three launcher icons, the route document and the web app manifest, less the scaffold's single application bundle |
+| Repeat fetches inside one visit | +252,946 | the worker precaches with `cache: "reload"`, so it asks again for bytes the document just downloaded: `/assets/index-0itO_252.js` alone accounts for 242,513 B of it, fetched 2 times, across 4 assets that move more than once |
+| **Total** | **+420,143** | 21,299,089 B became 21,719,232 B |
+
+Read the last row twice: a cold visit pays the shell twice, and that is a property of a worker
+refusing to trust a cached copy of its own shell, not of a larger bundle. The same mechanism is why the warm
+visit is cheap, and the `ETag` that would make those repeat fetches conditional is ticket 17c's subject.
 
 ### How long it takes
 
 | Class | Phase | App ready | OCR ready | First result | Model load | Inference | Download |
 |---|---|---:|---:|---:|---:|---:|---:|
-| desktop-chromium-unthrottled | cold | 45 ms | 545 ms | **1136 ms** | 500 ms | 616 ms | 21.30 MB |
-| desktop-chromium-unthrottled | warm | 16 ms | 186 ms | **688 ms** | 173 ms | 503 ms | 14.85 MB |
-| desktop-chromium-unthrottled | repeat | — | — | **468 ms** | 0 ms | 468 ms | 0.00 MB |
-| desktop-chromium-cpu4x | cold | 58 ms | 1289 ms | **3185 ms** | 1232 ms | 1899 ms | 21.30 MB |
-| desktop-chromium-cpu4x | warm | 29 ms | 668 ms | **2565 ms** | 637 ms | 1878 ms | 14.85 MB |
-| desktop-chromium-cpu4x | repeat | — | — | **1844 ms** | 0 ms | 1844 ms | 0.00 MB |
+| desktop-chromium-unthrottled | cold | 36 ms | *not separable* | **1206 ms** | *not separable* | *not separable* | 21.72 MB |
+| desktop-chromium-unthrottled | warm | 20 ms | *not separable* | **619 ms** | *not separable* | *not separable* | 0.01 MB |
+| desktop-chromium-unthrottled | Re-run OCR (same image, no navigation) *(supplementary)* | — | *not separable* | **426 ms** | *not separable* | *not separable* | 0.00 MB |
+| desktop-chromium-cpu4x | cold | 103 ms | *not separable* | **3671 ms** | *not separable* | *not separable* | 21.72 MB |
+| desktop-chromium-cpu4x | warm | 39 ms | *not separable* | **2309 ms** | *not separable* | *not separable* | 0.01 MB |
+| desktop-chromium-cpu4x | Re-run OCR (same image, no navigation) *(supplementary)* | — | *not separable* | **1566 ms** | *not separable* | *not separable* | 0.00 MB |
 
-*App ready* is page plus script, before any model byte moves; *OCR ready* is when a receipt could
-be answered at all (manifest fetched, models downloaded and verified, WASM compiled, both sessions
-created); *first result* adds decode, detection, recognition, `parse()` and `validate()`. Medians
-above; cold spread per class:
+**What the latency numbers are measured on.** The receipt is synthetic and deliberately small:
+900×1200, 4 declared text lines (`RECEIPT`, `COFFEE 4.50`, `TOTAL 100.00`, `CASH 100.00`),
+parsed to 1 item rows / 0 charge rows rendered from the declared image, zero-items state false. It is the identical fixture that
+`playwright/capture.spec.ts` and `playwright/offline-reload.spec.ts` draw, and it is drawn in the page rather than
+loaded from a dataset so that the input to a published latency number is committed code with a hash, not a
+2.7 GB snapshot only one machine has. **So these numbers answer “how long does a user wait for a first
+result on a small receipt” — they are not a bound on larger ones.** A faded thermal receipt with 20+ lines,
+tighter leading or perspective distortion produces more detection boxes, more recognition passes and more
+reviewable rows, and the pipeline's cost is per line, so the figures above are a floor rather than a ceiling.
+The superseded scaffold run measured a different image as well (a 463×1013 dataset photograph), so pre-17 and
+post-17 latency are not comparable on image size as well as on thread count.
 
-- `desktop-chromium-unthrottled`: cold 976–1751 ms, n=5, warm 636–1190 ms, n=5
-- `desktop-chromium-cpu4x`: cold 3171–3227 ms, n=5, warm 2498–2613 ms, n=5
+*App ready* is this deployment's `load` event: the shell document, its entry chunk and its styles are parsed and the capture
+view can accept a file. *First result* is navigation start to the DOM state `playwright/capture.spec.ts` already treats as
+proof a draft was produced, so on a cold device it includes downloading and verifying the model set — that is the honest
+cold number, not the "models already fetched" one, because navigation to `/capture` is what triggers the download
+(`DECISIONS/0027` W2.1). Medians above; spread per class:
+
+- `desktop-chromium-unthrottled`: cold 1187–1226 ms, n=5, warm 590–629 ms, n=5
+- `desktop-chromium-cpu4x`: cold 3425–3693 ms, n=5, warm 2205–2322 ms, n=5
+
+*OCR ready*, *model load* and *inference* are **not separable** in this deployment, and are not published as leftovers
+from the superseded one. The shipped bundle carries no timing hook — `DECISIONS/0027` W15, following
+`DECISIONS/0023` S1, refuses a test-only hook in what users receive — and the app surfaces no OCR duration to the DOM,
+so the instant a verified model set became usable, and the split between model load and inference, cannot be observed
+from outside. The reason recorded on each field in the artifact:
+
+> no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src
 
 ### Declared conditions
 
@@ -443,13 +513,15 @@ above; cold spread per class:
 | Browser | chromium 156.0.8078.4 (headless true), Playwright 1.64.1 |
 | Machine | AMD Ryzen 5 5600H with Radeon Graphics, 12 logical cores, 15 GB RAM, linux x64, kernel 7.3.1-1-cachyos |
 | Node | v26.13.0 |
-| Runtime | onnxruntime-web 1.31.1, `wasm`, 4 WASM threads, crossOriginIsolated true |
-| Under test | @receipt-lens/core 0.0.0, provider `pp-ocrv6` version `1.0.0-tiny+sha256.0179bb711e74`, preset `tiny` (model 1.0.0, Apache-2.0, 29 lines / 75 words on the declared image) |
-| Image | `benchmarks/datasets/raw/sroie/assets/ex.jpg` (463×1013, 70,139 B) — user data, not app footprint: it is never a network request (the page reads the File object directly). Declared because it sets the inference time. |
-| Bytes counted by | summed from the origin's own request log (harness/serve.mjs), which sees WASM and worker loads that page resource timings do not; HTTP header bytes are excluded |
-| Timing anchor | performance.timeOrigin of the measured document. appReadyMs is the instant the page was handed to the driver to attach the image, so it carries one Playwright round-trip; harnessLatencyMs reports the polling lag on the other side of the run. |
-| Central value | median, with min and max published beside it. With n=5 no percentile is claimed. |
-| Latency basis | cold and warm are timed from their own navigation, page load included; the repeat phase has no navigation and is the duration from the receipt being handed over to the result arriving, with everything already in memory. That is why the repeat row carries no app-ready or OCR-ready figure. |
+| Runtime | onnxruntime-web 1.31.1, `wasm`, 1 WASM thread, crossOriginIsolated false |
+| Threads | Latency measured at 1 ORT thread (serve-app.mjs sends no COOP/COEP; the harness's 4-thread measurement is superseded). If isolation headers are added, latency improves and the footprint table regenerates. |
+| Under test | @receipt-lens/pwa 0.0.0, provider `pp-ocrv6` version `1.0.0`, preset `tiny` (model 1.0.0, Apache-2.0; 1 item rows / 0 charge rows rendered from the declared image, zero-items state false) |
+| Image | 900×1200 receipt drawn in the page, 50,956 B, sha256 `4848c0628cdd0ead…` |
+| Bytes counted by | summed from the origin's own request log (scripts/serve-measure-app.mjs), which sees the worker's install precache, the WASM and the model downloads that page resource timings do not; HTTP header bytes are excluded |
+| Timing anchor | performance.timeOrigin of the measured document. appReadyMs is the navigation's load event; firstResultMs is the instant a page-side poll observed the inference finish (busy-state gone) with the draft rendered. No Playwright round-trip is inside either number. |
+| Central value | median, with min and max published beside it. With n=5 no percentile is claimed (DECISIONS/0012 F2). |
+| Latency basis | cold and warm are timed from their own navigation. The repeat phase has no navigation, so its firstResultMs is the duration from handover to result. appReadyMs is published for cold and warm only. |
+| Warm cross-check | this artifact measured 6,527 B; `benchmarks/results/warm-bytes.json` measures 6,527 B; tolerance ±0 B |
 
 ### Classes
 
@@ -460,26 +532,22 @@ above; cold spread per class:
 
 ### Serving mode of this measurement
 
-- Scope: core runtime + harness wrapper; PWA not built — re-measure after tickets 10a, 10
-- Entry: harness/index.html — the PROJECT(1).md §9 M1 minimal inference harness page
-- Harness-only bytes: harness/index.html (981 B) is the only separable harness-authored file — not separable in the current bundle: harness/dist/main.js is one esbuild output combining harness/src/main.ts, packages/core/dist and the onnxruntime-web JS glue, so the harness wrapper's share of those bytes is not isolated. The bundle total is not the eventual PWA's total.
-- Server: harness/serve.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, no reverse proxy
-- Cache: cache-control: no-cache + ETag revalidation (serve.mjs cacheMode=validate, added by ticket 08; the default stays no-store)
+- Scope: PWA — discharged here: DECISIONS/0012 F11 trigger 1 (the PWA exists) was this ticket, and this measurement is the discharge
+- Entry: packages/pwa/dist/app/index.html
+- Server: scripts/serve-measure-app.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, no reverse proxy, the request log F5 counts bytes from
+- Cache: cache-control: no-store with no ETag: this origin answers no 304 to anything, so warm liveness is proven by the worker's caches plus the origin log, never by a conditional response (DECISIONS/0027 W17.3, DECISIONS/0028 T5)
 - Encoding: identity — nothing is compressed, so wire bytes equal file bytes
-- App script: harness/dist/main.js: esbuild ESM bundle of packages/core/dist plus onnxruntime-web/dist/ort.wasm.bundle.min.mjs (77,024 bytes of runtime JS glue). Not minified at the core layer, and not the PWA — tickets 10a and 10 do not exist yet.
-- Source maps: harness/dist/main.js.map exists but a headless page without devtools never requests it
-- Threads: ORT runs on the WASM execution provider with 4 threads under COOP/COEP cross-origin isolation (serve.mjs sets both headers)
+- Precached at install: 11 entries; worker script 2,872 B
 
 ### Not in this table
 
 - excluded: the receipt image itself — user data, and never a network request
 - excluded: HTTP request/response header bytes (a few hundred bytes per asset per visit)
-- excluded: anything a service worker would cache: this deployment has no service worker yet (ticket 17), so the HTTP cache is the whole cache
 - not measured: any real phone, tablet or low-end laptop — the 4x class is an emulated CPU rate, not a device
-- not measured: network latency and bandwidth beyond loopback; on a real link add RTT and whatever the connection delivers, which is why bytes are published per asset and not only as a total
+- not measured: network latency and bandwidth beyond loopback; bytes are published per asset so a reader can apply RTT
 - not measured: peak memory: the WASM heap, the decoded image buffers and both inference graphs are resident after load and are not sized here
-- not measured: parse() and validate() separately: they run in the same frame as inference on this page, so firstResultMs includes them and modelLoadMs does not
-- not measured: PP-OCRv6 Small, quantized builds, or a lazy/deferred model load (1E.3, ticket 09b, and the risk R2 contingencies)
+- not measured: parse() and validate() separately: they run inside firstResultMs and cannot be split without a hook the shipped bundle does not have
+- not measured: PP-OCRv6 Small, quantized builds, or a lazy/deferred model load (1E.3, ticket 09b, R2 contingencies)
 
 Re-derive it: `node benchmarks/scripts/measure-footprint.mjs && node benchmarks/scripts/render-footprint-table.mjs --write`.
 <!-- footprint:end -->

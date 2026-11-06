@@ -40,7 +40,7 @@ const MIME = {
 const APP_ROUTES = ["/", "/capture", "/bill", "/bills", "/share"];
 
 /**
- * @typedef {{ path: string; status: number; bodyBytes: number }} OriginEntry
+ * @typedef {{ id: number, path: string, status: number, bodyBytes: number, completed: boolean }} OriginEntry
  *
  * @param {{ overridesDir?: string | null, appDir?: string }} [options]
  *   `overridesDir` is consulted before the real tree for `/assets/models/*` and `/sw.js`, and its `offline`
@@ -67,15 +67,17 @@ export function startMeasureServer({ overridesDir = null, appDir = path.join(rep
       const requests = [];
   /** Every request the origin refused while offline, including ones a worker forwarded. */
   const attempted = [];
+  /** Monotonic id so a *finished* response can be marked complete in the parent's log (DECISIONS/0012 F9.7). */
+  let nextId = 0;
       const pick = (dir, name) => {
         if (!dir) return null;
         const file = path.join(dir, name);
         return fs.existsSync(file) && fs.statSync(file).isFile() ? file : null;
       };
       const http404 = (res, name) => {
-        log(name, 404, 0);
+        const id = log(name, 404, 0);
         res.writeHead(404, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
-        res.end("not found: " + name);
+        res.end("not found: " + name, () => finish(id));
       };
       const offlineMarker = overrides ? path.join(overrides, "offline") : null;
       const server = http.createServer((req, res) => {
@@ -104,17 +106,29 @@ export function startMeasureServer({ overridesDir = null, appDir = path.join(rep
         if (!file) file = path.join(appDir, "index.html");
         if (!fs.existsSync(file)) return http404(res, name);
         const body = fs.readFileSync(file);
-        log(name, 200, body.byteLength);
+        const id = log(name, 200, body.byteLength);
         res.writeHead(200, {
           "content-type": mime[path.extname(file)] ?? "application/octet-stream",
           "cache-control": "no-store",
           "content-length": body.byteLength,
         });
-        res.end(body);
+        // The completion marker is the end callback, reached only when the body was flushed to the socket. A
+        // client that aborts mid-download leaves the entry completed:false, and DECISIONS/0012 F9.7 says an
+        // interrupted download may not be summed as a completed one — which is only checkable if the unfinished
+        // entry stays in the log rather than going missing with the socket.
+        res.end(body, () => finish(id));
       });
       function log(name, status, bodyBytes) {
-        requests.push({ path: name, status, bodyBytes });
-        process.stdout.write("req " + JSON.stringify(requests[requests.length - 1]) + "\\n");
+        const id = nextId++;
+        const record = { id, path: name, status, bodyBytes, completed: false };
+        requests.push(record);
+        process.stdout.write("req " + JSON.stringify(record) + "\\n");
+        return id;
+      }
+      function finish(id) {
+        const record = requests.find((entry) => entry.id === id);
+        if (record) record.completed = true;
+        process.stdout.write("done " + JSON.stringify({ id }) + "\\n");
       }
       server.listen(0, "127.0.0.1", () => process.stdout.write("url: http://127.0.0.1:" + server.address().port + "/\\n"));
       `,
@@ -140,6 +154,12 @@ export function startMeasureServer({ overridesDir = null, appDir = path.join(rep
         }
         const request = line.match(/^req (.+)$/);
         if (request) requests.push(JSON.parse(request[1]));
+        const done = line.match(/^done (.+)$/);
+        if (done) {
+          const { id } = JSON.parse(done[1]);
+          const record = requests.find((entry) => entry.id === id);
+          if (record) record.completed = true;
+        }
         const hit = line.match(/^hit (.+)$/);
         if (hit) attempted.push(JSON.parse(hit[1]));
       }
