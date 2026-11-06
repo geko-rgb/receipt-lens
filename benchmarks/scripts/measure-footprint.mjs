@@ -112,10 +112,9 @@ const gitInfo = {
   // out of a formatted line is how a first draft of this field published "ECISIONS/0028-…", a path that does
   // not exist, because the line it was cut from did not have the shape the offset assumed.
   dirtyPaths: [
-    ...git(["diff", "--name-only", "HEAD"]),
-    ...git(["ls-files", "--others", "--exclude-standard"]),
+    ...git(["diff", "--name-only", "HEAD"]).split("\n"),
+    ...git(["ls-files", "--others", "--exclude-standard"]).split("\n"),
   ]
-    .split("\n")
     .map((line) => line.trim())
     .filter((line) => line !== ""),
 };
