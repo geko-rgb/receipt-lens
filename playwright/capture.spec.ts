@@ -11,6 +11,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -210,7 +211,11 @@ test("recrop and rerun keep the previous parse until discarded or accepted", asy
 
 test("no receipt image bytes reach any store", async ({ page }) => {
   await page.goto(baseUrl);
-  await upload(page, await receiptPng(page, RECEIPT_LINES));
+  // Held in the driver and hashed there, so the census below can compare it against every cached response
+  // body byte for byte — the same technique offline.spec.ts uses for request bodies (DECISIONS/0013 T5).
+  const receipt = await receiptPng(page, RECEIPT_LINES);
+  const receiptSha = createHash("sha256").update(receipt).digest("hex");
+  await upload(page, receipt);
   await expect(page.getByTestId("draft-review")).toBeVisible({ timeout: 120_000 });
   // Ticket 14 kept the opt-in box off, and this is the case that proves "off" means off.
   await expect(page.getByTestId("keep-photo")).not.toBeChecked();
@@ -290,6 +295,29 @@ test("no receipt image bytes reach any store", async ({ page }) => {
   ).toBe(true);
   // No blob or data URL ever entered a cache — the only way an in-memory image could be stored by reference.
   expect(allUrls.some((url) => url.startsWith("blob:") || url.startsWith("data:"))).toBe(false);
+
+  /**
+   * And the claim itself, by content rather than by name. Checking only which *URLs* are cached would be
+   * weaker than the `caches.keys()` assertion it replaced: the old form failed on any cache content at all,
+   * so it would also have caught image bytes filed under a plausible deployment path. Every cached response
+   * body is therefore hashed and compared with the uploaded receipt — the way `offline.spec.ts` proves an
+   * image never left the device, applied to the cache instead of to the wire.
+   */
+  const imageInCache = await page.evaluate(async (needle) => {
+    const matches: string[] = [];
+    for (const name of await caches.keys()) {
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        const response = await cache.match(request);
+        if (!response) continue;
+        const digest = await crypto.subtle.digest("SHA-256", await response.clone().arrayBuffer());
+        const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+        if (hex === needle) matches.push(`${name} ${request.url}`);
+      }
+    }
+    return matches;
+  }, receiptSha);
+  expect(imageInCache, `the receipt image was found cached at: ${imageInCache.join(", ")}`).toEqual([]);
   // The bill itself is on disk (asserted for its own sake in persistence.spec.ts), so an empty
   // `retainedImages` is a real emptiness rather than a database that never got written.
   expect(census.stores.find((store) => store.name === "bills")?.records).toBe(1);
