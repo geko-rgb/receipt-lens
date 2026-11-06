@@ -980,3 +980,7 @@ ships. No more tickets.
 flip `privacy` (and `unit`) from advisory to required status checks in branch protection. `DECISIONS/0030` P10 records
 the current gap and why it cannot be closed on this plan — `main` reports `protected: false` and the protection APIs
 answer `403 — Upgrade to GitHub Pro`.
+
+**Licence (2026-11-06, after v1):** the repository now carries an MIT `LICENSE` at the root. Ticket 07's note that
+"nothing in the repo has a licence" was true when it was written. The `package.json` files still declare no `license`
+field — setting those, and the scoped publish itself, remain explicit owner decisions.
