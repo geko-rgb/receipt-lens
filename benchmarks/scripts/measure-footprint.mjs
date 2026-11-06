@@ -61,9 +61,11 @@ import {
   domAnchors,
   harnessBaseline,
   latencyBases,
+  phaseDescriptions,
   sequencing,
   warmModuleChunkDefect,
   warmOutcomeFor,
+  warmRequestReason,
   warmValidators,
   FootprintFailLoud,
 } from "../dist/footprint/rules.js";
@@ -592,6 +594,7 @@ const coldTotalPerSample = observed.map((sample) => sample.phases.cold.wire.redu
 const heldByWorker = assets.filter((asset) => asset.warmVisitOutcome === "worker-served").map((asset) => asset.url);
 const revalidatedOnWarm = assets.filter((asset) => asset.warmVisitOutcome === "revalidated-304");
 const paidOnWarm = assets.filter((asset) => asset.warmVisitOutcome === "redownloaded-200");
+const phaseText = phaseDescriptions();
 
 const latency = {};
 const notSeparable = latencyBases().notSeparable;
@@ -670,18 +673,15 @@ const report = {
         path: asset.url,
         bytes: Math.round(asset.warmVisitBytesPaid),
         outcome: asset.warmVisitOutcome,
-        reason: warmRequestReason(asset.url),
+        reason: warmRequestReason(asset.url, asset.warmVisitOutcome),
       })),
       warmStructuralRequestsNote:
         "Each of these is structural, not a cache miss: a service worker cannot intercept the fetch of its own script or that script's imports, and W6's version probe deliberately bypasses the cache. An unexplained warm request fails the run, so this list is exhaustive by construction.",
     },
     phases: {
-      cold: { required: true, description: "first visit, empty context and empty caches, fresh server instance" },
-      warm: {
-        required: true,
-        description: "same context, page.reload() — DECISIONS/0012 F8's revalidation clause is replaced by 'answered by the active caches' (DECISIONS/0027 W15), because this origin answers no 304",
-      },
-      repeat: { required: false, description: "supplementary — a second inference in the same page with both sessions warm, driven by the app's own Re-run OCR" },
+      cold: { required: true, description: phaseText.cold },
+      warm: { required: true, description: phaseText.warm },
+      repeat: { required: false, description: phaseText.repeat },
     },
     byteCounting:
       "summed from the origin's own request log (scripts/serve-measure-app.mjs), which sees the worker's install precache, the WASM and the model downloads that page resource timings do not; HTTP header bytes are excluded",
@@ -783,6 +783,11 @@ const report = {
     moduleChunk: warmModuleChunkDefect(moduleChunkBytes),
     measuredAt: new Date().toISOString(),
     warmOutcomes: Object.fromEntries(assets.map((asset) => [asset.url, asset.warmVisitOutcome])),
+    warmPaid: paidOnWarm.map((asset) => ({
+      path: asset.url,
+      bytes: Math.round(asset.warmVisitBytesPaid),
+      reason: warmRequestReason(asset.url, asset.warmVisitOutcome),
+    })),
     previousWarmBytesPublished: supersededArtifact?.totals?.secondVisitBytesOverTheWire?.median ?? null,
     previousMeasuredAt: supersededArtifact?.measuredAt ?? null,
     supersedesArtifact: supersededArtifact
@@ -830,14 +835,6 @@ const report = {
     note: "measuredAt and the request log are the record of one run on one machine. Latency is not a constant: it is a distribution of n samples on the declared class, and a different machine class will produce a different table.",
   },
 };
-
-/** Why a warm request is structural rather than a cache miss (T5, and the reason each is declared not tolerated). */
-function warmRequestReason(url) {
-  if (url === "/sw.js") return "the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script";
-  if (/^\/assets\/cache-names-/.test(url)) return "the worker's module import — the open defect ticket 17c owns (DECISIONS/0028 T7)";
-  if (url === "/assets/models/manifest.json") return "W5 step 1's version probe, deliberately cache: 'reload' (DECISIONS/0027 W6)";
-  return "unexplained — and an unexplained warm request fails the run, so this line should be unreachable";
-}
 
 /* ------------------------------------------------------------------ write */
 

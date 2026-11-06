@@ -108,6 +108,14 @@ function sourceOf(asset) {
 const lines = [];
 const emit = (line = "") => lines.push(line);
 
+/**
+ * Everything the published table asserts but cannot derive goes here, and the run fails at the end of the
+ * script. Declared at the top because the emit phase needs it too: hoisting it below the render would make the
+ * first `note()` a TDZ ReferenceError — a loud failure, but not the one the check was written to report.
+ */
+const problems = [];
+const note = (message) => problems.push(message);
+
 const downloadTotal = results.totals.initialDownloadBytes;
 const heldTotal = results.totals.cacheHeldBytes;
 const warmTotal = results.totals.secondVisitBytesOverTheWire;
@@ -361,7 +369,6 @@ for (const classSpec of env.classes) {
     const cell = (field) => (notSeparable.has(field) ? notSeparableLabel : ms(entry[field]));
     emit(
       "| " + classSpec.id + " | " + (phase === "repeat" ? PHASE_LABEL.repeat : phase) + (phase === "repeat" ? " *(supplementary)*" : "") + " | " + cell("appReadyMs") + " | " + cell("ocrReadyMs") + " | **" + ms(entry.firstResultMs) + "** | " + cell("modelLoadMs") + " | " + cell("inferenceMs") + " | " + megabytes(entry.downloadBytes.median) + " MB |",
-        " | **" + ms(entry.firstResultMs) + "** | " + cell("modelLoadMs") + " | " + cell("inferenceMs") + " | " + megabytes(entry.downloadBytes.median) + " MB |",
     );
   }
 }
@@ -399,6 +406,83 @@ emit("from outside. The reason recorded on each field in the artifact:");
 emit();
 emit("> " + ([...notSeparable.values()][0] ?? "see measurement.deployment.notSeparable"));
 emit();
+
+/* ------------------------------------------------- cross-ticket latency comparison (P8) */
+
+// P8's stop trigger fires on a latency move larger than the run's own spread, and the disposition it produced was
+// "publish it, do not re-roll it". A reader can only check that against the run this one replaced, so the
+// comparison is printed from the superseded artifact named in findings[].history — not described from memory.
+const supersededPath = (results.findings ?? [])
+  .flatMap((finding) => finding.history ?? [])
+  .map((entry) => entry.artifact)
+  .filter((artifact) => typeof artifact === "string" && /footprint-[^/]+\.json$/.test(artifact))
+  .map((artifact) => path.basename(artifact))
+  .at(-1);
+const oneDecimal = (value) => value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const cell1 = (stat) => oneDecimal(stat.median) + " (" + oneDecimal(stat.min) + "–" + oneDecimal(stat.max) + ")";
+const overlaps = (a, b) => Math.max(a.min, b.min) <= Math.min(a.max, b.max);
+let superseded = null;
+if (!supersededPath) {
+  note("no superseded footprint artifact is named in findings[].history, so the latency comparison P8 owes the reader cannot be published");
+} else if (!existsSync(path.join(resultsDir, supersededPath))) {
+  note("findings[].history names benchmarks/results/" + supersededPath + ", which is not in the tree — the latency comparison cannot be re-derived");
+} else {
+  superseded = JSON.parse(readFileSync(path.join(resultsDir, supersededPath), "utf8"));
+  if (superseded.environment.device.cpuModel !== env.device.cpuModel) {
+    note("the superseded run was measured on a different machine (" + superseded.environment.device.cpuModel + "), so its latency is not a comparison for this one");
+  }
+}
+
+emit("### How this run's latency compares to the one it replaced");
+emit();
+if (superseded === null) {
+  emit("The run this one superseded is not in the tree, so no cross-ticket latency comparison is published here. The byte comparison is: " + code("DECISIONS/0029") + " P4 and " + code("benchmarks/results") + " carry it.");
+} else {
+  const hoursThen = ((new Date(results.measuredAt) - new Date(superseded.measuredAt)) / 3.6e6).toFixed(1);
+  emit(
+    "Both runs are this machine, this browser and this receipt, " + hoursThen + " h apart, at revisions " + code(superseded.git.shortRevision) +
+      " and " + code(results.git.shortRevision) + "; what changed between them is the header policy " + code("DECISIONS/0029") + " P2 records, not anything the app executes. Medians, with each run's own range:");
+  emit();
+  emit("| Cell | " + superseded.git.shortRevision + " | " + results.git.shortRevision + " | Δ median | ranges overlap |");
+  emit("|---|---:|---:|---:|---|");
+  const apart = [];
+  for (const classSpec of env.classes) {
+    for (const phase of ["cold", "warm", "repeat"]) {
+      const before = superseded.latency?.[classSpec.id]?.[phase]?.firstResultMs;
+      const after = results.latency[classSpec.id]?.[phase]?.firstResultMs;
+      if (!before || !after) continue;
+      const delta = after.median - before.median;
+      const together = overlaps(before, after);
+      if (!together) apart.push(classSpec.id + " · " + phase);
+      emit(
+        "| " + classSpec.id + " · " + phase + " | " + cell1(before) + " ms | " + cell1(after) + " ms | " + (delta >= 0 ? "+" : "−") + oneDecimal(Math.abs(delta)) + " ms (" + (delta >= 0 ? "+" : "−") + oneDecimal((Math.abs(delta) / before.median) * 100) + "%) | " + (together ? "yes" : "**no**") + " |",
+      );
+    }
+  }
+  emit();
+  if (apart.length === 0) {
+    emit("Every cell's ranges overlap, so no latency claim survives or falls because of this change: the header moved bytes, not execution.");
+  } else {
+    emit(
+      "**One cell does not overlap: " + apart.join("; ") + ".** " + code("DECISIONS/0029") + " P8 said to report a latency move beyond the run's own spread rather than absorb it, and that is what happened — the number is **published as measured, not re-rolled**. Re-running until a cell lands inside the previous range would be fitting a measurement to an expectation, which is the act ADR-002 and " + code("DECISIONS/0012") + " F10 exist to forbid.",
+    );
+    emit();
+    const coldStat = (source) => source.latency["desktop-chromium-unthrottled"].cold.firstResultMs;
+    const gap = coldStat(results).median - coldStat(superseded).median;
+    emit(
+      "What the artifact says against that cell: the mechanism this ticket supplies is one conditional round trip over loopback per revalidated asset — microseconds — against a " + Math.round(Math.abs(gap)) + " ms gap, and the two runs' within-run spreads (" + oneDecimal(coldStat(superseded).max - coldStat(superseded).min) + " ms then, " + oneDecimal(coldStat(results).max - coldStat(results).min) + " ms now) are of the same order as the difference itself. In run order this run's cold samples are " + coldStat(results).samples.map((value) => oneDecimal(value)).join(", ") + ", which puts its maximum first: an initial-check-in shape, not a drift shape.",
+    );
+  }
+  emit();
+  const coldSpan = (classId) => {
+    const stats = [superseded, results].map((source) => source.latency[classId].cold.firstResultMs);
+    return (Math.min(...stats.map((stat) => stat.min)) / 1000).toFixed(2) + "–" + (Math.max(...stats.map((stat) => stat.max)) / 1000).toFixed(2) + " s";
+  };
+  emit(
+    "**Read the columns as ranges, not as point estimates.** Five samples per cell on one desktop cannot resolve a 4% difference: across both runs, a cold first result on this deployment is " + coldSpan("desktop-chromium-unthrottled") + " unthrottled and " + coldSpan("desktop-chromium-cpu4x") + " at 4×, and a *comparison* between tickets needs interleaved A/B runs in one process (" + code("DECISIONS/0029") + "'s checkpoint-3 finding). Bytes are the opposite case — they are deterministic at this origin, which is why " + code("verify:warm-bytes") + " can hold them to ±0 while latency has no such gate.",
+  );
+  emit();
+}
 emit("### Declared conditions");
 emit();
 emit("| | |");
@@ -470,9 +554,6 @@ if (begin === -1 || end === -1 || end < begin) {
 const rendered = readmeRaw.slice(0, begin) + block + readmeRaw.slice(end + END.length);
 
 /* ------------------------------------------------------------------ re-derive */
-
-const problems = [];
-const note = (message) => problems.push(message);
 
 const expectedArchive = "footprint-" + results.measuredAt.slice(0, 10) + "-" + results.git.shortRevision + ".json";
 const archiveBytes = await readFile(path.join(resultsDir, expectedArchive)).catch(() => null);

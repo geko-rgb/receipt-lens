@@ -2,17 +2,17 @@
   "schemaVersion": "1.0",
   "kind": "warm-bytes",
   "protocol": "receipt-lens-warm-bytes/1",
-  "measuredAt": "2026-11-06T12:45:46.643Z",
+  "measuredAt": "2026-11-06T13:38:40.430Z",
   "git": {
-    "revision": "2782934d3828e1c3a6b97e330dfb1fa1464815d5",
-    "shortRevision": "2782934",
+    "revision": "2e53c3a16ff685e8db482d03e88c53f97ab2d014",
+    "shortRevision": "2e53c3a",
     "branch": "ticket/17c-etag-code-assets"
   },
   "claim": "F12's remedy, measured: what one warm visit costs over the wire now that the service worker's Cache API holds the runtime WASM.",
   "deployment": {
     "entry": "packages/pwa/dist/app/index.html — the built PWA shell, not the §9 M1 harness",
     "scope": "PWA shell + runtime WASM precached by the service worker; model set verified and activated by DECISIONS/0027 W5",
-    "servedBy": "scripts/serve-measure-app.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, cache-control: no-store, exactly as the shipping server",
+    "servedBy": "scripts/serve-measure-app.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, no reverse proxy, and the same contract the shipping server implements: two policies, one module (DECISIONS/0029 P2): code and app metadata answer `cache-control: no-cache` with a content `ETag` and reply `304` to a matching `If-None-Match`; model weights, the recognition dictionary and the runtime WASM keep `no-store` and advertise no validator, because the worker's Cache API owns them and a second copy in the HTTP cache would be dead weight and a staleness path. Warm liveness is proven by *no body served over the origin* for anything the caches hold — and after ticket 17c a `304` is evidence for that claim rather than a violation of it.",
     "threads": "1 ORT thread: serve-app.mjs sends no COOP/COEP, so crossOriginIsolated is false and resolveThreadCount returns 1. The harness's 4-thread measurement is a different deployment in that respect too.",
     "notMeasured": [
       "latency (cold/warm/repeat) — ticket 17b's full re-derivation",

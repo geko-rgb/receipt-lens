@@ -421,8 +421,8 @@ the same origin the offline and capture specs run against.
 | Service worker script | `/sw.js` | 2,872 | 0.00 | yes — asked, told not modified, 0 B moved (10/10 warm visits) | built · packages/pwa/dist/app/sw.js |
 | **Initial download, empty cache** | 22 requests for 17 assets (5 repeat fetches inside the same visit) | **21,718,277** | **21.72** | | min 21,718,277 / max 21,718,277 |
 | **Held for the next visit** | 14 of 17 assets | **21,459,809** | **21.46** | the service worker's Cache API, not the HTTP cache | derived: built precache manifest + verified model set |
-| **Revalidated, not re-downloaded** | `/assets/cache-names-BCswqTtv.js` `/sw.js` | **0** | **0.00** | yes — `304`, no body moved | `/assets/cache-names-BCswqTtv.js` answered 304: the worker's module import — the open defect ticket 17c owns (DECISIONS/0028 T7); `/sw.js` answered 304: the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script |
-| **Downloaded again on every visit** | `/assets/models/manifest.json` | **2,700** | **0.00** | no | W5 step 1's version probe, deliberately cache: 'reload' (DECISIONS/0027 W6) |
+| **Revalidated, not re-downloaded** | `/assets/cache-names-BCswqTtv.js` `/sw.js` | **0** | **0.00** | yes — `304`, no body moved | `/assets/cache-names-BCswqTtv.js` answered 304: the worker's module import — the defect ticket 17c closed: the repeat fetch now carries If-None-Match and answers 304 with no body (DECISIONS/0028 T7, DECISIONS/0029 P2); `/sw.js` answered 304: the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script |
+| **Downloaded again on every visit** | `/assets/models/manifest.json` | **2,700** | **0.00** | no | W5 step 1's version probe, deliberately cache: "reload" (DECISIONS/0027 W6) — the app asking the origin what it serves, which is the point of the probe |
 | **Second visit, over the network** | 3 requests | **2,700** | **0.00** | | `benchmarks/results/warm-bytes.json` measures the same quantity with a different driver |
 
 | What the page itself observed | 10 cold / 11 warm document resources, of which 11 warm ones moved zero bytes | 3,395,287 cold / 0 B warm | | of which 1,950 B / 0 B are response headers | The page's own resource timings cover only the resources the *document* fetched. The worker's install precache, the WASM and the model downloads are not document resources and never appear here — that is why F5 counts bytes at the origin. So this pair is reported beside the totals and never added to them, and it is not the header cost of the whole visit. |
@@ -513,6 +513,25 @@ so the instant a verified model set became usable, and the split between model l
 from outside. The reason recorded on each field in the artifact:
 
 > no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src
+
+### How this run's latency compares to the one it replaced
+
+Both runs are this machine, this browser and this receipt, 4.0 h apart, at revisions `6b3ca50` and `2782934`; what changed between them is the header policy `DECISIONS/0029` P2 records, not anything the app executes. Medians, with each run's own range:
+
+| Cell | 6b3ca50 | 2782934 | Δ median | ranges overlap |
+|---|---:|---:|---:|---|
+| desktop-chromium-unthrottled · cold | 1,206.0 (1,186.7–1,226.1) ms | 1,256.7 (1,228.6–1,310.0) ms | +50.7 ms (+4.2%) | **no** |
+| desktop-chromium-unthrottled · warm | 618.7 (590.3–629.0) ms | 623.5 (579.3–661.5) ms | +4.8 ms (+0.8%) | yes |
+| desktop-chromium-unthrottled · repeat | 426.2 (414.9–438.1) ms | 434.3 (420.6–443.3) ms | +8.1 ms (+1.9%) | yes |
+| desktop-chromium-cpu4x · cold | 3,670.8 (3,425.4–3,692.6) ms | 3,817.6 (3,588.1–4,162.5) ms | +146.8 ms (+4.0%) | yes |
+| desktop-chromium-cpu4x · warm | 2,308.8 (2,205.1–2,321.5) ms | 2,375.2 (2,255.1–2,411.3) ms | +66.4 ms (+2.9%) | yes |
+| desktop-chromium-cpu4x · repeat | 1,566.3 (1,526.7–1,573.2) ms | 1,686.5 (1,569.8–2,039.2) ms | +120.2 ms (+7.7%) | yes |
+
+**One cell does not overlap: desktop-chromium-unthrottled · cold.** `DECISIONS/0029` P8 said to report a latency move beyond the run's own spread rather than absorb it, and that is what happened — the number is **published as measured, not re-rolled**. Re-running until a cell lands inside the previous range would be fitting a measurement to an expectation, which is the act ADR-002 and `DECISIONS/0012` F10 exist to forbid.
+
+What the artifact says against that cell: the mechanism this ticket supplies is one conditional round trip over loopback per revalidated asset — microseconds — against a 51 ms gap, and the two runs' within-run spreads (39.4 ms then, 81.4 ms now) are of the same order as the difference itself. In run order this run's cold samples are 1,310.0, 1,228.6, 1,229.5, 1,256.7, 1,276.3, which puts its maximum first: an initial-check-in shape, not a drift shape.
+
+**Read the columns as ranges, not as point estimates.** Five samples per cell on one desktop cannot resolve a 4% difference: across both runs, a cold first result on this deployment is 1.19–1.31 s unthrottled and 3.43–4.16 s at 4×, and a *comparison* between tickets needs interleaved A/B runs in one process (`DECISIONS/0029`'s checkpoint-3 finding). Bytes are the opposite case — they are deterministic at this origin, which is why `verify:warm-bytes` can hold them to ±0 while latency has no such gate.
 
 ### Declared conditions
 

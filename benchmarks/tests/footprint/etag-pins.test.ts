@@ -342,7 +342,7 @@ describe("P6 — findings append rather than rewrite", () => {
       supersedesArtifact: "benchmarks/results/footprint-2026-11-06-6b3ca50.json",
     });
     const warm = findingBy(findings, "warm_visit_served_by_service_worker");
-    expect(warm.detail).toContain("2700");
+    expect(warm.detail).toContain((2_700).toLocaleString("en-US"));
     expect(warm.history).toEqual([
       {
         warmBytesOverTheWire: 6_527,
