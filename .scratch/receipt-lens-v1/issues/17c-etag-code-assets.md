@@ -6,14 +6,12 @@ visible effect is that the warm visit stops paying for the worker's 955 B module
 numbers move.
 
 **Blocked by:** 17b (re-derive the footprint on the PWA deployment)
-**Blocks:** *potentially* 18 (privacy audit and claims) — this needs an owner's sequencing call, not an
-assumption. 17b's merge unblocks 18 against the current honest table. 17c would then move one published number
-(a warm visit from 6,527 B to about 5,572 B), and any 18 claim quoting the warm figure would have to be
-re-cited. Two coherent options: (a) 18 waits for 17c so its claims are written against the final bytes, or
-(b) 18 proceeds now and 17c is a deliberate, recorded regeneration of a table 18 already cites. **The
-recommendation is (a) only if 17c lands quickly — it is a small change — otherwise 18's privacy audit is the
-gating work and should not wait on 955 bytes.**
-**Status:** ready-for-agent
+**Blocks:** **18** (privacy audit and claims) — ruled at checkpoint 1, 2026-11-06. The earlier "potentially"
+hinged on 17c moving one number by ~955 B; the measured range is wider than that (6,527 / 5,572 / 2,700 B, and
+6,527 is a live possibility if the worker's `cache: "reload"` precache means no HTTP-cached copy exists to
+revalidate). Any of those changes what the README must cite, so 18's per-claim evidence is written against the
+post-17c table. 45 minutes of 17c is cheap; README drift is expensive.
+**Status:** resolved — merged pending review; see Comments
 **Effort:** ~2 h · **Roadmap:** workstream 3A · **Milestone:** M3
 
 ## Why it exists
@@ -48,9 +46,14 @@ They are coupled by a cross-check 17b establishes (`DECISIONS/0028` T3):
    on the spot.
 2. `verify:footprint` additionally compares the two artifacts, so CI catches the same drift without needing a
    browser.
-3. The expected number after the change is **6,527 − 955 = 5,572 B**, and 17c must *measure* that rather than
-   publish it: if the browser then caches `/sw.js` too, or the probe cost changes, the artifact says so and
-   `DECISIONS/0028` T3 is amended in a record before the number moves.
+3. **The expected number is not 5,572 B, and the arithmetic here was wrong.** It read
+   `6,527 − 955 + ~200 B of 304 headers`. `DECISIONS/0012` F7 excludes header bytes from every total and both
+   drivers sum `bodyBytes` at the origin, so a `304` costs **0 B** — the outcomes are discrete:
+   **6,527 B** (neither revalidates: the worker's `cache: "reload"` precache never populates the HTTP cache, so
+   no `If-None-Match` is ever sent), **5,572 B** (module chunk revalidates, `/sw.js` still downloads), or
+   **2,700 B** (both revalidate, leaving only W6's manifest probe). 17c measures which one it is and publishes
+   that, amending `DECISIONS/0028` T3 in the same commit if the answer differs from the ticket file's
+   prediction. See `DECISIONS/0029` P4.
 
 The one thing 17c must not do is ship the header and leave `warm-bytes.json` and `footprint.json` describing
 the pre-change deployment. That is the state 17b exists to leave behind, and a ticket that recreates it in
@@ -58,20 +61,20 @@ order to publish a smaller number is the failure ADR-002 was written to end.
 
 ## Work items
 
-- [ ] `scripts/serve-app.mjs`: emit a strong `ETag` for code assets. `DECISIONS/0027` W17 governs this file —
+- [x] `scripts/serve-app.mjs`: emit a strong `ETag` for code assets. `DECISIONS/0027` W17 governs this file —
       additive, opt-in where it can be, default behaviour byte-identical, and it is the server every e2e spec
       and `scripts/storage-fixtures.mjs` already uses, so read W17 before touching it.
-- [ ] Decide, in a record, whether `no-store` is replaced or `no-cache` + `ETag` is used for code assets.
+- [x] Decide, in a record, whether `no-store` is replaced or `no-cache` + `ETag` is used for code assets.
       Ticket 08's harness server used `cache-control: no-cache` + `ETag` and F10 measured that combination
       revalidating correctly — so the precedent exists, but the shipping server's contract is a privacy- and
       correctness-relevant choice, not a performance knob.
-- [ ] Re-run `pnpm measure:warm-bytes` and `pnpm measure:footprint` in the **same commit**, and regenerate the
+- [x] Re-run `pnpm measure:warm-bytes` and `pnpm measure:footprint` in the **same commit**, and regenerate the
       README table (`pnpm render:footprint`).
-- [ ] Update the warm-path declaration lists and the ±0 cross-check target in the same commit:
+- [x] Update the warm-path declaration lists and the ±0 cross-check target in the same commit:
       `measure-warm-bytes.mjs`'s declared three-item warm set and `DECISIONS/0028` T3/T7.
-- [ ] Close the finding `warm_worker_module_chunk_refetched` in `footprint.json` — with the measurement that
+- [x] Close the finding `warm_worker_module_chunk_refetched` in `footprint.json` — with the measurement that
       closes it, not with an assertion.
-- [ ] Record in `DECISIONS/0028` whether `/sw.js` can be made conditional too. It probably cannot: a worker
+- [x] Record whether `/sw.js` can be made conditional too (`DECISIONS/0029` P6's new finding; the ticket file's guess was wrong and the run says so). It probably cannot: a worker
       script fetch is the browser's, not the page's, and `no-store` on `/sw.js` may be exactly what keeps
       updates prompt. If it cannot, say so in the record and leave the 2,872 B published.
 
@@ -89,3 +92,60 @@ measurement only ("not a change to the PWA, service worker, or model tier"), and
 a change to what users receive. Separating the shipping change from the measurement change is also what keeps
 `DECISIONS/0028` T3's ±0 cross-check meaningful — one variable per ticket, which is the rule
 `DECISIONS/0012` F3 is built on.
+
+**2026-11-06 — checkpoint 1 rulings folded in.** Blocker A (the unwired harness baseline in
+`measure-warm-bytes.mjs`) lands in this ticket's commit 1, not a separate ticket. The null-result branch is
+pre-authorized with its mechanism named (`DECISIONS/0029` P5). `no-cache` is restricted to code and metadata;
+`/assets/models/*.onnx`, `/assets/models/*.txt` and `/assets/ort-wasm-simd-threaded-*.wasm` keep `no-store`, so
+this ticket never doubles a 21 MB binary footprint to optimize 955 bytes. `17e` now exists as the owner of the
+duplicate-fetch/copy-bypass mechanism whether or not 17c's number moves.
+
+## Comments
+
+**2026-11-06 — closed by ticket 17c, and the prediction in this file was wrong in both directions.**
+
+The expected saving was `6,527 − 955 = 5,572 B`. Two errors: the arithmetic added `304` header bytes to a total
+from which `DECISIONS/0012` F7 excludes headers, and the ticket's own prediction that `/sw.js` *"probably
+cannot"* be made conditional is contradicted by the run. What was measured, on `2782934` with a clean tree:
+
+- warm visit **2,700 B**, not 5,572 — a **5499.6×** reduction against ticket 08's
+  14,848,852 B, and both drivers agree at ±0;
+- `/assets/cache-names-BCswqTtv.js, /sw.js` both **revalidate to `304` with no body**. The worker script byte-check does send
+  `If-None-Match`, which is recorded as a finding rather than a footnote
+  (`sw_js_byte_check_conditional`);
+- `/assets/models/manifest.json` is the only warm body left, and it is W6's deliberate `cache: "reload"` version probe
+  — 2,700 B, the cost of asking what the origin serves, which is by design;
+- cold moved too, by **−955 B** (21,718,277 B): a cold visit fetches the worker's module chunk twice and the second
+  fetch now revalidates. `DECISIONS/0029` P4 pinned cold at ±0 and the record carries the falsification with
+  the mechanism, because a number that moved without a sentence attached to it is how folklore starts;
+- `warm_worker_module_chunk_refetched` closes with `resolvedBy: "ticket 17c"` against this measurement, and
+  `warm_visit_served_by_service_worker` gained a `history` entry preserving the superseded 6,527 B rather than
+  editing it away.
+
+Latency needs an honest caveat rather than a clean bill of health. The committed 17c run's
+unthrottled cold median is 1,257 ms against 17b's 1,206 ms, and the two runs' *within-run ranges do not overlap*
+(1,186.7–1,226.1 vs 1,228.6–1,310.0), which is the trigger `DECISIONS/0029` P8 set for stopping. What the
+same-code evidence says: the identical 17c code measured **1,213 ms** in the earlier pass on this branch and
+**1,257 ms** in the committed one, and the committed run spans 81 ms with its **maximum in the first sample**
+(1,310.0, then 1,228.6 → 1,276.3) while 17b's five samples span 39 ms with no direction. The candidate mechanism
+from the header change is one extra conditional round trip over loopback, which is microseconds, not 51 ms. So the shift is reported as **not attributable to 17c** and
+**not smoothed over**: it is published as measured, with the variance evidence in
+`DECISIONS/0029`'s checkpoint-3 findings, and every other cell (warm unthrottled 624 ms against 619, warm 4×
+2,375 against 2,309, cold 4× 3,818 against 3,671) overlaps its 17b range.
+
+Two things this ticket found that were not in its scope and are recorded rather than fixed here:
+`assertColdSample` rejected any `304` in the cold window instead of a first-use one (17b's implementation of F9
+condition 1, tighter than the condition it claims), and `verify:warm-bytes` had no CI gate at all, so T7's
+both-artifacts condition was enforced only by the author remembering it.
+
+**Pre-merge verification (2026-11-06), before `gh pr merge`.** Three confirmations were asked for and each one
+found something. The monotonic-drift claim in the paragraph above was **this paragraph's own error** — the sorted
+`samples[]` array read as a timeline; run order puts the maximum first, and `DECISIONS/0029` carries the
+correction with the comparison table that makes the same point without the trend. The 2,700 B residual was
+already legible from the artifact (`warmStructuralRequests`, `totals.requestedFromOriginEveryWarmVisit*`) but the
+*warm finding* did not name it, so the finding now says "the whole of it is `/assets/models/manifest.json` at
+2,700 B" with W6's `cache: "reload"` probe as the mechanism. And three published strings turned out to still
+describe the pre-17c origin — `footprint.json`'s warm phase asserted "this origin answers no `304`" in a file
+whose own totals list two per warm sample. The prose is now derived from `rules.ts` and pinned against the
+committed artifacts, so a header change cannot leave a stale sentence behind again
+(`DECISIONS/0029` implementation finding 9). No measurement field was edited to do it.

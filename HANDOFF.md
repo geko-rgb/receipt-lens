@@ -860,3 +860,88 @@ numbers the generator printed. The safety net working is the point - one run tha
 is worse than four that do not.
 
 **Next: 17c (ETag on code assets + regenerate both artifacts together), then 18 (privacy audit and claims).**
+
+## Process notes for measurement tickets (added 2026-11-06, before ticket 17c)
+
+Three things ticket 17b learned that are not about the footprint and belong where the next session will read
+them.
+
+**Tool traps.**
+
+- `gh run watch --exit-timeout` is **not supported** by the installed gh, and the failure is quiet: the watcher
+  exits at once and a loop built on it reports empty conclusions while CI has already finished. Poll once with
+  `gh run list -R <owner>/<repo> --branch <branch> --limit 4 --json headSha,workflowName,event,status,conclusion`
+  instead, or read the web UI.
+- `page.waitForFunction` **does not await a predicate that returns a Promise** - it treats the Promise object as
+  truthy and resolves on the first poll. Measured on this tree: an async predicate that always resolves `false`
+  still resolved the wait in 17 ms, and the handle then yielded the awaited `false`. So an async in-page
+  condition inside `waitForFunction` is a gate that opens immediately, and wrapping it in
+  `.catch(() => false)` turns it into a gate that can never fail. Poll async conditions from the driver with an
+  explicit deadline; reserve `waitForFunction` for synchronous predicates.
+- **No `sleep` inside a Bash tool call to wait for CI.** It burns context on a blocked call and can hang the
+  session. A single list call is the check.
+
+**Deferred, with a named owner.** The duplicate-fetch optimisation is **17e** in the backlog: the worker
+precaches with `cache: "reload"`, so a cold visit fetches `/assets/index-*.js` twice (242,513 B of the
+21,719,232 B cold total is the repetition, plus css, the bundle runtime and the worker module - **252,946 B**,
+1.1%). It is not a correctness fix; warm is already correct, and cold is 1.1% larger than it could be. It is
+deliberately *not* folded into 17c, which is a header ticket with a cross-check attached.
+
+**One measurement-ticket habit worth keeping.** Ticket 17b ran the full measurement four times, and the three
+re-runs each bought a *published field* that did not mean what it said: F5's header formula producing
+-18,325,445 B of "response headers" on a deployment whose bytes mostly move through the worker; a zero-transfer
+filter that deleted the evidence its own pass condition asked for; and a `git status` column slice that
+published a path with its first character missing. All three were caught by the cross-checks and by reading the
+numbers the generator printed - not by reading the code first. The net is the deliverable; one run that ships a
+negative byte count is worse than four that do not.
+
+Three more, added by ticket 17c at the same point in the work:
+
+**`verify:footprint` is a post-commit gate, not a pre-commit one.** The check regenerates the README from the
+committed artifacts and compares committed to derived, so before a commit it fails on every change you have not
+committed yet - correctly. Pre-commit the check is `git status`; post-commit it is `git diff --exit-code`.
+Running the gate before committing and treating the failure as a defect sends you fixing something that was
+never broken.
+
+**Type-blindness in pins: a green `pnpm test` is not "all green".** Test files that import a module the
+workspace has no declaration for get it as implicit `any`, and vitest does not typecheck - the tests run, the
+types are never checked, and `pnpm typecheck` is red the whole time. 17c hit this on the two server modules it
+drove directly; the fix was `scripts/serve-app.d.mts` and `scripts/serve-measure-app.d.mts`, not a cast. Run
+`pnpm typecheck` explicitly before saying tests pass. CI runs both gates, so nothing ships either way - the
+cost is a wrong status report.
+
+**`svelte-check` under memory pressure — confirmed twice on 2026-11-06.** Parallel `pnpm -r typecheck` SIGKILLs
+`svelte-check` when the user's browser is running concurrently; sequential `pnpm --filter <pkg> typecheck`
+succeeds on the same tree. Root cause is memory contention, not a code bug. Workaround: run sequentially when
+parallel dies. A third occurrence is worth a memory-limit investigation in CI — which does not run concurrent
+browser sessions, so it is unlikely to see this at all. Not a merge blocker; a tool-environment note. The
+transferable part is the one above it: typecheck and test are different gates, and only the pair of them is
+"green".
+
+## Ticket 17c complete (2026-11-06)
+
+Ticket 17c complete (2026-11-06): ETag + conditional requests on both origins. Warm **6,527 → 2,700 B**
+(5,499.6× reduction against ticket 08). Cold **21,719,232 → 21,718,277 B** (−955, mechanism: 17b's duplicate-fetch
+now revalidates). `cacheHeldBytes` **21,459,809 B** unchanged. `/sw.js` and the worker module chunk revalidate to
+`304`; only W6's model-manifest `cache: "reload"` probe remains in the warm bytes (2,700 B, the target of 17e).
+Both drivers ±0. Parity test: `serve-app.mjs` and `serve-measure-app.mjs` share one header policy
+(`benchmarks/src/footprint/etag-policy.ts`: `no-cache` + content ETag for code assets, `no-store` with no
+validator for models and the runtime WASM) — one module, so there is no second implementation to drift. Three 17b
+defects fixed (`assertColdSample`'s any-304 cold gate, Blocker A's unwired baseline, the witness pin that was a
+copy of a measurement). `DECISIONS/0027` W17.3 superseded (the header policy change, recorded with its original
+text preserved), and `verify:warm-bytes` gained the CI gate T7 always assumed.
+
+Prose now derives from `rules.ts` (`phaseDescriptions`, `warmRequestReason(path, outcome)`) so an artifact cannot
+record a state the deployment no longer has; `benchmarks/tests/footprint/published-prose.test.ts` (17 tests) binds
+the committed artifacts *and the drivers* to that derivation, and the artifacts were repaired by calling those same
+functions — a walk over both JSON trees confirms nothing outside `description`/`reason`/`detail` moved, so no
+latency sample was re-rolled to make the prose correct.
+
+Latency disposition published: unthrottled cold +50.7 ms against 17b, non-overlapping ranges, **not** attributable
+to the header change, and **not** re-rolled; the mechanism evidence in `DECISIONS/0029` is recorded as corrected
+from a sorted-vs-run-order error (the run's maximum is its first sample). The README now prints the per-cell
+comparison from both artifacts instead of a reassurance. Ticket 18 unblocked.
+
+**Next: ticket 18 (privacy audit and claims), which 17c's merge unblocks against these numbers. ADR-002's dated
+amendment and 18's `Blocked by:` gaining 17b/17c are 18's to make.**
+
