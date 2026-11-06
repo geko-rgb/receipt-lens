@@ -11,7 +11,7 @@ the table wholesale so the published "measured footprint" claim is the product's
 the PWA deployment, which this ticket delivers. The ordering was corrected at ticket 17's checkpoint 3: 17b
 comes *before* 18, because a privacy audit that writes claims against a pre-17b table would be writing them
 against harness bytes.
-**Status:** ready-for-agent
+**Status:** resolved — work complete on `ticket/17b-footprint-remeasure`, PR open, awaiting review and merge
 **Effort:** ~10 h · **Roadmap:** workstream 3A (task 3A.7 completion) · **Milestone:** M3
 **Verify:** `pnpm measure:footprint && pnpm verify:footprint` clean, `git diff --exit-code` on the README
 block, and the warm-visit row consistent with `benchmarks/results/warm-bytes.json` to within one re-run.
@@ -29,33 +29,33 @@ rather than ship a half-updated table. It measured and published the one number 
 
 ## Work items, in the order that makes each checkable
 
-- [ ] **Move the measured deployment.** `measure-footprint.mjs` imports `startServer` from
+- [x] **Move the measured deployment.** `measure-footprint.mjs` imports `startServer` from
       `benchmarks/scripts/serve-measure-app.mjs` (already exists — it carries the request log F5 needs) instead
       of `harness/serve.mjs`, and drives `packages/pwa/dist/app`.
-- [ ] **Re-key `ROLES`.** `/assets/index-*.js` is the entry, `/assets/ort.wasm.bundle.min-*.js` the runtime
+- [x] **Re-key `ROLES`.** `/assets/index-*.js` is the entry, `/assets/ort.wasm.bundle.min-*.js` the runtime
       loader, `/assets/ort-wasm-simd-threaded-*.wasm` the runtime WASM, `/assets/models/*` the models. The
       harness's `/dist/main.js` and `/ort/…` rows go.
-- [ ] **Amend F9's fail-loud set for a worker-served warm visit** (`DECISIONS/0027` W15): condition 3's "warm
+- [x] **Amend F9's fail-loud set for a worker-served warm visit** (`DECISIONS/0027` W15): condition 3's "warm
       revalidates nothing and reads no cache" reads the *origin* log, which the worker now legitimately empties;
       the read-from-cache signal moves to page `transferSize === 0` plus zero origin requests. Conditions 1 and
       4 need the same re-reading.
-- [ ] **Delete `NOT_RETAINABLE`** in the same commit that moves the deployment — never before. On the harness it
+- [x] **Delete `NOT_RETAINABLE`** in the same commit that moves the deployment — never before. On the harness it
       is still true; deleting it there trips condition 13 as a false alarm, and keeping it after the move makes
       the drift guard decorative. This is the sequencing W15 and W14.4 both call out.
-- [ ] **Close ticket 08's finding honestly:** `findings[]` keeps
+- [x] **Close ticket 08's finding honestly:** `findings[]` keeps
       `warm_not_zero_ort_wasm_exceeds_cache_entity_limit` with `resolvedBy: "ticket 17"` and adds
       `warm_visit_served_by_service_worker`, measured rather than asserted (`DECISIONS/0027` W16).
-- [ ] **Latency against the real UI.** `window.__receiptLensHarness` does not exist in the PWA and ticket 17
+- [x] **Latency against the real UI.** `window.__receiptLensHarness` does not exist in the PWA and ticket 17
       refused to add a test-only hook to the shipped bundle (W15, following `DECISIONS/0023` S1). Drive the
       capture UI as `capture.spec.ts` does; publish `appReadyMs` from the `load` event and report
       `ocrReadyMs` / `modelLoadMs` as **not separable**, with the reason where F1 put the harness caveat.
-- [ ] **Name the thread count in the table.** 1 ORT thread, because `serve-app.mjs` sends no COOP/COEP and
+- [x] **Name the thread count in the table.** 1 ORT thread, because `serve-app.mjs` sends no COOP/COEP and
       `resolveThreadCount` returns 1 without `crossOriginIsolated`. The harness rows were 4. Generated from
       `measurement.deployment.threads`, per the checkpoint-1 ruling.
-- [ ] **Archive the harness artifact** as `footprint-<date>-<rev>.json` before overwriting, and regenerate the
+- [x] **Archive the harness artifact** as `footprint-<date>-<rev>.json` before overwriting, and regenerate the
       README block with `render-footprint-table.mjs --write`.
-- [ ] **Reconcile the README table into app shell / models+WASM / total**, the owner directive from ticket 11.
-- [ ] `maximumFileSizeToCacheInBytes` must stay absent from the config: ticket 17 hand-rolled the worker and
+- [x] **Reconcile the README table into app shell / models+WASM / total**, the owner directive from ticket 11.
+- [x] `maximumFileSizeToCacheInBytes` must stay absent from the config: ticket 17 hand-rolled the worker and
       replaced the ceiling with the build-time completeness guard (`DECISIONS/0027` W1.1, W1.3 Condition 2).
 
 ## Open defect this ticket inherits
@@ -80,3 +80,29 @@ condition that the header change and the regeneration of *both* artifacts land t
 **2026-11-06 — opened by ticket 17 under the recorded escape hatch.** Not a silent deferral: ticket 17's file
 cross-references this one, `DECISIONS/0027` W14.4 states exactly what was measured and what was not, and
 `benchmarks/results/warm-bytes.json` carries the payoff number so it is not left unproven.
+
+## Comments
+
+**2026-11-06 — closed by ticket 17b.** Delivered: `measure-footprint.mjs` now measures
+`packages/pwa/dist/app` at `/capture` with the worker controlling, protocol
+`receipt-lens-footprint/2`; `footprint.json` and the README table are regenerated from it
+(21,719,232 B cold / 6,527 B warm / 21,459,809 B held by the worker / 1 ORT thread), the exception set is
+gone in the same commit that moved the deployment, ticket 08's finding is closed with
+`resolvedBy: "ticket 17"` and its text untouched, and latency ships with bytes — the escape hatch was not
+used, so there is no 17d and ticket 18 is unblocked.
+
+Four things this ticket found rather than assumed, all recorded in `DECISIONS/0028`:
+`waitForFunction` does not await a promise-returning predicate (17 ms, measured); F5's header-cost formula
+produced **-18,325,445 B of "response headers"** when applied to a deployment where most bytes move through
+the worker; the measured image had to move from a gitignored dataset snapshot to the committed canvas
+receipt, which makes pre/post latency incomparable on image size as well as threads; and
+`git.dirtyPaths` was publishing a path with its first character cut off.
+
+One inherited item deliberately not done here: the `ETag` on code assets. It would move the published warm
+number, which T3 pins to agree with `warm-bytes.json` at ±0, and it changes what ships rather than what is
+measured. `17c-etag-code-assets.md` owns it, with the condition that the header change and the
+regeneration of both artifacts land in one commit.
+
+Verify: `pnpm build` ✓ `pnpm typecheck` ✓ unit 222 / 409 / 264 ✓ e2e 72 ✓ `@offline` 2 ✓
+`pnpm verify:footprint` ✓ `pnpm verify:warm-bytes` ✓ (6,527 B, unchanged file, sha256 `dfa19a1c…`) ✓
+`NOT_RETAINABLE` grep in measurement code: 0 ✓.
