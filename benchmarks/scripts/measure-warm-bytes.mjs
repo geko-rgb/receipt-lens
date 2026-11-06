@@ -23,6 +23,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { startMeasureServer } from "../../scripts/serve-measure-app.mjs";
+import { warmBytesBeforeBlock } from "../dist/footprint/rules.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const outPath = path.join(repoRoot, "benchmarks/results/warm-bytes.json");
@@ -37,17 +38,13 @@ const WARM_SETTLE_MS = 9_000;
 
 const git = (args) => execFileSync("git", args, { cwd: repoRoot, encoding: "utf8" }).trim();
 
-/** Ticket 08's published warm cost, read from the committed artifact rather than restated from memory. */
-function previousWarmBytes() {
-  const footprint = JSON.parse(readFileSync(path.join(repoRoot, "benchmarks/results/footprint.json"), "utf8"));
-  const finding = footprint.findings.find((entry) => entry.code === "warm_not_zero_ort_wasm_exceeds_cache_entity_limit");
-  return {
-    bytes: footprint.totals.secondVisitBytesOverTheWire.median,
-    redownloaded: footprint.totals.assetsRedownloadedOnEveryVisit,
-    findingResolvedBy: finding?.resolvedBy ?? null,
-    deployment: footprint.measurement.deployment.entry,
-  };
-}
+/**
+ * Ticket 08's published warm cost, read from the archived *harness* artifact rather than from the canonical
+ * `footprint.json` — which since ticket 17b describes the same deployment this artifact measures. Reading the
+ * live table for a baseline would make the comparison self-referential, so the rule lives in
+ * `benchmarks/src/footprint/rules.ts` (T8, `DECISIONS/0029` P4) and is wired here.
+ */
+const previousWarmBytes = () => warmBytesBeforeBlock();
 
 const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
 const summarise = (values) => {
@@ -198,12 +195,17 @@ const result = {
   warmPerAsset: samples[0].perAsset,
   warmPaths: [...new Set(samples.flatMap((entry) => entry.warmPaths))].sort(),
   before: {
-    artifact: "benchmarks/results/footprint.json (ticket 08, harness deployment)",
-    secondVisitBytesOverTheWire: before.bytes,
-    redownloadedOnEveryVisit: before.redownloaded,
+    artifact: before.artifact,
+    secondVisitBytesOverTheWire: before.secondVisitBytesOverTheWire,
+    redownloadedOnEveryVisit: before.redownloadedOnEveryVisit,
     findingResolvedBy: before.findingResolvedBy,
+    measuredDeployment: before.deploymentEntry,
   },
-  reduction: { fromBytes: before.bytes, toBytes: median(warmTotals), factor: Number((before.bytes / Math.max(1, median(warmTotals))).toFixed(1)) },
+  reduction: {
+    fromBytes: before.secondVisitBytesOverTheWire,
+    toBytes: median(warmTotals),
+    factor: Number((before.secondVisitBytesOverTheWire / Math.max(1, median(warmTotals))).toFixed(1)),
+  },
 };
 
 if (problems.length > 0) {
