@@ -67,4 +67,15 @@ describe("P4 step 1 — the pre-17 baseline is read from the archive, by the dri
     expect(driver).toContain("before.secondVisitBytesOverTheWire");
     expect(HARNESS_WARM_BYTES / canonicalWarmBytes()).toBeGreaterThan(1);
   });
+
+  it("every before.<key> the driver reads is a key the block actually publishes", () => {
+    // The test above was green while the run's own status line printed "(was undefined B)": the driver built
+    // the artifact from `before.secondVisitBytesOverTheWire` and logged `before.bytes`, and a `toContain` on the
+    // file cannot tell those apart. So the check is over the whole set of keys the driver touches.
+    const driver = read("benchmarks/scripts/measure-warm-bytes.mjs");
+    const published = new Set(Object.keys(warmBytesBeforeBlock()));
+    const read2 = [...driver.matchAll(/\bbefore\.([A-Za-z_][\w]*)/g)].map((match) => match[1]);
+    expect(read2.length).toBeGreaterThan(0);
+    expect(read2.filter((key) => !published.has(key))).toEqual([]);
+  });
 });

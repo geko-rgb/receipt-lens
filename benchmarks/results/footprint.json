@@ -41,13 +41,13 @@
           "path": "/assets/models/manifest.json",
           "bytes": 2700,
           "outcome": "redownloaded-200",
-          "reason": "W5 step 1's version probe, deliberately cache: 'reload' (DECISIONS/0027 W6)"
+          "reason": "W5 step 1's version probe, deliberately cache: \"reload\" (DECISIONS/0027 W6) — the app asking the origin what it serves, which is the point of the probe"
         },
         {
           "path": "/assets/cache-names-BCswqTtv.js",
           "bytes": 0,
           "outcome": "revalidated-304",
-          "reason": "the worker's module import — the open defect ticket 17c owns (DECISIONS/0028 T7)"
+          "reason": "the worker's module import — the defect ticket 17c closed: the repeat fetch now carries If-None-Match and answers 304 with no body (DECISIONS/0028 T7, DECISIONS/0029 P2)"
         },
         {
           "path": "/sw.js",
@@ -65,7 +65,7 @@
       },
       "warm": {
         "required": true,
-        "description": "same context, page.reload() — DECISIONS/0012 F8's revalidation clause is replaced by 'answered by the active caches' (DECISIONS/0027 W15), because this origin answers no 304"
+        "description": "same context, page.reload() — DECISIONS/0012 F8's revalidation clause is replaced by 'answered by the active caches' (DECISIONS/0027 W15), which after ticket 17c means no body served over the origin: an asset the caches hold either never reaches it or is answered 304 with no body (DECISIONS/0029 P7)"
       },
       "repeat": {
         "required": false,
@@ -559,7 +559,7 @@
     },
     {
       "code": "warm_visit_served_by_service_worker",
-      "detail": "a warm visit moves 2700 B over the wire, and the requests that reached the origin are /assets/models/manifest.json, /sw.js, /assets/cache-names-BCswqTtv.js",
+      "detail": "a warm visit moves 2,700 B over the wire, and the requests that reached the origin are /assets/models/manifest.json, /sw.js, /assets/cache-names-BCswqTtv.js — the whole of it is /assets/models/manifest.json at 2,700 B: W5 step 1's version probe, deliberately cache: \"reload\" (DECISIONS/0027 W6) — the app asking the origin what it serves, which is the point of the probe",
       "evidence": "this artifact's warm runs[]: five samples per class, counted from the origin's own request log (DECISIONS/0012 F5), cross-checked at ±0 against benchmarks/results/warm-bytes.json",
       "affectsClaim": "section 9 initial-download / re-fetch cost: the second visit is no longer priced at the runtime WASM",
       "history": [

@@ -544,7 +544,7 @@ describe("T8 — findings close honestly, and cacheHeldBytes replaces retainedCa
       measuredAt: "2026-11-06T00:00:00.000Z",
     });
     const added = findings.find((f) => f.code === "warm_visit_served_by_service_worker")!;
-    expect(added.detail).toContain(String(WARM_BYTES));
+    expect(added.detail).toContain(WARM_BYTES.toLocaleString("en-US"));
     expect(findings.find((f) => f.code === "warm_worker_module_chunk_refetched")).toBeDefined();
   });
 

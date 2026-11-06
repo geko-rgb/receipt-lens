@@ -190,6 +190,8 @@ export interface FindingsInput {
   readonly previousWarmBytesPublished?: number | null;
   readonly previousMeasuredAt?: string | null;
   readonly supersedesArtifact?: string | null;
+  /** Warm requests that moved a body, with the artifact's own per-path reason (DECISIONS/0029 finding 9). */
+  readonly warmPaid?: readonly { path: string; bytes: number; reason: string }[];
 }
 
 /** T8 — the pre-17 baseline, read from the artifact that still describes the harness. */
@@ -409,8 +411,8 @@ export function warmToleranceBytes(): number {
  *
  * - `/sw.js` — the browser's own byte-check of the worker script. A worker never intercepts the fetch of its
  *   own script, so no cache it controls can prevent this.
- * - `/assets/cache-names-*.js` — the worker's module import. Same structural reason; T7's open defect, with
- *   17c as its owner.
+ * - `/assets/cache-names-*.js` — the worker's module import. Same structural reason; ticket 17c's target, and
+ *   `warmRequestReason` reports whichever state the run showed.
  * - `/assets/models/manifest.json` — W5 step 1's version probe, which W6 pins as a deliberate
  *   `cache: "reload"` request. It is the app asking the origin what it serves, which is the point.
  *
@@ -444,6 +446,53 @@ export function assertWarmCrossCheck(input: {
 
 /* ------------------------------------------------------------------ T4 */
 
+export interface PhaseDescriptions {
+  readonly cold: string;
+  readonly warm: string;
+  readonly repeat: string;
+}
+
+/**
+ * The phase contract, as the artifact has to state it.
+ *
+ * Ticket 17b wrote the warm line as "…because this origin answers no `304`". That was true of the origin it
+ * measured and false of the one ticket 17c shipped, and the artifact carried it anyway — because the sentence was
+ * a literal in the driver, where it described the ticket that wrote it rather than the deployment under
+ * measurement. So it lives here, phrased over the invariant that survives both: F9 fails a warm visit on a
+ * **body** reaching the origin, whichever status answered.
+ */
+export function phaseDescriptions(): PhaseDescriptions {
+  return {
+    cold: "first visit, empty context and empty caches, fresh server instance",
+    warm:
+      "same context, page.reload() — DECISIONS/0012 F8's revalidation clause is replaced by 'answered by the active caches' (DECISIONS/0027 W15), which after ticket 17c means no body served over the origin: an asset the caches hold either never reaches it or is answered 304 with no body (DECISIONS/0029 P7)",
+    repeat: "supplementary — a second inference in the same page with both sessions warm, driven by the app's own Re-run OCR",
+  };
+}
+
+/**
+ * Why a warm request is structural rather than a cache miss, keyed to the outcome the run actually showed.
+ *
+ * `/sw.js` and the worker's module chunk are requests a service worker cannot serve from its own caches — it
+ * never intercepts the fetch of its script or that script's imports. What changed in 17c is the *answer*: the
+ * second of them stopped being a defect the moment code assets got a validator, so the reason text says which
+ * state this run measured instead of asserting the state the ticket started in.
+ */
+export function warmRequestReason(pathname: string, outcome: WarmOutcome): string {
+  if (pathname === "/sw.js") {
+    return "the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script";
+  }
+  if (/^\/assets\/cache-names-/.test(pathname)) {
+    return outcome === "redownloaded-200"
+      ? "the worker's module import — the open defect ticket 17c owns (DECISIONS/0028 T7)"
+      : "the worker's module import — the defect ticket 17c closed: the repeat fetch now carries If-None-Match and answers 304 with no body (DECISIONS/0028 T7, DECISIONS/0029 P2)";
+  }
+  if (pathname === "/assets/models/manifest.json") {
+    return "W5 step 1's version probe, deliberately cache: \"reload\" (DECISIONS/0027 W6) — the app asking the origin what it serves, which is the point of the probe";
+  }
+  return "unexplained — and an unexplained warm request fails the run, so this line should be unreachable";
+}
+
 export function latencyBases(): LatencyBases {
   const reason =
     "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src";
@@ -470,7 +519,7 @@ export function domAnchors(): DomAnchors {
 
 export function failLoudRules(): readonly FailLoudRule[] {
   return [
-    { code: "cold_conditional_response", when: "a cold visit saw a 304, so the browser context was not empty and the phase is not cold" },
+    { code: "cold_conditional_response", when: "a cold visit saw a 304 on a URL's FIRST use, so the browser context was not empty and the phase is not cold (a later 304 in the same visit is ticket 17c's validator working)" },
     { code: "cold_zero_body", when: "an origin-logged 200 carried no body bytes, so the origin is not telling the truth about what it sent" },
     { code: "cold_model_bytes_moved", when: "served model bytes differ from the count assets/models/manifest.json pins for that asset" },
     { code: "cold_pointer_never_ready", when: "the W5 step-6 /active pointer never appeared, so no verified model set was active before the run" },
@@ -544,7 +593,7 @@ export function warmModuleChunkDefect(observedBytes: number): WarmModuleChunkDef
     findingCode: "warm_worker_module_chunk_refetched",
     bytes: observedBytes,
     reason:
-      "a service worker never intercepts the fetch of its own script or that script's imports, and the origin answers code assets with cache-control: no-store, so the worker re-fetches its module chunk on every instantiation",
+      "a service worker never intercepts the fetch of its own script or that script's imports, so the worker re-fetches its module chunk on every instantiation unless the origin answers that fetch conditionally (DECISIONS/0029 P2)",
     owner: "ticket 17c",
     condition:
       "the ETag change and the regeneration of both footprint artifacts land in the same commit (DECISIONS/0028 T3/T7): a header change moves the number two artifacts publish",
@@ -583,7 +632,14 @@ export function buildFindings(input: FindingsInput): readonly Finding[] {
     },
     {
       code: "warm_visit_served_by_service_worker",
-      detail: `a warm visit moves ${input.warmBytes} B over the wire, and the requests that reached the origin are ${input.warmPaths.join(", ") || "none"}`,
+      // When one asset carries the entire warm cost, the finding has to say which and why: after ticket 17c the
+      // residual is 2,700 B and it is all the W6 probe, which is a design choice rather than a cache miss, and a
+      // reader of the findings list alone should be able to tell the two apart.
+      detail:
+        `a warm visit moves ${input.warmBytes.toLocaleString("en-US")} B over the wire, and the requests that reached the origin are ${input.warmPaths.join(", ") || "none"}` +
+        (input.warmPaid?.length === 1 && input.warmPaid[0].bytes === input.warmBytes
+          ? ` — the whole of it is ${input.warmPaid[0].path} at ${input.warmPaid[0].bytes.toLocaleString("en-US")} B: ${input.warmPaid[0].reason}`
+          : ""),
       evidence: "this artifact's warm runs[]: five samples per class, counted from the origin's own request log (DECISIONS/0012 F5), cross-checked at ±0 against benchmarks/results/warm-bytes.json",
       affectsClaim: "section 9 initial-download / re-fetch cost: the second visit is no longer priced at the runtime WASM",
       ...(history === undefined ? {} : { history }),

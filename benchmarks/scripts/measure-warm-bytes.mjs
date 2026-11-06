@@ -23,7 +23,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { startMeasureServer } from "../../scripts/serve-measure-app.mjs";
-import { warmBytesBeforeBlock } from "../dist/footprint/rules.js";
+import { deployment, warmBytesBeforeBlock } from "../dist/footprint/rules.js";
 
 const repoRoot = path.resolve(import.meta.dirname, "../..");
 const outPath = path.join(repoRoot, "benchmarks/results/warm-bytes.json");
@@ -180,7 +180,9 @@ const result = {
   deployment: {
     entry: "packages/pwa/dist/app/index.html — the built PWA shell, not the §9 M1 harness",
     scope: "PWA shell + runtime WASM precached by the service worker; model set verified and activated by DECISIONS/0027 W5",
-    servedBy: "scripts/serve-measure-app.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, cache-control: no-store, exactly as the shipping server",
+    // Derived from the rule module rather than restated: this string is the claim that the measured origin is the
+    // shipping origin, and a copy of it typed into a second driver is a copy that can go stale (DECISIONS/0029 finding 9).
+    servedBy: "scripts/serve-measure-app.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, no reverse proxy, and the same contract the shipping server implements: " + deployment().cacheContract,
     threads: "1 ORT thread: serve-app.mjs sends no COOP/COEP, so crossOriginIsolated is false and resolveThreadCount returns 1. The harness's 4-thread measurement is a different deployment in that respect too.",
     notMeasured: [
       "latency (cold/warm/repeat) — ticket 17b's full re-derivation",
@@ -232,5 +234,5 @@ if (checkOnly) {
 
 writeFileSync(outPath, serialized);
 process.stdout.write(
-  `warm visit: median ${result.samples.median} B (was ${before.bytes} B) — ${result.reduction.factor}x less, runtime WASM among them: ${result.warmPaths.filter((p) => p.endsWith(".wasm")).length ? "YES" : "no"} (sha256 ${digest})\n`,
+  `warm visit: median ${result.samples.median} B (was ${before.secondVisitBytesOverTheWire} B) — ${result.reduction.factor}x less, runtime WASM among them: ${result.warmPaths.filter((p) => p.endsWith(".wasm")).length ? "YES" : "no"} (sha256 ${digest})\n`,
 );
