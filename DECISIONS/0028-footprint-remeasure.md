@@ -344,6 +344,56 @@ cross-check disagreement; `NOT_RETAINABLE` greps to zero in `benchmarks/scripts/
 and `deployment.scope` name the PWA; the renderer emits no harness text; **and the `warm-bytes` baseline
 reads the archived harness artifact, not the canonical `footprint.json` it is about to invalidate** (T8).
 
+## Findings recorded during implementation (checkpoint 3)
+
+Five things the implementation learned that the pins could not have known. Each is in the code and the
+artifact, and none of them changed a published number by assumption.
+
+1. **`waitForFunction` does not await a predicate that returns a Promise — it treats the Promise object as
+   truthy and resolves on the first poll.** Measured on this tree: an async predicate that always resolves
+   `false` still made the wait resolve in 17 ms, and the handle then yielded the awaited `false`. So the T2
+   cold-ready condition, written the obvious way, was a gate that opened immediately and reported the model
+   set as never ready — or, with a `.catch(() => false)` around it, a gate that could never fail. The
+   `await`ing conditions (`/active` pointer, cache probing) are therefore polled from the driver with an
+   explicit deadline. The synchronous predicates (`navigator.serviceWorker.controller`, `busy-state`, the
+   draft node) stay in `waitForFunction`, where they are actually awaited. **Any future pin that waits on an
+   async in-page condition must not use `waitForFunction` directly.**
+2. **F5's header-cost formula does not survive a worker.** The first full run published
+   **-18,325,445 B "of response headers on top"**: the harness formula subtracted every byte the origin
+   logged from the `transferSize` the page observed, and on the PWA the worker's install precache, the WASM
+   and the model downloads are not document resources, so the two sets are not the same set. The harness run
+   could get away with it because there the sets nearly coincided. Amended: the page-observed pair is
+   computed over page resources only, counting a header cost only for entries whose `transferSize > 0`
+   (a cache hit that transfers nothing carries no header cost either), published as
+   `totals.coldPageObserved` / `totals.warmPageObserved` with the resource count, and labelled as a
+   cross-check over a subset rather than a second measurement. F5's rule — bytes at the origin, headers
+   reported beside the totals, never added — is unchanged.
+3. **The measured image changes, and it had to.** The harness run priced inference against
+   `benchmarks/datasets/raw/sroie/assets/ex.jpg`, which lives in the 2.7 GB raw snapshot and is not committed:
+   a published latency number whose input nobody else can obtain is not re-derivable. The 17b run draws its
+   receipt on a canvas exactly as `playwright/capture.spec.ts` does — 900×1200, the four pinned lines — so the
+   declared image is committed code with a hash in the artifact. **The pre-17 and post-17 latency rows are
+   therefore not comparable on image size as well as on thread count**, and the artifact says so in
+   `measurement.image.note`.
+4. **A 178 B difference between the two drivers' cold windows (0.0008%), unattributed.**
+   `measure-warm-bytes.mjs` records `coldVisit.median` 21,719,410 B; this run measures
+   `initialDownloadBytes.median` 21,719,232 B — same 22 requests, so the difference is in which duplicate
+   fetch each window caught, and the two windows genuinely end at different moments (theirs at the `/active`
+   pointer, ours after a full inference). No asset in the set is 178 B, so it is a multiset difference rather
+   than an extra or missing single file. **It affects no published claim:** the cold total in the README comes
+   only from `footprint.json`, and `warm-bytes.json`'s `coldVisit` field is an internal observation that no
+   table prints. T3 pins warm, not cold, and 17b does not silently widen it. 17c may reconcile the two cold
+   windows when it regenerates both artifacts anyway.
+5. **`resolvedAt` is the merge date, not the pin date.** W16 wrote `"resolvedAt": "2026-11-05"` when that
+   record was authored pre-merge; ticket 17 merged 2026-11-06 (`c38dd65`), and the artifact carries
+   `TICKET_17_MERGED_ON`. The finding's text is verbatim ticket 08's, as W16 requires; only the date follows
+   the event it names.
+
+**The escape hatch was not used.** Latency shipped with bytes in this ticket: `appReadyMs` and
+`firstResultMs` are measured against the real capture UI for both classes, and the three fields that cannot be
+separated are published as unseparable rather than carried over. No `17d` was opened, `17c` stays the header
+ticket, and `18` is unblocked.
+
 ## What this record does not decide
 
 - **Peak memory, real-link latency, real devices.** Unchanged from `DECISIONS/0012`.
