@@ -4,9 +4,9 @@
  *
  *   node benchmarks/scripts/measure-footprint.mjs [--samples 5] [--dry-run] [--debug]
  *
- * What changed here, in one sentence: this file used to measure the §9 M1 harness (`harness/index.html` served
- * by `harness/serve.mjs`), because on the day `DECISIONS/0012` F1 pinned that choice it was the only browser
- * deployment in the repo. Tickets 10a, 10 and 17 merged, so F11 trigger 1 expired that measurement, and
+ * What changed here, in one sentence: this file used to measure the §9 M1 inference scaffold — its page and its
+ * own dev server — because on the day `DECISIONS/0012` F1 pinned that choice it was the only browser deployment
+ * in the repo. Tickets 10a, 10 and 17 merged, so F11 trigger 1 expired that measurement, and
  * `DECISIONS/0028` is the pin set for replacing it. This now measures `packages/pwa/dist/app` served by
  * `scripts/serve-measure-app.mjs`, driven through the real capture UI, with a service worker installed.
  *
@@ -15,10 +15,10 @@
  * 1. **The worker is the cache.** The origin answers `cache-control: no-store` with no `ETag`, so no visit —
  *    cold or warm — ever sees a `304`. F9's condition 3 is therefore inverted (T5): warm liveness is proven by
  *    *nothing reaching the origin* plus `transferSize === 0` page-side, not by conditional revalidation. The
- *    `NOT_RETAINABLE` exception set that guarded the harness's 14.85 MB WASM re-download is deleted in this
+ *    declared non-retainable set that guarded the scaffold's 14.85 MB WASM re-download is deleted in this
  *    commit, because this is the commit that moved the measurement to the deployment where the declaration
  *    stopped being true (T6, F12's designed trigger arriving on schedule).
- * 2. **There is no harness hook.** `window.__receiptLensHarness` does not exist in the shipped bundle and
+ * 2. **There is no timing hook in what ships.** `window.__receiptLensHarness` does not exist in the PWA bundle
  *    ticket 17 refused to add a timing hook to it (W15, following `DECISIONS/0023` S1). So `appReadyMs` is the
  *    `load` event and `firstResultMs` is navigation start to the DOM state `capture.spec.ts` already treats as
  *    proof a draft was produced, and `ocrReadyMs`, `modelLoadMs` and `inferenceMs` are published as **not
@@ -252,12 +252,16 @@ function pageEvidence() {
     swController: Boolean(navigator.serviceWorker.controller),
     userAgent: navigator.userAgent,
     // F5: the page's own view is a cross-check and the header cost, never the byte total.
-    resources: performance.getEntriesByType("resource").map((entry) => ({
-      path: new URL(entry.name, location.href).pathname,
-      transferBytes: entry.transferSize,
-      encodedBytes: entry.encodedBodySize,
-      decodedBytes: entry.decodedBodySize,
-    })),
+    resources: performance.getEntriesByType("resource")
+      .map((entry) => ({
+        path: new URL(entry.name, location.href).pathname,
+        transferBytes: entry.transferSize,
+        encodedBytes: entry.encodedBodySize,
+        decodedBytes: entry.decodedBodySize,
+      }))
+      // transferSize is 0 for anything read from a cache without revalidation, and then it carries no header
+      // cost either — only entries that actually came over the wire can price one.
+      .filter((entry) => entry.transferBytes > 0),
   };
 }
 
@@ -527,6 +531,27 @@ if (warmPathSets.length !== 1) {
   );
 }
 
+/**
+ * What the *document* could see, per phase. Reported beside the totals and never added to them (F5): the
+ * worker's install precache, the WASM and the model downloads are not document resources, so the page's view is
+ * a cross-check on a subset, not a second measurement of the same set.
+ */
+function pageObservedOf(phase) {
+  const fromRuns = observed.map((sample) => {
+    const resources = sample.phases[phase].evidence.resources;
+    return {
+      transferBytes: resources.reduce((sum, resource) => sum + resource.transferBytes, 0),
+      headerBytes: resources.reduce((sum, resource) => sum + Math.max(0, resource.transferBytes - resource.encodedBytes), 0),
+      resources: resources.length,
+    };
+  });
+  return {
+    transferBytes: summarize(fromRuns.map((row) => row.transferBytes)),
+    headerBytes: summarize(fromRuns.map((row) => row.headerBytes)),
+    resources: summarize(fromRuns.map((row) => row.resources)),
+  };
+}
+
 const perCategoryBytes = {};
 for (const asset of assets) perCategoryBytes[asset.category] = (perCategoryBytes[asset.category] ?? 0) + asset.wireBytes;
 
@@ -582,7 +607,8 @@ for (const sample of observed) {
       zeroItems: entry.evidence.zeroItems,
       crossOriginIsolated: entry.evidence.crossOriginIsolated,
       pageObservedTransferBytes: entry.evidence.resources.reduce((sum, resource) => sum + resource.transferBytes, 0),
-      pageObservedHeaderBytes: entry.evidence.resources.reduce((sum, resource) => sum + resource.transferBytes, 0) - total,
+      pageObservedHeaderBytes: entry.evidence.resources.reduce((sum, resource) => sum + Math.max(0, resource.transferBytes - resource.encodedBytes), 0),
+      pageObservedResources: entry.evidence.resources.length,
       wire: entry.wire.map((item) => ({ url: item.path, status: item.status, bodyBytes: item.bodyBytes, completed: item.completed })),
     });
   }
@@ -606,7 +632,13 @@ const report = {
       precacheEntries: precacheManifest.length,
       workerScriptBytes: statSync(path.join(appDir, "sw.js")).size,
       notSeparable,
-      warmStructuralRequests: paidOnWarm.map((asset) => `${asset.url} (${asset.warmVisitBytesPaid} B): ${warmRequestReason(asset.url)}`),
+      warmStructuralRequests: paidOnWarm.map((asset) => ({
+        path: asset.url,
+        bytes: asset.warmVisitBytesPaid,
+        reason: warmRequestReason(asset.url),
+      })),
+      warmStructuralRequestsNote:
+        "Each of these is structural, not a cache miss: a service worker cannot intercept the fetch of its own script or that script's imports, and W6's version probe deliberately bypasses the cache. An unexplained warm request fails the run, so this list is exhaustive by construction.",
     },
     phases: {
       cold: { required: true, description: "first visit, empty context and empty caches, fresh server instance" },
@@ -736,12 +768,10 @@ const report = {
     duplicateFetchesPerColdVisit: summarize(
       observed.map((sample) => sample.phases.cold.wire.length - new Set(sample.phases.cold.wire.map((entry) => entry.path)).size),
     ),
-    coldHeaderOverheadBytesPageObserved: summarize(
-      observed.map((sample) => sample.phases.cold.evidence.resources.reduce((sum, resource) => sum + resource.transferBytes, 0) - sample.phases.cold.wire.reduce((sum, entry) => sum + entry.bodyBytes, 0)),
-    ),
-    warmHeaderOverheadBytesPageObserved: summarize(
-      observed.map((sample) => sample.phases.warm.evidence.resources.reduce((sum, resource) => sum + resource.transferBytes, 0) - sample.phases.warm.wire.reduce((sum, entry) => sum + entry.bodyBytes, 0)),
-    ),
+    coldPageObserved: pageObservedOf("cold"),
+    warmPageObserved: pageObservedOf("warm"),
+    pageObservationNote:
+      "The page's own resource timings cover only the resources the *document* fetched. The worker's install precache, the WASM and the model downloads are not document resources and never appear here — that is why F5 counts bytes at the origin. So this pair is reported beside the totals and never added to them, and it is not the header cost of the whole visit.",
   },
   latency,
   runs,
