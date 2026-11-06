@@ -895,42 +895,63 @@ published a path with its first character missing. All three were caught by the 
 numbers the generator printed - not by reading the code first. The net is the deliverable; one run that ships a
 negative byte count is worse than four that do not.
 
+Three more, added by ticket 17c at the same point in the work:
+
+**`verify:footprint` is a post-commit gate, not a pre-commit one.** The check regenerates the README from the
+committed artifacts and compares committed to derived, so before a commit it fails on every change you have not
+committed yet - correctly. Pre-commit the check is `git status`; post-commit it is `git diff --exit-code`.
+Running the gate before committing and treating the failure as a defect sends you fixing something that was
+never broken.
+
+**Type-blindness in pins: a green `pnpm test` is not "all green".** Test files that import a module the
+workspace has no declaration for get it as implicit `any`, and vitest does not typecheck - the tests run, the
+types are never checked, and `pnpm typecheck` is red the whole time. 17c hit this on the two server modules it
+drove directly; the fix was `scripts/serve-app.d.mts` and `scripts/serve-measure-app.d.mts`, not a cast. Run
+`pnpm typecheck` explicitly before saying tests pass. CI runs both gates, so nothing ships either way - the
+cost is a wrong status report.
+
+**`svelte-check` SIGKILL under memory pressure.** Happened once during 17c, passed unchanged on retry. If it
+recurs, investigate what is holding memory during typecheck (parallel builds, a leftover browser from a
+measurement run) rather than retrying until it goes green.
+
 ## Ticket 17c complete (2026-11-06)
 
-Ticket 17c complete (2026-11-06): code assets answer conditional requests. One policy module
-(`benchmarks/src/footprint/etag-policy.ts`) is imported by **both** origins — `scripts/serve-app.mjs` (shipping)
-and `scripts/serve-measure-app.mjs` (measured) — because a parity test comparing two implementations of a policy
-can pass while the two have drifted. Code and app metadata: `no-cache` + content `ETag` (sha256 of the body, 32
-hex, strong, no `Last-Modified`), `304` with no body on a matching `If-None-Match`. Model weights, the
-dictionary and the runtime WASM keep `no-store` and advertise no validator: the worker's Cache API owns them and
-an HTTP-cache copy would be a second 21 MB and a stale-weights path around W5. The app shell keeps `no-store`.
+Ticket 17c complete (2026-11-06): ETag + conditional requests on both origins. Warm **6,527 → 2,700 B**
+(5,499.6× reduction against ticket 08's 14,848,852 B). Cold **21,719,232 → 21,718,277 B** (−955, explained by
+17b's duplicate fetch now revalidating). `cacheHeldBytes` **21,459,809 B** unchanged. `/sw.js` and the worker's
+module chunk revalidate; only W6's model-manifest probe remains in the warm bytes (2,700 B, the target of 17e).
+Both drivers ±0. Parity test: `serve-app.mjs` and `serve-measure-app.mjs` share one header policy module, so
+there is no second implementation to drift.
 
-Published numbers, regenerated together in one branch with `git.dirtyPaths == []` on revision `2782934`: cold
-**21,718,277 B**, warm **2,700 B** (5499.6× against ticket 08's 14,848,852 B), `cacheHeldBytes`
-**21,459,809 B** (unchanged, as pinned — it is a derivation, not an observation). `/assets/cache-names-BCswqTtv.js, /sw.js` revalidate
-to `304`; the only warm body left is W6's `cache: "reload"` version probe at 2,700 B. Cold moved **−955 B**, which
-`DECISIONS/0029` P4 had pinned at ±0: a cold visit fetches the worker's module chunk twice and the second fetch
-now revalidates. The falsification is in the record with its mechanism, and the artifact publishes
-`conditionalRefetchesPerColdVisit` so the total has an explanation attached to it.
+One policy module (`benchmarks/src/footprint/etag-policy.ts`) is imported by **both** origins. Code and app
+metadata: `no-cache` + content `ETag` (sha256 of the body, 32 hex, strong, no `Last-Modified`), `304` with no
+body on a matching `If-None-Match`. Model weights, the dictionary and the runtime WASM keep `no-store` and
+advertise no validator: the worker's Cache API owns them and an HTTP-cache copy would be a second 21 MB and a
+stale-weights path around W5. The app shell keeps `no-store`. `verify:warm-bytes` now runs in `ci.yml`, so
+T7's both-artifacts-in-one-commit condition is enforced rather than remembered.
 
-Three defects this ticket found in 17b's work, all recorded rather than silently patched: the cold gate rejected
+Four defects this ticket found in 17b's work, all recorded rather than silently patched: the cold gate rejected
 *any* `304` where F9 condition 1 is about **first use** (invisible until 304s existed);
 `measure-warm-bytes.mjs`'s baseline wiring, pinned in 17b with a green test, was never connected to the driver
-(17c commit 1); and `verify:warm-bytes` had **no CI gate**, so T7's both-artifacts-in-one-commit condition was
-enforced only by remembering it — it now runs in `ci.yml` after the Chromium install.
-
-Tool traps unchanged and still true: `gh run watch --exit-timeout` does not exist in the installed gh;
-`waitForFunction` does not await a promise-returning predicate; no `sleep` in tool calls to wait for CI.
+(17c commit 1); `verify:warm-bytes` had no CI gate; and three published **strings** still described the
+pre-17c origin - `footprint.json`'s warm phase said "this origin answers no `304`", its structural-reason list
+called a defect 17c had just closed "open", and `warm-bytes.json` said the server sends `no-store` for
+everything. The prose now derives from `rules.ts` and the gate fails when an artifact's text disagrees with its
+own numbers (`DECISIONS/0029` implementation finding 9). No numeric field was touched by that repair, so no
+latency sample was re-rolled to get it.
 
 **One latency cell failed its own stop trigger, and it is published as measured.** `DECISIONS/0029` P8 said to
 report a latency move beyond the run's spread: the committed run's unthrottled cold median is 1,256.7 ms against
-17b's 1,206.0 ms and the two within-run ranges do not overlap. The same 17c code measured 1,213 ms in an earlier
-pass on this branch, and the committed run's five cold samples drift monotonically (1,228.6 → 1,310.0) while
-17b's are flat; a loopback conditional round trip is microseconds, not 51 ms. So it is recorded as **not
-attributable to 17c**, with the variance evidence in `DECISIONS/0029`'s checkpoint-3 finding, and the artifact was
-**not** re-run until it matched the old number. The transferable lesson for any future latency comparison: five
+17b's 1,206.0 ms and the two within-run ranges do not overlap (1,186.7–1,226.1 vs 1,228.6–1,310.0). The same
+17c code measured 1,213 ms in an earlier pass on this branch; the committed run's five cold samples span 81 ms
+with their **maximum first** (1,310.0, 1228.6, 1229.5, 1256.7, 1276.3 in run order), while 17b's span 39 ms with
+no direction - an initial-check-in shape, not a drift shape. A loopback conditional round trip is microseconds,
+not 51 ms. So it is recorded as **not attributable to 17c**, the artifact was **not** re-run until it matched
+the old number, and the README now prints the per-cell comparison so a reader can see the non-overlap instead of
+being asked to trust a footnote. (The first version of that note claimed a monotonic drift; run order refuted it
+and the correction is in `DECISIONS/0029`.) The transferable lesson for any future latency comparison: five
 samples on one desktop cannot resolve a 4% difference, so comparing latency *between tickets* needs interleaved
-A/B runs in one process, not two artifacts measured an hour apart. Ticket 18 owns the README sentence that says
+A/B runs in one process, not two artifacts measured hours apart. Ticket 18 owns the claim-level sentence about
 what a published latency is accurate to.
 
 **Next: ticket 18 (privacy audit and claims), which 17c's merge unblocks against these numbers. ADR-002's dated
