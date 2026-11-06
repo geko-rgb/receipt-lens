@@ -13,7 +13,8 @@ from this tree. The claim itself stays withdrawn; nothing in this repo may quote
 is not in that generated block. Two things the folklore got wrong are now visible: the inference runtime
 is the largest single asset by a wide margin (its WASM binary alone outweighs all three model files
 together), and the runtime binary is not held in the HTTP cache at that size, so a warm visit is not
-free. Both are in the table with their measured values.
+free. Both are in the table with their measured values. **(That second clause is superseded — see the 2026-11-06
+amendment below.)**
 
 ## Swap procedure (reversibility, as required by 1E.5)
 
@@ -37,3 +38,13 @@ contract never see it:
 Not yet exercised: no tier has been swapped end-to-end. 1E.3/09b runs Small through this procedure and
 the identical benchmark protocol; until that comparison is measured, "reversible" is a design property,
 not a demonstrated one.
+
+## Amendment 2026-11-06 (ticket 18)
+
+"A warm visit is not free" was true pre-ticket-17. Post-17c, warm is 2,700 B — the model-manifest version probe. The
+prior claim is superseded by 17c's measured number; both numbers preserved here for record.
+
+The generated footprint block carries the current figures, and it names both reductions rather than one: 8,043.8× is
+this deployment's cold visit (21,718,277 B) over its warm visit (2,700 B), while 5,499.6× is the pre-17 warm visit
+(14,848,852 B) over this one. The first is the number a user experiences; the second is the improvement tickets 17 and
+17c delivered. (`DECISIONS/0028` T3, `DECISIONS/0029`.)
