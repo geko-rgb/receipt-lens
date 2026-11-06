@@ -756,6 +756,12 @@ must clear it through the review buttons (`review-assumed` on a draft, `review-i
 `reviewAssumedQuantity`). It was invisible before ticket 13 because no earlier spec asserted a clear checklist.
 
 ## Open items / owner decisions pending
+- **v1-publish action item (ticket 18, 2026-11-06): flip `privacy` from advisory to a required status check in
+  branch protection settings when the repository becomes public (v1 npm publish).** `DECISIONS/0030` P10 records the
+  gap; the resolution is a plan/visibility action, not a code change. Measured today against
+  `geko-rgb/receipt-lens`: `gh api …/branches/main` answers `protected: false`, and both the protection and rulesets
+  endpoints answer `403 — Upgrade to GitHub Pro`. So *"status check `unit` required"* in **Where everything lives**
+  above is an intention, not a setting this plan can read or write — re-verify it after the repo goes public.
 - **`@receipt-lens/core` is packable but not published, and declares no licence.** Ticket 07 made it
   publishable (`private` removed, `publishConfig.access: "public"`, `files` covers `dist` + `README.md`;
   `npm pack --dry-run` clean at 85.2 kB / 83 files) and stopped there. Nothing in the repo carries a
@@ -945,3 +951,32 @@ comparison from both artifacts instead of a reassurance. Ticket 18 unblocked.
 **Next: ticket 18 (privacy audit and claims), which 17c's merge unblocks against these numbers. ADR-002's dated
 amendment and 18's `Blocked by:` gaining 17b/17c are 18's to make.**
 
+## CHECKPOINT — ticket 18 complete (2026-11-06) · **v1 is done**
+
+Ticket 18 complete (2026-11-06): full-workflow privacy audit (six split tests, three witnesses, canary control,
+SW-mediated GET gap documented as ticket 22), README privacy/footprint sections generated and re-derivable
+(`verify:privacy-table` added), DECISIONS/0030 pins all green, DECISIONS/0031 LLM fallback deferral,
+docs/business.md:221 false-claim corrected, PROJECT(1).md §20 item 11 owner-authorized deferral note, ADR-0002 dated
+amendment, beforeinstallprompt manual-check gap documented, G5 flagged, ticket 22 opened (SW-GET gap, post-v1). V1
+ships. No more tickets.
+
+**Four things a fresh session should not rediscover the hard way:**
+
+1. **"receipt" cannot be a privacy needle.** It is the receipt's header line, the bill's default title and the prefix of
+   every launcher icon (`/icons/receipt-lens-*.png`), so a scan for it fails on the product's own asset names. The
+   needles are the three lines that carry a printed amount plus the image digest; `DECISIONS/0030` P7 records why.
+2. **The warm reduction has two true bases.** 8,043.8× is this deployment's cold visit over its warm visit
+   (21,718,277 / 2,700) — the user-relevant number; 5,499.6× is the pre-17 warm visit (14,848,852 B) over this one —
+   the improvement 17+17c delivered. The generated paragraph names both; quoting "the" reduction without its base is
+   the error ADR-002 exists to forbid.
+3. **`spawnSync("pnpm", …)` answers `ENOEXEC` here.** Test 5 reads the command out of `package.json`'s `scan:egress`
+   script and spawns it with `process.execPath` — one definition, invoked not reimplemented (`DECISIONS/0030` P8).
+4. **The measured blind spot.** A cross-origin GET issued from a worker-controlled page was not observed by
+   `context.on("request")`, while a cross-origin POST from the same page was. The claim is scoped to the egress the
+   audit observes; ticket 22 owns the investigation, and the README limitation is reopened only when a fix is
+   measured.
+
+**Action item for the v1 publish (owner, not the agent):** when the repository becomes public at v1's npm publish,
+flip `privacy` (and `unit`) from advisory to required status checks in branch protection. `DECISIONS/0030` P10 records
+the current gap and why it cannot be closed on this plan — `main` reports `protected: false` and the protection APIs
+answer `403 — Upgrade to GitHub Pro`.

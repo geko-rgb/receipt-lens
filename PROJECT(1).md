@@ -557,7 +557,7 @@ The claim is scoped and testable: receipt images and OCR text are processed loca
 5. Static-scan first-party code for `fetch`, `XMLHttpRequest`, `navigator.sendBeacon`, `WebSocket`, `EventSource`, `new Image().src`, `form.action`, and dynamic imports of remote URLs. Use this as a supplement to runtime assertions, not a standalone proof.
 6. Keep deliberate external actions (such as opening WhatsApp or sharing a bill) outside the receipt-inference egress claim. The share link intentionally contains selected parsed bill data; the receipt image and raw OCR text are excluded.
 
-`.github/workflows/privacy.yml` runs relevant checks on each pull request and blocks merges on failure. Document browser configuration, service-worker treatment, allowed same-origin assets, and limitations alongside reported results.
+`.github/workflows/privacy.yml` runs relevant checks on each pull request and blocks merges on failure. (Parenthetical, ticket 18: "blocks merges on failure" requires branch protection, which the current private-repo plan does not permit — see `DECISIONS/0030` P10. Enforcement activates at v1 publish when the repository goes public.) Document browser configuration, service-worker treatment, allowed same-origin assets, and limitations alongside reported results.
 
 ### Model and service-worker cache invalidation
 
@@ -1128,6 +1128,8 @@ No owner choice is pending for DQ-01 through DQ-04.
 9. Versioned URL-fragment sharing follows ADR-007, respects the 8 KB full-fragment cap, uses the pinned bundled DEFLATE codec, excludes receipt images/raw OCR, validates/decrypts/parses safely, describes bearer-link limitations honestly, and shows stale-snapshot status after edits.
 10. UPI links pass parameter-format/length tests, the current primary-spec numeric limits are verified before constants lock, and settlement remains manually confirmed.
 11. The decision about any LLM fallback is recorded with measured data.
+
+Owner-authorized note (ticket 18, 2026-11-06): **Item 11 is deferred to v2 per owner decision.** The decision record in `DECISIONS/0031` satisfies the “recorded” requirement; “measured data” is explicitly deferred to v2. No candidate model was selected and none of M2's five fields — accuracy, correction rate, download size, cold/warm latency, browser compatibility — was measured, so `DECISIONS/0031` records the deferral and states plainly that it does not satisfy M2's original exit criteria. This is the same authorization pattern as the §19 note (ticket 11) and the §10 note (ticket 13).
 
 
 

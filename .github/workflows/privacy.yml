@@ -36,3 +36,8 @@ jobs:
       # than in ci.yml for the same reason ticket 09a's tests do: one owner for the browser OCR cost.
       - name: Service-worker offline reload and self-update (M1, ticket 17)
         run: pnpm exec playwright test --config playwright/playwright.config.ts offline-reload.spec.ts
+      # Ticket 18 (§9 M3): the audit the README's local-processing claim rests on. One workflow run, one owner for
+      # the browser OCR cost — the tests are tagged @offline so ci.yml's --grep-invert skips them, exactly as it
+      # skips ticket 09a's and ticket 17's (DECISIONS/0030 P10).
+      - name: Full-workflow PWA privacy audit (M3, ticket 18)
+        run: pnpm exec playwright test --config playwright/playwright.config.ts privacy.spec.ts

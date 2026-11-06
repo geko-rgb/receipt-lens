@@ -210,6 +210,18 @@ out.push(
 );
 out.push("");
 
+// Ticket 18, Part B: the two disclosures that make the headline rate readable as what it actually measures.
+// Both are about parser behaviour, not about the numbers, so they are pinned to the table they qualify rather
+// than to a prose section a future edit could move away from (`DECISIONS/0030` P11.2).
+out.push(
+  "**What parser-only does not count.** Parser-only accuracy measures what the parser classifies automatically. Rows the parser cannot classify are preserved as ambiguous rows and can be manually added to the bill via the review screen — the review workflow exists for exactly this reason. A user who reviews ambiguous rows will see higher effective accuracy than the parser-only number suggests, because the parser-only number is what the automated path alone achieves without any manual recovery. Ticket 21 tracks the prevalence of priced-but-ambiguous rows; v1 does not publish a percentage for this."
+);
+out.push("");
+out.push(
+  "**Where the automated path loses money, and what happens to it.** `arithmetic_item_sum` is not accuracy evidence — where it fires, it is a 05/20 classifier gap, not a price bug. Unrecognised charge labels (labels outside the dictionary in §5) are currently dropped rather than preserved as `otherCharges` entries; this is tracked as ticket 20 for post-v1."
+);
+out.push("");
+
 out.push("### Tier 2 — field-level precision / recall / F1");
 out.push("");
 out.push(...rule(["Mode", "Dataset · split", "Field", "TP", "FP", "FN", "Precision", "Recall", "F1", "Gold cells", "Gold left blank"], ["left", "left", "left", "right", "right", "right", "right", "right", "right", "right", "right"]));
