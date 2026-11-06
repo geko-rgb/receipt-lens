@@ -61,8 +61,12 @@ import {
   domAnchors,
   harnessBaseline,
   latencyBases,
+  phaseDescriptions,
   sequencing,
   warmModuleChunkDefect,
+  warmOutcomeFor,
+  warmRequestReason,
+  warmValidators,
   FootprintFailLoud,
 } from "../dist/footprint/rules.js";
 
@@ -153,6 +157,11 @@ const pinnedModelBytes = new Map(
   modelManifest.assets.map((asset) => [`/assets/models/${asset.file}`, asset.bytes]),
 );
 const modelManifestHash = createHash("sha256").update(readFileSync(path.join(repoRoot, "assets/models/manifest.json"))).digest("hex");
+
+/** The measurement this run supersedes, captured before this script overwrites it (DECISIONS/0029 P6). */
+const supersededArtifact = existsSync(path.join(resultsDir, "footprint.json"))
+  ? JSON.parse(readFileSync(path.join(resultsDir, "footprint.json"), "utf8"))
+  : null;
 
 /** T3's witness, read from the committed artifact rather than restated from memory. */
 const warmBytesArtifact = path.join(resultsDir, "warm-bytes.json");
@@ -393,18 +402,19 @@ async function measureSample(classSpec, sampleIndex) {
       repeat: { run: repeatRun, evidence: repeatEvidence, wire: repeatWire, pointer: true },
     };
 
-    const toEntries = (wire) => wire.map((entry) => ({ path: entry.path, status: entry.status, bodyBytes: entry.bodyBytes, completed: entry.completed }));
+    const toEntries = (wire) => wire.map((entry) => ({ path: entry.path, status: entry.status, bodyBytes: entry.bodyBytes, completed: entry.completed, etag: entry.etag ?? null }));
     const bytesOf = (wire) => wire.reduce((sum, entry) => sum + entry.bodyBytes, 0);
 
     // Fail-loud per sample, before anything is aggregated: the ±0 cross-check in particular should cost
     // seconds of a run, not the whole 5 × 2 classes.
-    assertColdSample({
+    const coldGate = {
       wire: toEntries(phases.cold.wire),
       origins: [...origins].sort(),
       readySignalSeen: phases.cold.pointer === true,
       pinnedModelBytes,
       renderedZeroItems: phases.cold.evidence.zeroItems,
-    });
+    };
+    assertColdSample(coldGate);
     assertWarmSample({
       wire: toEntries(phases.warm.wire),
       origins: [...origins].sort(),
@@ -430,6 +440,10 @@ async function measureSample(classSpec, sampleIndex) {
       class: classSpec.id,
       sample: sampleIndex,
       browserVersion: browser.version(),
+      // F9.1 scopes the cold check to *first* use, so a 304 later in the same cold visit is allowed — and it is
+      // what ticket 17c's validator produces: the worker's module chunk is fetched twice on a cold visit and the
+      // second fetch revalidates. Published so a smaller cold total has an explanation attached to it.
+      conditionalColdRefetches: (coldGate.conditionalRefetches ?? []).map((entry) => entry.path),
       origins: [...origins].sort(),
       phases,
       receiptBytes: receipt.byteLength,
@@ -470,8 +484,10 @@ for (const url of urls) {
   if (role === null) throw new FootprintFailLoud("uncatalogued_cold_asset", `${url} reached the aggregate and ROLES has no row for it`);
   const coldBytesPerSample = observed.map((sample) => sample.phases.cold.wire.find((entry) => entry.path === url)?.bodyBytes ?? null);
   const hits = coldBytesPerSample.filter((bytes) => bytes !== null);
-  const warmHits = observed.filter((sample) => sample.phases.warm.wire.some((entry) => entry.path === url)).length;
-  const warmBytes = observed.flatMap((sample) => sample.phases.warm.wire.filter((entry) => entry.path === url).map((entry) => entry.bodyBytes));
+  const warmEntries = observed.flatMap((sample) => sample.phases.warm.wire.filter((entry) => entry.path === url));
+  const warmHits = observed.filter((sample) => warmEntries.some((entry) => entry.path === url)).length;
+  const warmBytes = warmEntries.map((entry) => entry.bodyBytes);
+  const warmOutcome = warmOutcomeFor(warmEntries, [url]);
   const pinned = pinnedModelBytes.get(url);
   const committedModel = url.startsWith("/assets/models/");
   const servedFile = committedModel
@@ -489,8 +505,10 @@ for (const url of urls) {
     fetchedByColdVisits: hits.length,
     ofColdSamples: observed.length,
     requestedOnWarmVisits: warmHits,
-    warmVisitBytesPaid: warmHits === 0 ? 0 : warmBytes[0],
-    warmVisitCacheState: warmHits === 0 ? "held-by-worker" : "requested-from-origin",
+    warmVisitBytesPaid: warmBytes.length === 0 ? 0 : warmBytes.reduce((sum, value) => sum + value, 0) / warmHits,
+    warmVisitStatuses: [...new Set(warmEntries.map((entry) => entry.status))].sort(),
+    warmVisitOutcome: warmOutcome,
+    warmVisitValidators: warmValidators(warmEntries),
     bytesOfRecord:
       pinned !== undefined
         ? {
@@ -570,8 +588,13 @@ for (const asset of assets) perCategoryBytes[asset.category] = (perCategoryBytes
 
 const warmTotalPerSample = observed.map((sample) => sample.phases.warm.wire.reduce((sum, entry) => sum + entry.bodyBytes, 0));
 const coldTotalPerSample = observed.map((sample) => sample.phases.cold.wire.reduce((sum, entry) => sum + entry.bodyBytes, 0));
-const heldByWorker = assets.filter((asset) => asset.warmVisitCacheState === "held-by-worker").map((asset) => asset.url);
-const paidOnWarm = assets.filter((asset) => asset.warmVisitCacheState === "requested-from-origin");
+// Three states, not two (DECISIONS/0029 P7). `paidOnWarm` is the set that actually moved bytes — the only one
+// that has ever been a footprint cost — and a revalidated path is reported as what it is: a request that moved
+// no body. Under 17b's binary classification the win this ticket ships would have printed as a failure row.
+const heldByWorker = assets.filter((asset) => asset.warmVisitOutcome === "worker-served").map((asset) => asset.url);
+const revalidatedOnWarm = assets.filter((asset) => asset.warmVisitOutcome === "revalidated-304");
+const paidOnWarm = assets.filter((asset) => asset.warmVisitOutcome === "redownloaded-200");
+const phaseText = phaseDescriptions();
 
 const latency = {};
 const notSeparable = latencyBases().notSeparable;
@@ -646,21 +669,19 @@ const report = {
       precacheEntries: precacheManifest.length,
       workerScriptBytes: statSync(path.join(appDir, "sw.js")).size,
       notSeparable,
-      warmStructuralRequests: paidOnWarm.map((asset) => ({
+      warmStructuralRequests: [...paidOnWarm, ...revalidatedOnWarm].map((asset) => ({
         path: asset.url,
-        bytes: asset.warmVisitBytesPaid,
-        reason: warmRequestReason(asset.url),
+        bytes: Math.round(asset.warmVisitBytesPaid),
+        outcome: asset.warmVisitOutcome,
+        reason: warmRequestReason(asset.url, asset.warmVisitOutcome),
       })),
       warmStructuralRequestsNote:
         "Each of these is structural, not a cache miss: a service worker cannot intercept the fetch of its own script or that script's imports, and W6's version probe deliberately bypasses the cache. An unexplained warm request fails the run, so this list is exhaustive by construction.",
     },
     phases: {
-      cold: { required: true, description: "first visit, empty context and empty caches, fresh server instance" },
-      warm: {
-        required: true,
-        description: "same context, page.reload() — DECISIONS/0012 F8's revalidation clause is replaced by 'answered by the active caches' (DECISIONS/0027 W15), because this origin answers no 304",
-      },
-      repeat: { required: false, description: "supplementary — a second inference in the same page with both sessions warm, driven by the app's own Re-run OCR" },
+      cold: { required: true, description: phaseText.cold },
+      warm: { required: true, description: phaseText.warm },
+      repeat: { required: false, description: phaseText.repeat },
     },
     byteCounting:
       "summed from the origin's own request log (scripts/serve-measure-app.mjs), which sees the worker's install precache, the WASM and the model downloads that page resource timings do not; HTTP header bytes are excluded",
@@ -761,6 +782,17 @@ const report = {
     warmPaths: first.phases.warm.wire.map((entry) => entry.path),
     moduleChunk: warmModuleChunkDefect(moduleChunkBytes),
     measuredAt: new Date().toISOString(),
+    warmOutcomes: Object.fromEntries(assets.map((asset) => [asset.url, asset.warmVisitOutcome])),
+    warmPaid: paidOnWarm.map((asset) => ({
+      path: asset.url,
+      bytes: Math.round(asset.warmVisitBytesPaid),
+      reason: warmRequestReason(asset.url, asset.warmVisitOutcome),
+    })),
+    previousWarmBytesPublished: supersededArtifact?.totals?.secondVisitBytesOverTheWire?.median ?? null,
+    previousMeasuredAt: supersededArtifact?.measuredAt ?? null,
+    supersedesArtifact: supersededArtifact
+      ? `footprint-${supersededArtifact.measuredAt.slice(0, 10)}-${supersededArtifact.git.shortRevision}.json`
+      : null,
   }),
   totals: {
     perCategoryBytes,
@@ -773,11 +805,15 @@ const report = {
     cacheHeldBasis:
       "deterministic: the built worker's precache manifest (packages/pwa/dist/app/sw.js, stat'd from disk) plus the verified model set named by assets/models/manifest.json. Not 'bytes currently in the named caches', which would depend on eviction (DECISIONS/0028 T8, DECISIONS/0027 W18).",
     assetsHeldByWorker: heldByWorker.length,
+    assetsRevalidatedOnWarmVisits: revalidatedOnWarm.map((asset) => asset.url),
+    assetsRevalidatedCount: revalidatedOnWarm.length,
     assetsRequestedFromOriginEveryWarmVisit: paidOnWarm.map((asset) => asset.url),
     requestedFromOriginEveryWarmVisitBytes: paidOnWarm.reduce((sum, asset) => sum + asset.warmVisitBytesPaid, 0),
     assets: assets.length,
     requestsPerColdVisit: summarize(observed.map((sample) => sample.phases.cold.wire.length)),
     requestsPerWarmVisit: summarize(observed.map((sample) => sample.phases.warm.wire.length)),
+    conditionalRefetchesPerColdVisit: summarize(observed.map((sample) => sample.conditionalColdRefetches.length)),
+    conditionalRefetchPathsPerColdVisit: [...new Set(observed.flatMap((sample) => sample.conditionalColdRefetches))].sort(),
     duplicateFetchesPerColdVisit: summarize(
       observed.map((sample) => sample.phases.cold.wire.length - new Set(sample.phases.cold.wire.map((entry) => entry.path)).size),
     ),
@@ -799,14 +835,6 @@ const report = {
     note: "measuredAt and the request log are the record of one run on one machine. Latency is not a constant: it is a distribution of n samples on the declared class, and a different machine class will produce a different table.",
   },
 };
-
-/** Why a warm request is structural rather than a cache miss (T5, and the reason each is declared not tolerated). */
-function warmRequestReason(url) {
-  if (url === "/sw.js") return "the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script";
-  if (/^\/assets\/cache-names-/.test(url)) return "the worker's module import — the open defect ticket 17c owns (DECISIONS/0028 T7)";
-  if (url === "/assets/models/manifest.json") return "W5 step 1's version probe, deliberately cache: 'reload' (DECISIONS/0027 W6)";
-  return "unexplained — and an unexplained warm request fails the run, so this line should be unreachable";
-}
 
 /* ------------------------------------------------------------------ write */
 

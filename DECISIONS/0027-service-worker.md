@@ -1123,6 +1123,17 @@ and opt-in, with the default behaviour byte-identical.
 2. **`/sw.js` must resolve as a file, not as the `index.html` fallback.** Today an unknown path falls through
    to `index.html`, which would hand a would-be worker script back as HTML; W10's smoke check catches it,
    and the server names the missing file instead. (No behaviour change for any path that exists.)
+**W17.3 superseded by ticket 17c (2026-11-06), recorded as an override rather than an edit.** The paragraph
+below is kept verbatim, because a future session comparing pre-17c and post-17c header behaviour has to know the
+change was deliberate and on what reasoning. What changed: `serve-app.mjs` now answers **code and metadata
+assets with `cache-control: no-cache` + a content-derived `ETag`**, and **keeps `no-store` with no validator on
+model weights, the dictionary and the runtime WASM** — see `DECISIONS/0029` P2's split and its rationale (bulk
+binaries already live in the worker's Cache API, so an HTTP-cache copy would be a second copy the worker never
+consults, and a stale-weights path that bypasses W5's verified-before-activate protocol). The shipping server
+and the measurement server share the policy, enforced by a parity test rather than by intent. The claim W8
+measured — that `no-store` does not obstruct a Cache-API precache — is untouched and still true; what is no
+longer true is that `no-store` is the right contract for a 955 B module chunk that every warm visit pays for.
+
 3. **`cache-control: no-store` stays**, and its price is now measured rather than assumed: because a service
    worker never intercepts its own script's imports, `no-store` on code assets means the worker re-fetches its
    955 B module chunk every time it is instantiated. That is 955 B of the 6,527 B warm visit published in

@@ -79,11 +79,17 @@ const megabytes = (value) => (value / 1e6).toFixed(2);
 const ms = (stat) => (!stat || stat.n === 0 ? "—" : Math.round(stat.median) + " ms");
 const spread = (stat) => (stat.n === 0 ? "n/a" : Math.round(stat.min) + "–" + Math.round(stat.max) + " ms, n=" + stat.n);
 
-/** How the warm visit treated each asset, measured at the origin that either served it or did not. */
-const warmOutcome = (asset) =>
-  asset.warmVisitCacheState === "held-by-worker"
-    ? "yes — worker cache, 0 B over the wire"
-    : "**no** — " + bytes(asset.warmVisitBytesPaid) + " B paid again, " + asset.requestedOnWarmVisits + "/" + asset.ofColdSamples + " warm visits";
+/**
+ * How the warm visit treated each asset, read from the origin's own statuses. Three states since ticket 17c
+ * (`DECISIONS/0029` P7): the caches answered it, it revalidated with no body, or it was downloaded again. The
+ * middle state is this ticket's win, and 17b's two labels would have printed it in the vocabulary of a failure.
+ */
+const warmOutcome = (asset) => {
+  const visits = asset.requestedOnWarmVisits + "/" + asset.ofColdSamples + " warm visits";
+  if (asset.warmVisitOutcome === "worker-served") return "yes — worker cache, never requested";
+  if (asset.warmVisitOutcome === "revalidated-304") return "yes — asked, told not modified, 0 B moved (" + visits + ")";
+  return "**no** — " + bytes(asset.warmVisitBytesPaid) + " B downloaded again (" + visits + ")";
+};
 
 const CATEGORY_LABEL = {
   model: "Model and dictionary",
@@ -102,10 +108,20 @@ function sourceOf(asset) {
 const lines = [];
 const emit = (line = "") => lines.push(line);
 
+/**
+ * Everything the published table asserts but cannot derive goes here, and the run fails at the end of the
+ * script. Declared at the top because the emit phase needs it too: hoisting it below the render would make the
+ * first `note()` a TDZ ReferenceError — a loud failure, but not the one the check was written to report.
+ */
+const problems = [];
+const note = (message) => problems.push(message);
+
 const downloadTotal = results.totals.initialDownloadBytes;
 const heldTotal = results.totals.cacheHeldBytes;
 const warmTotal = results.totals.secondVisitBytesOverTheWire;
-const paidOnWarm = results.assets.filter((asset) => asset.warmVisitCacheState === "requested-from-origin");
+const paidOnWarm = results.assets.filter((asset) => asset.warmVisitOutcome === "redownloaded-200");
+const revalidatedOnWarm = results.assets.filter((asset) => asset.warmVisitOutcome === "revalidated-304");
+const heldByWorker = results.assets.filter((asset) => asset.warmVisitOutcome === "worker-served");
 const notSeparable = new Map((deployment.notSeparable ?? []).map((row) => [row.field, row.reason]));
 const supersededWarm = results.measurement.crossCheck.harnessWarmBytesOverTheWire;
 
@@ -118,6 +134,17 @@ const supersededWarm = results.measurement.crossCheck.harnessWarmBytesOverTheWir
 const harnessBaselinePath = results.measurement.crossCheck.harnessBaseline;
 const harnessArtifact = JSON.parse(readFileSync(path.join(repoRoot, harnessBaselinePath), "utf8"));
 const crossCheck = results.measurement.crossCheck;
+
+/**
+ * Why a warm request reached the origin at all, and whether it moved a body. `outcome` is the third argument
+ * because the same path can be structural either as a download (ticket 17b's world) or as a revalidation
+ * (ticket 17c's), and the table has to say which.
+ */
+function warmRequestDetail(url, outcome) {
+  const row = (deployment.warmStructuralRequests ?? []).find((entry) => entry.path === url);
+  if (row === undefined) return "not requested on a warm visit";
+  return code(url) + " " + outcome + ": " + row.reason;
+}
 
 /** The declared reason a warm request is structural, from the artifact's own list. */
 function structuralReason(url) {
@@ -167,9 +194,15 @@ emit(
   "| **Held for the next visit** | " + results.totals.assetsHeldByWorker + " of " + results.assets.length + " assets | **" + bytes(heldTotal) +
     "** | **" + megabytes(heldTotal) + "** | the service worker's Cache API, not the HTTP cache | derived: built precache manifest + verified model set |",
 );
+if (revalidatedOnWarm.length > 0) {
+  emit(
+    "| **Revalidated, not re-downloaded** | " + revalidatedOnWarm.map((asset) => code(asset.url)).join(" ") + " | **0** | **0.00** |" +
+      " yes — `304`, no body moved | " + revalidatedOnWarm.map((asset) => warmRequestDetail(asset.url, "answered 304")).join("; ") + " |",
+  );
+}
 if (paidOnWarm.length > 0) {
   emit(
-    "| **Paid again on every visit** | " + paidOnWarm.map((asset) => code(asset.url)).join(" ") + " | **" +
+    "| **Downloaded again on every visit** | " + paidOnWarm.map((asset) => code(asset.url)).join(" ") + " | **" +
       bytes(results.totals.requestedFromOriginEveryWarmVisitBytes) + "** | **" +
       megabytes(results.totals.requestedFromOriginEveryWarmVisitBytes) + "** | no | " +
       paidOnWarm.map((asset) => structuralReason(asset.url)).join("; ") + " |",
@@ -216,23 +249,39 @@ emit("MB = 10⁶ bytes. The receipt image is not in this table on purpose: it is
 emit();
 emit(
   "**Initial download: " + megabytes(downloadTotal.median) + " MB. Second visit: " + bytes(warmTotal.median) + " B** — a warm visit moves " +
-    bytes(warmTotal.median) + " bytes over " + results.totals.requestsPerWarmVisit.median + " requests where the superseded scaffold measurement moved " +
-    bytes(supersededWarm) + " (" + (supersededWarm / Math.max(1, warmTotal.median)).toFixed(0) + "×), and the runtime WASM is not among the bytes it pays. " +
-    "This origin answers " + code("cache-control: no-store") + " with no " + code("ETag") + ", so Chromium's HTTP cache never held that binary in the first place " +
-    "(ADR-002, " + code("DECISIONS/0012") + " F10/F12); what holds it now is the worker's Cache API, which has no per-entity ceiling (" + code("DECISIONS/0027") + " W2.2).",
+    bytes(warmTotal.median) + " bytes over " + results.totals.requestsPerWarmVisit.median + " requests, where the superseded scaffold measurement moved " +
+    bytes(supersededWarm) + " (" + (supersededWarm / Math.max(1, warmTotal.median)).toFixed(0) + "×), and the runtime WASM is not among them.",
+);
+emit(
+  "Two mechanisms do that work, and the headers say which is which. The worker's Cache API holds the bulk binaries: this origin still answers " +
+    code("cache-control: no-store") + " for the model weights, the recognition dictionary and the runtime WASM — precisely because Chromium's HTTP cache cannot",
+);
+emit(
+  "hold a 14.85 MB entity (ADR-002, " + code("DECISIONS/0012") + " F10/F12) and a second copy beside the precache would be dead weight and a stale-weights path",
+);
+emit(
+  "around " + code("DECISIONS/0027") + " W5. Code and app metadata instead carry a content " + code("ETag") + " (" + code("DECISIONS/0029") + " P1-P3), so a warm",
+);
+emit(
+  "visit asks whether its copy is current and is answered with a " + code("304") + " that moves no body.",
 );
 emit();
 emit(
-  "The " + paidOnWarm.length + " items a warm visit still pays are structural, not a cache miss, and each is named with its reason above. The worker's own module",
+  "On this run's warm visit " + heldByWorker.length + " asset(s) never reached the origin, " + revalidatedOnWarm.length +
+    " asked and were told not modified with 0 B moved, and " + paidOnWarm.length + " still downloaded a body" +
+    (paidOnWarm.length === 0 ? "." : ": " + paidOnWarm.map((asset) => code(asset.url)).join(", ") + " — each structural, each named with its reason above."),
 );
 emit(
-  "chunk is the one of them that could be fixed — an " + code("ETag") + " on code assets — and that change is ticket 17c's, because a header change whose only visible",
+  "Whether the " + code("ETag") + " removed the worker's own module chunk is stated from this run rather than assumed: if the bytes still move, the finding",
 );
 emit(
-  "effect is a smaller published number belongs in a ticket that says so (" + code("DECISIONS/0028") + " T7). Durability is requested, not assumed: the Cache API is",
+  "stays open with the reason the run showed and the fix belongs to " + code("DECISIONS/0029") + " P5's other branch; if they do not, it closes against this",
 );
 emit(
-  "exempt from the per-entity limit but not from origin quota or eviction (" + code("DECISIONS/0027") + " W18).",
+  "artifact. Durability of what the worker does hold is requested, not assumed: the Cache API is exempt from the per-entity limit but not from origin quota or",
+);
+emit(
+  "eviction (" + code("DECISIONS/0027") + " W18), and " + code("no-cache") + " is a promise to revalidate, not a promise of freshness without a round trip.",
 );
 emit();
 
@@ -260,15 +309,19 @@ emit();
   const seen = new Map();
   const coldRuns = results.runs.filter((run) => run.phase === "cold");
   const oneCold = coldRuns.find((run) => run.class === coldRuns[0].class && run.sample === 0);
-  for (const request of oneCold.wire) seen.set(request.url, (seen.get(request.url) ?? 0) + 1);
+  for (const request of oneCold.wire) seen.set(request.url, [...(seen.get(request.url) ?? []), request.bodyBytes]);
+  // Extra bytes are the *logged* bodies after the first, not (count − 1) x first-use size. Since ticket 17c a
+  // repeat fetch can answer `304` with 0 B, and multiplying a count by a body size would credit the visit with
+  // bytes it did not move — which the sum check below would then refuse to reconcile.
   const repeats = [...seen.entries()]
-    .filter(([, count]) => count > 1)
-    .map(([url, count]) => ({ url, count, extra: (count - 1) * (results.assets.find((asset) => asset.url === url)?.wireBytes ?? 0) }))
-    .sort((a, b) => b.extra - a.extra);
+    .filter(([, bodies]) => bodies.length > 1)
+    .map(([url, bodies]) => ({ url, count: bodies.length, extra: bodies.slice(1).reduce((sum, body) => sum + body, 0) }))
+    .sort((a, b) => b.extra - a.extra)
+    .filter((row) => row.extra > 0);
   const biggestRepeat = repeats[0];
   const repeatSum = repeats.reduce((sum, row) => sum + row.extra, 0);
   if (repeatSum !== repeatFetches) {
-    note("the repeat-fetch row does not match the cold visit: per-url duplicates sum to " + repeatSum + " B, the published figure is " + repeatFetches + " B");
+    note("the repeat-fetch row does not match the cold visit: per-url duplicate bodies sum to " + repeatSum + " B, the published figure is " + repeatFetches + " B");
   }
 
   emit("### Why this cold figure is larger than the one it replaced");
@@ -283,12 +336,21 @@ emit();
   emit("| Models and dictionary | " + bytes(modelDelta) + " | unchanged — the same committed " + bytes(results.totals.perCategoryBytes.model ?? 0) + " B set, verified against the same manifest |");
   emit("| Inference runtime | +" + bytes(runtimeDelta) + " | the WASM is byte-identical at " + bytes(wasmBytes) + " B; the runtime's JS loader grew, because the build emits it into the app's asset graph instead of mounting it from a dependency directory |");
   emit("| Application | +" + bytes(appDelta) + " | the Svelte shell, its stylesheet, the worker and its module chunk, three launcher icons, the route document and the web app manifest, less the scaffold's single application bundle |");
-  emit("| Repeat fetches inside one visit | +" + bytes(repeatFetches) + " | the worker precaches with " + code("cache: \"reload\"") + ", so it asks again for bytes the document just downloaded" + (biggestRepeat === undefined ? "" : ": " + code(biggestRepeat.url) + " alone accounts for " + bytes(biggestRepeat.extra) + " B of it, fetched " + biggestRepeat.count + " times, across " + repeats.length + " assets that move more than once") + " |");
+  emit(
+    "| Repeat fetches inside one visit | +" + bytes(repeatFetches) + " | the worker precaches with " + code("cache: \"reload\"") + ", so it asks again for bytes the document just downloaded" +
+      (biggestRepeat === undefined ? "" : ": " + code(biggestRepeat.url) + " alone accounts for " + bytes(biggestRepeat.extra) + " B of it, fetched " + biggestRepeat.count + " times, across " + repeats.length + " assets that move more than once") +
+      (results.totals.conditionalRefetchesPerColdVisit.median > 0
+        ? "; " + results.totals.conditionalRefetchesPerColdVisit.median + " of those repeat fetches is now answered with a `304` carrying no body (" +
+          results.totals.conditionalRefetchPathsPerColdVisit.map((url) => code(url)).join(", ") + "), which is ticket 17c's validator and is why this figure is smaller than it was before 17c"
+        : "") + " |",
+  );
   emit("| **Total** | **+" + bytes(coldDelta) + "** | " + bytes(harnessCold) + " B became " + bytes(pwaCold) + " B |");
   emit();
-  emit("Read the last row twice: a cold visit pays the shell " + (repeatFetches > 0 ? "twice" : "once") + ", and that is a property of a worker");
+  emit("Read the last row twice: a cold visit fetches the shell more than once, and that is a property of a worker");
   emit("refusing to trust a cached copy of its own shell, not of a larger bundle. The same mechanism is why the warm");
-  emit("visit is cheap, and the " + code("ETag") + " that would make those repeat fetches conditional is ticket 17c's subject.");
+  emit("visit is cheap. Ticket 17c put a content " + code("ETag") + " on code assets, which converts the repeat");
+  emit("fetches into `304` revalidations where the browser already holds a copy — it removes bytes, not requests,");
+  emit("and the requests themselves are " + code("DECISIONS/0029") + " P4's other branch, owned by 17e.");
   emit();
 }
 emit("### How long it takes");
@@ -307,7 +369,6 @@ for (const classSpec of env.classes) {
     const cell = (field) => (notSeparable.has(field) ? notSeparableLabel : ms(entry[field]));
     emit(
       "| " + classSpec.id + " | " + (phase === "repeat" ? PHASE_LABEL.repeat : phase) + (phase === "repeat" ? " *(supplementary)*" : "") + " | " + cell("appReadyMs") + " | " + cell("ocrReadyMs") + " | **" + ms(entry.firstResultMs) + "** | " + cell("modelLoadMs") + " | " + cell("inferenceMs") + " | " + megabytes(entry.downloadBytes.median) + " MB |",
-        " | **" + ms(entry.firstResultMs) + "** | " + cell("modelLoadMs") + " | " + cell("inferenceMs") + " | " + megabytes(entry.downloadBytes.median) + " MB |",
     );
   }
 }
@@ -345,6 +406,83 @@ emit("from outside. The reason recorded on each field in the artifact:");
 emit();
 emit("> " + ([...notSeparable.values()][0] ?? "see measurement.deployment.notSeparable"));
 emit();
+
+/* ------------------------------------------------- cross-ticket latency comparison (P8) */
+
+// P8's stop trigger fires on a latency move larger than the run's own spread, and the disposition it produced was
+// "publish it, do not re-roll it". A reader can only check that against the run this one replaced, so the
+// comparison is printed from the superseded artifact named in findings[].history — not described from memory.
+const supersededPath = (results.findings ?? [])
+  .flatMap((finding) => finding.history ?? [])
+  .map((entry) => entry.artifact)
+  .filter((artifact) => typeof artifact === "string" && /footprint-[^/]+\.json$/.test(artifact))
+  .map((artifact) => path.basename(artifact))
+  .at(-1);
+const oneDecimal = (value) => value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const cell1 = (stat) => oneDecimal(stat.median) + " (" + oneDecimal(stat.min) + "–" + oneDecimal(stat.max) + ")";
+const overlaps = (a, b) => Math.max(a.min, b.min) <= Math.min(a.max, b.max);
+let superseded = null;
+if (!supersededPath) {
+  note("no superseded footprint artifact is named in findings[].history, so the latency comparison P8 owes the reader cannot be published");
+} else if (!existsSync(path.join(resultsDir, supersededPath))) {
+  note("findings[].history names benchmarks/results/" + supersededPath + ", which is not in the tree — the latency comparison cannot be re-derived");
+} else {
+  superseded = JSON.parse(readFileSync(path.join(resultsDir, supersededPath), "utf8"));
+  if (superseded.environment.device.cpuModel !== env.device.cpuModel) {
+    note("the superseded run was measured on a different machine (" + superseded.environment.device.cpuModel + "), so its latency is not a comparison for this one");
+  }
+}
+
+emit("### How this run's latency compares to the one it replaced");
+emit();
+if (superseded === null) {
+  emit("The run this one superseded is not in the tree, so no cross-ticket latency comparison is published here. The byte comparison is: " + code("DECISIONS/0029") + " P4 and " + code("benchmarks/results") + " carry it.");
+} else {
+  const hoursThen = ((new Date(results.measuredAt) - new Date(superseded.measuredAt)) / 3.6e6).toFixed(1);
+  emit(
+    "Both runs are this machine, this browser and this receipt, " + hoursThen + " h apart, at revisions " + code(superseded.git.shortRevision) +
+      " and " + code(results.git.shortRevision) + "; what changed between them is the header policy " + code("DECISIONS/0029") + " P2 records, not anything the app executes. Medians, with each run's own range:");
+  emit();
+  emit("| Cell | " + superseded.git.shortRevision + " | " + results.git.shortRevision + " | Δ median | ranges overlap |");
+  emit("|---|---:|---:|---:|---|");
+  const apart = [];
+  for (const classSpec of env.classes) {
+    for (const phase of ["cold", "warm", "repeat"]) {
+      const before = superseded.latency?.[classSpec.id]?.[phase]?.firstResultMs;
+      const after = results.latency[classSpec.id]?.[phase]?.firstResultMs;
+      if (!before || !after) continue;
+      const delta = after.median - before.median;
+      const together = overlaps(before, after);
+      if (!together) apart.push(classSpec.id + " · " + phase);
+      emit(
+        "| " + classSpec.id + " · " + phase + " | " + cell1(before) + " ms | " + cell1(after) + " ms | " + (delta >= 0 ? "+" : "−") + oneDecimal(Math.abs(delta)) + " ms (" + (delta >= 0 ? "+" : "−") + oneDecimal((Math.abs(delta) / before.median) * 100) + "%) | " + (together ? "yes" : "**no**") + " |",
+      );
+    }
+  }
+  emit();
+  if (apart.length === 0) {
+    emit("Every cell's ranges overlap, so no latency claim survives or falls because of this change: the header moved bytes, not execution.");
+  } else {
+    emit(
+      "**One cell does not overlap: " + apart.join("; ") + ".** " + code("DECISIONS/0029") + " P8 said to report a latency move beyond the run's own spread rather than absorb it, and that is what happened — the number is **published as measured, not re-rolled**. Re-running until a cell lands inside the previous range would be fitting a measurement to an expectation, which is the act ADR-002 and " + code("DECISIONS/0012") + " F10 exist to forbid.",
+    );
+    emit();
+    const coldStat = (source) => source.latency["desktop-chromium-unthrottled"].cold.firstResultMs;
+    const gap = coldStat(results).median - coldStat(superseded).median;
+    emit(
+      "What the artifact says against that cell: the mechanism this ticket supplies is one conditional round trip over loopback per revalidated asset — microseconds — against a " + Math.round(Math.abs(gap)) + " ms gap, and the two runs' within-run spreads (" + oneDecimal(coldStat(superseded).max - coldStat(superseded).min) + " ms then, " + oneDecimal(coldStat(results).max - coldStat(results).min) + " ms now) are of the same order as the difference itself. In run order this run's cold samples are " + coldStat(results).samples.map((value) => oneDecimal(value)).join(", ") + ", which puts its maximum first: an initial-check-in shape, not a drift shape.",
+    );
+  }
+  emit();
+  const coldSpan = (classId) => {
+    const stats = [superseded, results].map((source) => source.latency[classId].cold.firstResultMs);
+    return (Math.min(...stats.map((stat) => stat.min)) / 1000).toFixed(2) + "–" + (Math.max(...stats.map((stat) => stat.max)) / 1000).toFixed(2) + " s";
+  };
+  emit(
+    "**Read the columns as ranges, not as point estimates.** Five samples per cell on one desktop cannot resolve a 4% difference: across both runs, a cold first result on this deployment is " + coldSpan("desktop-chromium-unthrottled") + " unthrottled and " + coldSpan("desktop-chromium-cpu4x") + " at 4×, and a *comparison* between tickets needs interleaved A/B runs in one process (" + code("DECISIONS/0029") + "'s checkpoint-3 finding). Bytes are the opposite case — they are deterministic at this origin, which is why " + code("verify:warm-bytes") + " can hold them to ±0 while latency has no such gate.",
+  );
+  emit();
+}
 emit("### Declared conditions");
 emit();
 emit("| | |");
@@ -416,9 +554,6 @@ if (begin === -1 || end === -1 || end < begin) {
 const rendered = readmeRaw.slice(0, begin) + block + readmeRaw.slice(end + END.length);
 
 /* ------------------------------------------------------------------ re-derive */
-
-const problems = [];
-const note = (message) => problems.push(message);
 
 const expectedArchive = "footprint-" + results.measuredAt.slice(0, 10) + "-" + results.git.shortRevision + ".json";
 const archiveBytes = await readFile(path.join(resultsDir, expectedArchive)).catch(() => null);

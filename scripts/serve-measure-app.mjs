@@ -40,7 +40,7 @@ const MIME = {
 const APP_ROUTES = ["/", "/capture", "/bill", "/bills", "/share"];
 
 /**
- * @typedef {{ id: number, path: string, status: number, bodyBytes: number, completed: boolean }} OriginEntry
+ * @typedef {{ id: number, path: string, status: number, bodyBytes: number, completed: boolean, etag: string | null }} OriginEntry
  *
  * @param {{ overridesDir?: string | null, appDir?: string }} [options]
  *   `overridesDir` is consulted before the real tree for `/assets/models/*` and `/sw.js`, and its `offline`
@@ -49,6 +49,11 @@ const APP_ROUTES = ["/", "/capture", "/bill", "/bills", "/share"];
 export function startMeasureServer({ overridesDir = null, appDir = path.join(repoRoot, "packages/pwa", "dist/app") } = {}) {
   if (!existsSync(path.join(appDir, "index.html"))) {
     throw new Error("missing packages/pwa/dist/app/index.html — run `pnpm build` first");
+  }
+
+  const policyFile = path.join(repoRoot, "benchmarks", "dist", "footprint", "etag-policy.js");
+  if (!existsSync(policyFile)) {
+    throw new Error("missing benchmarks/dist/footprint/etag-policy.js — run `pnpm build`. The measurement origin and the shipping origin must answer conditional requests identically or the published warm number describes neither (DECISIONS/0029 P2).");
   }
 
   const child = spawn(
@@ -64,6 +69,7 @@ export function startMeasureServer({ overridesDir = null, appDir = path.join(rep
       const overrides = ${JSON.stringify(overridesDir)};
       const routes = ${JSON.stringify(APP_ROUTES)};
       const mime = ${JSON.stringify(MIME)};
+      const policy = require(${JSON.stringify(policyFile)});
       const requests = [];
   /** Every request the origin refused while offline, including ones a worker forwarded. */
   const attempted = [];
@@ -106,21 +112,31 @@ export function startMeasureServer({ overridesDir = null, appDir = path.join(rep
         if (!file) file = path.join(appDir, "index.html");
         if (!fs.existsSync(file)) return http404(res, name);
         const body = fs.readFileSync(file);
+        const type = mime[path.extname(file)] ?? "application/octet-stream";
+        const mode = policy.cachePolicyFor(name).mode;
+        // Same module, same answers as the shipping origin. The 304 below is logged with 0 body bytes and is
+        // marked complete from the end callback like every other response: F9.7 must not read a working
+        // conditional as an interrupted download (DECISIONS/0029 P3).
+        if (mode === "revalidate") {
+          const etag = policy.etagFor(file, new Uint8Array(body));
+          if (policy.shouldNotModify(req.headers["if-none-match"], etag)) {
+            const notId = log(name, 304, 0, etag);
+            res.writeHead(304, policy.notModifiedHeaders(etag));
+            return res.end(() => finish(notId));
+          }
+          const id = log(name, 200, body.byteLength, etag);
+          res.writeHead(200, policy.revalidateHeaders(etag, body.byteLength, type));
+          return res.end(body, () => finish(id));
+        }
         const id = log(name, 200, body.byteLength);
-        res.writeHead(200, {
-          "content-type": mime[path.extname(file)] ?? "application/octet-stream",
-          "cache-control": "no-store",
-          "content-length": body.byteLength,
-        });
-        // The completion marker is the end callback, reached only when the body was flushed to the socket. A
-        // client that aborts mid-download leaves the entry completed:false, and DECISIONS/0012 F9.7 says an
-        // interrupted download may not be summed as a completed one — which is only checkable if the unfinished
-        // entry stays in the log rather than going missing with the socket.
+        res.writeHead(200, policy.noStoreHeaders(body.byteLength, type));
         res.end(body, () => finish(id));
       });
-      function log(name, status, bodyBytes) {
+      function log(name, status, bodyBytes, etag) {
         const id = nextId++;
-        const record = { id, path: name, status, bodyBytes, completed: false };
+        // The validator travels with the entry (DECISIONS/0029 P7): a published "revalidated" state is only
+        // evidence if a reader can tie it to the response that earned it.
+        const record = { id, path: name, status, bodyBytes, completed: false, etag: etag ?? null };
         requests.push(record);
         process.stdout.write("req " + JSON.stringify(record) + "\\n");
         return id;
