@@ -12,7 +12,7 @@
     "build:rig": "pnpm --filter @receipt-lens/pwa exec vite build --config vite.rig.config.ts",
     "test": "pnpm -r test",
     "test:e2e": "playwright test --config playwright/playwright.config.ts",
-    "test:offline": "playwright test --config playwright/playwright.config.ts --grep @offline",
+    "test:offline": "playwright test --config playwright/playwright.config.ts --grep @offline playwright/offline.spec.ts",
     "generate:storage-fixtures": "pnpm build && node scripts/storage-fixtures.mjs",
     "verify:storage-fixtures": "pnpm build && node scripts/storage-fixtures.mjs && git diff --exit-code -- packages/pwa/tests/persistence/fixtures",
     "scan:egress": "node scripts/scan-egress.mjs",
