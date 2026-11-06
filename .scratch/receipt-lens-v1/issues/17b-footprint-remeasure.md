@@ -67,6 +67,14 @@ shows already revalidates correctly for everything under the entity limit. Decid
 because it changes what a published measurement means, and a header change made to move a number is the thing
 F12 warns against.
 
+**Resolved at checkpoint 1 (2026-11-06): this ticket does not fix the header — `17c` does.** Ruled in
+`DECISIONS/0028` T7, with three reasons: it would move the warm number away from the `warm-bytes.json`
+baseline this ticket is pinned to cross-check at ±0 (T3); it changes what users receive, and 17b is scoped to
+measurement; and a header change whose only observable effect is a smaller published number is exactly the
+class of fix F12 refuses. The defect is instead published as an open finding
+(`warm_worker_module_chunk_refetched`) with its 955 B named, and `17c-etag-code-assets.md` carries the
+condition that the header change and the regeneration of *both* artifacts land together.
+
 ## Comments
 
 **2026-11-06 — opened by ticket 17 under the recorded escape hatch.** Not a silent deferral: ticket 17's file
