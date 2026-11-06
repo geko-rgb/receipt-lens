@@ -996,6 +996,16 @@ four-step form of W14.3 was followed:
   condition set amended for a worker-served warm visit, cold/warm/repeat latency against the real capture UI,
   the `deployment.scope` rewrite, the dated archive copy of the harness artifact, and the README table
   regenerated from the PWA measurement.
+> **Amendment, 2026-11-06 (checkpoint 3): the warm exception set stays, and the checkpoint-1 instruction
+> that said otherwise was wrong.** The session brief told ticket 17 to "remove `measure-footprint.mjs`'s warm
+> exception set". It measured the wrong thing: `measure-footprint.mjs` measures the **harness**, the harness
+> has no service worker, so `NOT_RETAINABLE` correctly still declares the WASM non-retainable *for that
+> measurement*, and removing it would fire F9 condition 13 as a false alarm on a deployment where the
+> declaration is still true. The PWA's warm-visit number is measured by `measure-warm-bytes` into
+> `benchmarks/results/warm-bytes.json`, which does not use the exception at all. Ticket 17b moves the measured
+> deployment to the PWA, and only then can the exception set be removed from `measure-footprint.mjs`. Removing
+> it earlier would attach a PWA claim to harness bytes — the exact failure ADR-002 exists to end.
+
 - **Deliberately NOT done, because doing it now would be a lie:** `NOT_RETAINABLE` in `measure-footprint.mjs`
   stays, and `footprint.json`'s `findings[]` gains no `resolvedBy`. W15 and W16 both assume the measurement
   moved to the deployment that has a worker. It has not. `measure-footprint.mjs` still runs the **harness**,
