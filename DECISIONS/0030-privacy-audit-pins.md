@@ -174,6 +174,21 @@ Three rules follow:
    item, with its destination, so a reviewer can see the exclusion happened.
 3. A deliberate request is **not** exempt from P5/P2's content checks: the fragment must still carry no image bytes
    and no raw OCR line text. `share.spec.ts` proves the UI does this; the audit proves the *wire* does.
+4. **The fragment is scanned as an artifact, not only as a request** (ruled at checkpoint 1, because without this
+   the "share links carry no receipt data" claim rests on an aborted request and proves nothing about the payload).
+   For every minted link the audit asserts, against the fragment **string read out of the field**:
+   - it contains no `data:` or `base64,` marker and no occurrence of the receipt image's SHA-256 hex, in the clear
+     or percent-decoded;
+   - it contains no OCR line string from P2 (`RECEIPT`, `COFFEE 4.50`, `TOTAL 100.00`, `NAAN 60.00`) — decoded
+     through the same `decodeURIComponent` path P5 uses, and additionally after the codec's own
+     base64→bytes→DEFLATE→plaintext expansion where that is reachable, so the check is on the *payload*, not only
+     on its transport encoding;
+   - and, for the WhatsApp text the share action would have carried, the same two exclusions hold, because a
+     message body is the one deliberately-transmitted artifact where plaintext bill data actually does travel.
+
+   (a) aborted-in-CI, (b) printed-as-excluded-not-exempt, and (c) this payload scan are the three assertions of
+   P6's deliberate-share test; (c) alone is what makes the README's "never the receipt image or raw OCR text"
+   sentence a measurement.
 
 Anything else cross-origin is unexpected and fails.
 
@@ -228,6 +243,21 @@ PP-OCRv6 Tiny inference rather than by a slow assertion. No sleeps anywhere.
 **Open item for the owner (F above):** the `privacy` job must be added to `main`'s required status checks in
 repository settings for "blocks merge" to be literal. That action is outside this repository's files and outside
 this plan's API access.
+
+**P10 required-check gap, ruled at checkpoint 1 (2026-11-06):** the privacy workflow will run and fail on every PR
+with unexpected egress, but the current private-repository plan (GitHub Free) does not permit branch protection
+rules that make this check merge-blocking — branch-protection and rulesets APIs return 403 with "Upgrade to GitHub
+Pro." Merge-blocking enforcement activates when the repository goes public at v1's npm publish. Until then, the
+audit's signal is advisory: the job fails visibly on the PR, but a human must not merge a red PR. Not a v1 blocker;
+recorded as a platform limitation with a resolution timeline.
+
+**Measured, because the dashboard route was tried first and the API is the same policy surfaced differently:**
+`gh api repos/geko-rgb/receipt-lens/branches/main` answers `protected: false`, and
+`…/protection/required_status_checks` answers
+`403 — Upgrade to GitHub Pro`. So `main` carries **no** observable branch protection on this plan — which also
+means `HANDOFF`'s standing note that the `unit` check is required is not verifiable from here and should be read as
+an intention, not a setting. v1 accepts "the workflow fails red on every PR and a human must not merge a red PR";
+the README says this plainly rather than implying the gate is mechanical (`DECISIONS/0030` P11.1, published claim).
 
 ## P11 — What the README is allowed to say
 
