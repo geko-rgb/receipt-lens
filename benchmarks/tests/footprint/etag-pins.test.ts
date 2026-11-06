@@ -15,6 +15,7 @@ import {
   warmModuleChunkDefect,
   warmOutcomeFor,
   warmValidators,
+  type Finding,
   type OriginEntry,
 } from "../../src/footprint/rules.js";
 
@@ -54,6 +55,20 @@ const MODEL_ASSETS: readonly { readonly file: string; readonly url: string; read
   }
 ).assets.map((asset) => ({ ...asset, url: `/assets/models/${asset.file}` }));
 
+/** The first committed model asset of a given kind, named here so a missing asset fails with a message. */
+function modelAsset(suffix: string): string {
+  const asset = MODEL_ASSETS.find((entry) => entry.file.endsWith(suffix));
+  if (asset === undefined) throw new Error(`assets/models/manifest.json pins no ${suffix} asset`);
+  return asset.url;
+}
+
+/** Pull a finding out by code and fail with the codes that were present, which is the useful half of the error. */
+function findingBy(findings: readonly Finding[], code: string): Finding {
+  const found = findings.find((entry) => entry.code === code);
+  if (found === undefined) throw new Error(`no finding with code ${code}; this run produced ${findings.map((entry) => entry.code).join(", ")}`);
+  return found;
+}
+
 const digest = (body: Uint8Array): string => `"${createHash("sha256").update(body).digest("hex").slice(0, 32)}"`;
 
 const assetNamed = (pattern: RegExp): string => {
@@ -73,8 +88,8 @@ const ASSETS = {
   webmanifest: "/manifest.webmanifest",
   icon: "/icons/receipt-lens-192.png",
   modelManifest: "/assets/models/manifest.json",
-  modelWeights: MODEL_ASSETS.find((asset) => asset.file.endsWith(".onnx"))!.url,
-  dictionary: MODEL_ASSETS.find((asset) => asset.file.endsWith(".txt"))!.url,
+  modelWeights: modelAsset(".onnx"),
+  dictionary: modelAsset(".txt"),
   document: "/index.html",
   route: "/capture",
 } as const;
@@ -92,9 +107,13 @@ function fileFor(pathname: string): string {
 
 interface Origin {
   readonly url: string;
-  readonly since?: () => { path: string; status: number; bodyBytes: number; completed: boolean }[];
-  readonly reset?: () => void;
   readonly close: () => unknown;
+}
+
+/** The measurement origin additionally exposes the origin's own log, which the 304 pins read. */
+interface MeasureOrigin extends Origin {
+  readonly since: () => { path: string; status: number; bodyBytes: number; completed: boolean; etag?: string | null }[];
+  readonly reset: () => void;
 }
 
 const started: Origin[] = [];
@@ -114,10 +133,10 @@ async function shipping(): Promise<Origin> {
   return handle;
 }
 
-async function measuring(appDir?: string): Promise<Origin> {
+async function measuring(appDir?: string): Promise<MeasureOrigin> {
   const server = startMeasureServer(appDir === undefined ? {} : { appDir });
   const url = await waitForUrl(server.url, "scripts/serve-measure-app.mjs");
-  const handle: Origin = { url, since: () => server.since(), reset: () => server.reset(), close: () => server.close() };
+  const handle: MeasureOrigin = { url, since: () => server.since(), reset: () => server.reset(), close: () => server.close() };
   started.push(handle);
   return handle;
 }
@@ -244,8 +263,10 @@ describe("P3 — a 304 is logged as a zero-byte completed response, not an inter
     // without it, DECISIONS/0012 F9.7 would fail a run whose cache was working perfectly.
     await new Promise((resolve) => setTimeout(resolve, 150));
     const logged = server.since().filter((entry) => entry.path === ASSETS.sw);
-    expect(logged.length).toBe(1);
-    expect(logged[0]).toMatchObject({ status: 304, bodyBytes: 0, completed: true });
+    if (logged.length !== 1) throw new Error(`expected exactly one /sw.js entry in the warm window, saw ${JSON.stringify(logged)}`);
+    const answered = logged[0]!;
+    expect(answered).toMatchObject({ status: 304, bodyBytes: 0, completed: true });
+    expect(answered.etag).toMatch(/^"[0-9a-f]{32}"$/);
   });
 });
 
@@ -320,7 +341,7 @@ describe("P6 — findings append rather than rewrite", () => {
       previousMeasuredAt: "2026-11-06T08:43:03.389Z",
       supersedesArtifact: "benchmarks/results/footprint-2026-11-06-6b3ca50.json",
     });
-    const warm = findings.find((f) => f.code === "warm_visit_served_by_service_worker");
+    const warm = findingBy(findings, "warm_visit_served_by_service_worker");
     expect(warm.detail).toContain("2700");
     expect(warm.history).toEqual([
       {
@@ -340,7 +361,7 @@ describe("P6 — findings append rather than rewrite", () => {
       moduleChunk: warmModuleChunkDefect(0), measuredAt: "2026-11-06T00:00:00.000Z",
       previousWarmBytesPublished: 6_527, previousMeasuredAt: "x", supersedesArtifact: "y",
     });
-    expect(closed.find((f) => f.code === "warm_worker_module_chunk_refetched")?.resolvedBy).toBe("ticket 17c");
+    expect(findingBy(closed, "warm_worker_module_chunk_refetched").resolvedBy).toBe("ticket 17c");
 
     const stillMoving = buildFindings({
       previousFinding: previous, warmBytes: 6_527, warmPaths: [ASSETS.workerModule],
@@ -348,9 +369,9 @@ describe("P6 — findings append rather than rewrite", () => {
       moduleChunk: warmModuleChunkDefect(955), measuredAt: "2026-11-06T00:00:00.000Z",
       previousWarmBytesPublished: 6_527, previousMeasuredAt: "x", supersedesArtifact: "y",
     });
-    const open = stillMoving.find((f) => f.code === "warm_worker_module_chunk_refetched");
-    expect(open?.resolvedBy).toBeNull();
-    expect(open?.detail).toContain("955");
+    const open = findingBy(stillMoving, "warm_worker_module_chunk_refetched");
+    expect(open.resolvedBy).toBeNull();
+    expect(open.detail).toContain("955");
   });
 
   it("answers the ticket's open question about /sw.js from the run, either way", () => {
@@ -359,14 +380,14 @@ describe("P6 — findings append rather than rewrite", () => {
       moduleChunk: warmModuleChunkDefect(0), measuredAt: "2026-11-06T00:00:00.000Z",
       previousWarmBytesPublished: 6_527, previousMeasuredAt: "x", supersedesArtifact: "y",
     });
-    expect(conditional.find((f) => f.code === "sw_js_byte_check_conditional")).toBeDefined();
+    expect(findingBy(conditional, "sw_js_byte_check_conditional").code).toBe("sw_js_byte_check_conditional");
 
     const notConditional = buildFindings({
       previousFinding: previous, warmBytes: 6_527, warmPaths: ["/sw.js"], warmOutcomes: { "/sw.js": "redownloaded-200" },
       moduleChunk: warmModuleChunkDefect(955), measuredAt: "2026-11-06T00:00:00.000Z",
       previousWarmBytesPublished: 6_527, previousMeasuredAt: "x", supersedesArtifact: "y",
     });
-    expect(notConditional.find((f) => f.code === "sw_js_byte_check_unconditional")).toBeDefined();
+    expect(findingBy(notConditional, "sw_js_byte_check_unconditional").code).toBe("sw_js_byte_check_unconditional");
   });
 });
 
