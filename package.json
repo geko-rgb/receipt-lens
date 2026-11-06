@@ -33,7 +33,9 @@
     "render:footprint": "node benchmarks/scripts/render-footprint-table.mjs --write",
     "verify:footprint": "node benchmarks/scripts/render-footprint-table.mjs --check",
     "measure:warm-bytes": "pnpm build && node benchmarks/scripts/measure-warm-bytes.mjs",
-    "verify:warm-bytes": "pnpm build && node benchmarks/scripts/measure-warm-bytes.mjs --check"
+    "verify:warm-bytes": "pnpm build && node benchmarks/scripts/measure-warm-bytes.mjs --check",
+    "render:privacy": "node scripts/render-privacy-table.mjs --write",
+    "verify:privacy-table": "node scripts/render-privacy-table.mjs --check"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",
