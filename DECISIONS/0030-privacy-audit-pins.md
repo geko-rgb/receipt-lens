@@ -110,6 +110,24 @@ No request body, header *value*, or URL query is ever written to the CI log — 
 `method + origin + path`. This is 0013 T3's rule and it is deliberate: the audit proves user data does not leave
 the device, and printing it into a build log to do so is self-defeating.
 
+## P4.1 — Requests are classified by scheme: `blob:` and `data:` are recorded, never counted as egress
+
+The capture flow hands the receipt to the page as a `blob:http://127.0.0.1:<port>/<uuid>` object URL (probed at
+checkpoint 2). `new URL()` reads that string's inner URL as same-origin `http:` traffic, the browser fires a
+request event for it, and no socket is ever opened. Pinned:
+
+> **P4.1:** the audit classifies requests by scheme. `http:`/`https:` are **network requests**, subject to every
+> assertion (origin, image bytes, OCR text). `blob:`/`data:` are **local object URLs**: recorded in the log for
+> completeness, never counted as egress — **and** the image-bytes assertion must still prove that the receipt-image
+> bytes read through a `blob:` URL never appear in any `http(s)` request body, URL, header or query. Without this
+> distinction the audit either false-positives on the app's own image handling or, worse, silently ignores the
+> receipt image entirely.
+
+`about:` joins the local class (a `window.open` with no target lands there). `upi:` is classified as an **intent**,
+which P7 already treats as a non-request. Anything else is treated as a network request until P12 says otherwise,
+because an unfamiliar scheme is not a synonym for "local" — an unrecognised scheme is exactly where a leak would
+hide from a classifier that defaulted to permissive.
+
 ## P5 — Content inspection covers headers and URLs, not just bodies
 
 §9 M3.3 names four places: *"URL, query, headers, or body"*. 0013 checked body and URL because a harness POSTs
@@ -155,6 +173,23 @@ The audit runs the flow once and asserts over the accumulated log; six split tes
 each driving their own full flow — the same split-test discipline ticket 13 established, at one quarter of the OCR
 cost.
 
+## P6.1 — The driver's preconditions, so a shortened flow fails loudly instead of passing vacuously
+
+A workflow that silently stops early — the lock refused by a blocker nobody noticed, the share phase rendering no
+rows, the participant context failing to open — leaves the accumulated log *smaller*, and every assertion below
+still passes on it. That is 17b's "convert a judgment into evidence" rule applied to the flow rather than to a
+number: the absence of egress is only worth something if the thing that would have produced it actually ran.
+Pinned:
+
+> **Driver precondition:** the workflow driver asserts `lifecycle-state === "locked"` and `share-link-row` count
+> `> 0` before the log is deemed complete. A flow that silently shortens (lock refused, share phase empty) fails
+> loudly instead of passing vacuously.
+
+Every phase asserts its own state transition for the same reason: a locked bill, at least one minted link, at
+least two participants, a settled bill, a non-empty witness-3 log and a non-empty witness-1 log. A driver step that
+cannot reach its postcondition throws where it is, so a red run says *which* phase shortened rather than leaving a
+reviewer to work it out from a short table.
+
 ## P7 — Deliberate share actions are identified, tagged, and excluded from the local-processing claim — visibly
 
 The §9 M3.6 carve-out is only honest if the audit can be shown to have *seen* the action it excludes. A pinned
@@ -189,6 +224,16 @@ Three rules follow:
    (a) aborted-in-CI, (b) printed-as-excluded-not-exempt, and (c) this payload scan are the three assertions of
    P6's deliberate-share test; (c) alone is what makes the README's "never the receipt image or raw OCR text"
    sentence a measurement.
+
+   **One word of that list is checked on the wire but not inside the minted payload, and the product is the reason
+   rather than convenience.** The bill's default title is the literal word `Receipt` (`mapping.ts`), so every
+   minted fragment carries `RECEIPT` as *bill wording* — a participant view shows it as the title — and a payload
+   scan for that word would fail on every share link the product can mint. The payload scan therefore looks for
+   the three lines that carry a printed amount (`COFFEE 4.50`, `NAAN 60.00`, `TOTAL 100.00`) plus the image
+   digest, while `RECEIPT` stays in P5's four-place **wire** scan, where it can never legitimately appear. The
+   exclusion is recorded here because an unrecorded exclusion is indistinguishable from a hole; the claim it
+   protects — no excluded row, no image, no raw receipt line in a payload — is unchanged, and `share.spec.ts`
+   already proves the same payload carries no excluded row word.
 
 Anything else cross-origin is unexpected and fails.
 
@@ -295,7 +340,17 @@ limit set. Both go in the generated blocks, per (C).
   (`DECISIONS/0027` W12); the browser's prompting half does not fire in headless Chromium at all (measured: valid
   manifest, controlling worker with a `fetch` handler, secure loopback origin, 20 s poll, online and after an
   offline reload). Manual install verification is a not-yet-run check and the README says so instead of implying
-  the install path is proven.
+  the install path is proven. **The sentence the README publishes, pinned here so the generator and the record
+  cannot drift:** *"The app's install-offering half is automated — a fabricated `beforeinstallprompt` event drives
+  the banner. The browser's install-prompt half does not fire in headless Chromium; manual install verification is
+  documented as a not-yet-run check."* This audit does not re-run that test; it is named so a reader knows which
+  half is automated.
+- **Gate G5 is unverified and is published as such.** *"NPCI UPI deep-link parameter limits (`pn`/`tn`/`tr`) are
+  unverified against the primary NPCI spec"* — the primary document named in `DECISIONS/0024` (v1.6, 2017)
+  publishes no such limits, so the 40/50/35 character constants in the UPI builder are secondary-source-derived.
+  Future work: verify against a newer NPCI specification or accept secondary-source authority explicitly
+  (`DECISIONS/0024`, `ROADMAP.md` G5). The audit does not test them: P7 records the intent and scans its payload;
+  it does not validate a scheme it does not own.
 - **The audit does not measure the model-cache integrity story** — that is `DECISIONS/0027` W5's eight steps,
   already pinned by `offline-reload.spec.ts`.
 
