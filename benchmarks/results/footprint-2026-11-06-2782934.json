@@ -1,0 +1,3441 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "footprint",
+  "protocol": "receipt-lens-footprint/2",
+  "measuredAt": "2026-11-06T12:49:39.804Z",
+  "git": {
+    "revision": "2782934d3828e1c3a6b97e330dfb1fa1464815d5",
+    "shortRevision": "2782934",
+    "branch": "ticket/17c-etag-code-assets",
+    "dirtyPaths": [
+      "benchmarks/results/warm-bytes.json"
+    ]
+  },
+  "measurement": {
+    "deployment": {
+      "entry": "packages/pwa/dist/app/index.html",
+      "scope": "PWA",
+      "servedBy": "scripts/serve-measure-app.mjs — one same-origin HTTP/1.1 origin on 127.0.0.1, no reverse proxy, the request log F5 counts bytes from",
+      "cacheContract": "two policies, one module (DECISIONS/0029 P2): code and app metadata answer `cache-control: no-cache` with a content `ETag` and reply `304` to a matching `If-None-Match`; model weights, the recognition dictionary and the runtime WASM keep `no-store` and advertise no validator, because the worker's Cache API owns them and a second copy in the HTTP cache would be dead weight and a staleness path. Warm liveness is proven by *no body served over the origin* for anything the caches hold — and after ticket 17c a `304` is evidence for that claim rather than a violation of it.",
+      "contentEncoding": "identity — nothing is compressed, so wire bytes equal file bytes",
+      "threads": "Latency measured at 1 ORT thread (serve-app.mjs sends no COOP/COEP; the harness's 4-thread measurement is superseded). If isolation headers are added, latency improves and the footprint table regenerates.",
+      "remeasureRequiredAfter": "discharged here: DECISIONS/0012 F11 trigger 1 (the PWA exists) was this ticket, and this measurement is the discharge",
+      "precacheEntries": 11,
+      "workerScriptBytes": 2872,
+      "notSeparable": [
+        {
+          "field": "ocrReadyMs",
+          "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+        },
+        {
+          "field": "modelLoadMs",
+          "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+        },
+        {
+          "field": "inferenceMs",
+          "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+        }
+      ],
+      "warmStructuralRequests": [
+        {
+          "path": "/assets/models/manifest.json",
+          "bytes": 2700,
+          "outcome": "redownloaded-200",
+          "reason": "W5 step 1's version probe, deliberately cache: 'reload' (DECISIONS/0027 W6)"
+        },
+        {
+          "path": "/assets/cache-names-BCswqTtv.js",
+          "bytes": 0,
+          "outcome": "revalidated-304",
+          "reason": "the worker's module import — the open defect ticket 17c owns (DECISIONS/0028 T7)"
+        },
+        {
+          "path": "/sw.js",
+          "bytes": 0,
+          "outcome": "revalidated-304",
+          "reason": "the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script"
+        }
+      ],
+      "warmStructuralRequestsNote": "Each of these is structural, not a cache miss: a service worker cannot intercept the fetch of its own script or that script's imports, and W6's version probe deliberately bypasses the cache. An unexplained warm request fails the run, so this list is exhaustive by construction."
+    },
+    "phases": {
+      "cold": {
+        "required": true,
+        "description": "first visit, empty context and empty caches, fresh server instance"
+      },
+      "warm": {
+        "required": true,
+        "description": "same context, page.reload() — DECISIONS/0012 F8's revalidation clause is replaced by 'answered by the active caches' (DECISIONS/0027 W15), because this origin answers no 304"
+      },
+      "repeat": {
+        "required": false,
+        "description": "supplementary — a second inference in the same page with both sessions warm, driven by the app's own Re-run OCR"
+      }
+    },
+    "byteCounting": "summed from the origin's own request log (scripts/serve-measure-app.mjs), which sees the worker's install precache, the WASM and the model downloads that page resource timings do not; HTTP header bytes are excluded",
+    "timingAnchor": "performance.timeOrigin of the measured document. appReadyMs is the navigation's load event; firstResultMs is the instant a page-side poll observed the inference finish (busy-state gone) with the draft rendered. No Playwright round-trip is inside either number.",
+    "centralValue": "median, with min and max published beside it. With n=5 no percentile is claimed (DECISIONS/0012 F2).",
+    "latencyBases": "cold and warm are timed from their own navigation. The repeat phase has no navigation, so its firstResultMs is the duration from handover to result. appReadyMs is published for cold and warm only.",
+    "image": {
+      "kind": "drawn in the page",
+      "lines": [
+        "RECEIPT",
+        "COFFEE 4.50",
+        "TOTAL 100.00",
+        "CASH 100.00"
+      ],
+      "width": 900,
+      "height": 1200,
+      "bytes": 50956,
+      "sha256": "4848c0628cdd0eadf023ecc4c4d56f65c34f6bcffa632068e4c2f5ab040c83a5",
+      "note": "re-derivable from this script rather than from a gitignored dataset snapshot: the receipt is drawn on a canvas exactly as playwright/capture.spec.ts draws it, so the declared image is committed code. It is user data either way and never a network request. This supersedes the harness run's benchmarks/datasets/raw/sroie/assets/ex.jpg, which needs the 2.7 GB raw snapshot to re-derive — a published number nobody else can reproduce is not a measured one."
+    },
+    "samplesPerState": 5,
+    "crossCheck": {
+      "warmBytesThisRun": 2700,
+      "warmBytesPublished": 2700,
+      "toleranceBytes": 0,
+      "artifact": "benchmarks/results/warm-bytes.json",
+      "harnessBaseline": "benchmarks/results/footprint-2026-11-04-16ae8de.json",
+      "harnessWarmBytesOverTheWire": 14848852,
+      "rule": "DECISIONS/0028 T3: two drivers count the same bytes at the same origin, so they must agree exactly. Neither artifact may be rewritten to match the other."
+    },
+    "excludedFromFootprint": [
+      "the receipt image itself — user data, and never a network request",
+      "HTTP request/response header bytes (a few hundred bytes per asset per visit)"
+    ],
+    "notMeasured": [
+      "any real phone, tablet or low-end laptop — the 4x class is an emulated CPU rate, not a device",
+      "network latency and bandwidth beyond loopback; bytes are published per asset so a reader can apply RTT",
+      "peak memory: the WASM heap, the decoded image buffers and both inference graphs are resident after load and are not sized here",
+      "parse() and validate() separately: they run inside firstResultMs and cannot be split without a hook the shipped bundle does not have",
+      "PP-OCRv6 Small, quantized builds, or a lazy/deferred model load (1E.3, ticket 09b, R2 contingencies)"
+    ]
+  },
+  "environment": {
+    "classes": [
+      {
+        "id": "desktop-chromium-unthrottled",
+        "label": "Desktop Chromium (headless), this machine at native speed",
+        "cpuThrottleRate": 1,
+        "declaredAs": "physical desktop machine, loopback origin, no bandwidth throttling, no network emulation",
+        "samples": 5
+      },
+      {
+        "id": "desktop-chromium-cpu4x",
+        "label": "Desktop Chromium (headless), 4x emulated CPU throttle",
+        "cpuThrottleRate": 4,
+        "declaredAs": "the same physical machine with Chromium's Emulation.setCPUThrottlingRate at 4x (the Lighthouse slow-4x convention). Emulation, not a device: it slows script, WASM compile and inference, and says nothing about a phone's memory, GPU or network stack.",
+        "samples": 5
+      }
+    ],
+    "device": {
+      "platform": "linux x64",
+      "kernel": "7.3.1-1-cachyos",
+      "cpuModel": "AMD Ryzen 5 5600H with Radeon Graphics",
+      "logicalCores": 12,
+      "totalMemoryBytes": 16054312960
+    },
+    "browser": {
+      "name": "chromium",
+      "headless": true,
+      "version": "156.0.8078.4",
+      "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+      "launchArgs": [
+        "--disk-cache-size=536870912"
+      ],
+      "httpDiskCacheBytes": 536870912,
+      "diskCacheNote": "kept from the harness run for continuity, but it no longer carries the argument it was made for: this origin sends no-store and no ETag, so the HTTP cache holds nothing on purpose and the Cache API is the cache that matters (DECISIONS/0012 F7's amendment)",
+      "contextIsolation": "a fresh browser *and* context per sample: Cache API storage is accounted per browser process, and ticket 17 measured contexts evicting each other's model cache (DECISIONS/0028 T2)"
+    },
+    "toolchain": {
+      "playwright": "1.64.1",
+      "node": "v26.13.0"
+    },
+    "runtime": {
+      "onnxruntimeWeb": "1.31.1",
+      "executionProvider": "wasm",
+      "wasmThreads": 1,
+      "threadBasis": "derived, not read from a session object: resolveThreadCount (packages/core/src/ocr/pp-ocrv6.ts:77) returns 1 unless crossOriginIsolated, and the measured page reports the value below. The harness's 4-thread run is superseded by this one, and the difference is stated in the generated table.",
+      "crossOriginIsolated": false,
+      "webgpu": "not attempted (the WASM-only ORT entry point is what core imports)"
+    },
+    "underTest": {
+      "package": "@receipt-lens/pwa",
+      "packageVersion": "0.0.0",
+      "provider": "pp-ocrv6",
+      "providerVersion": "1.0.0",
+      "modelPreset": "tiny",
+      "modelVersion": "1.0.0",
+      "modelLicense": "Apache-2.0",
+      "manifestHash": "0179bb711e74f5aca22834747f42e5b55de143c4be68f50a696f411ec9a5f1ff",
+      "providerReportedAssetBytes": 6277292,
+      "draftEvidence": "1 item rows / 0 charge rows rendered from the declared image, zero-items state false"
+    }
+  },
+  "assets": [
+    {
+      "url": "/assets/cache-names-BCswqTtv.js",
+      "role": "Service worker module chunk",
+      "category": "app",
+      "required": true,
+      "wireBytes": 955,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 10,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [
+        304
+      ],
+      "warmVisitOutcome": "revalidated-304",
+      "warmVisitValidators": {
+        "/assets/cache-names-BCswqTtv.js": "\"37ba9511224e9db613f479c694101763\""
+      },
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/assets/cache-names-BCswqTtv.js",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 955
+    },
+    {
+      "url": "/assets/index-0itO_252.js",
+      "role": "Application entry script (shell + core + OCR glue)",
+      "category": "app",
+      "required": true,
+      "wireBytes": 242513,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/assets/index-0itO_252.js",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 242513
+    },
+    {
+      "url": "/assets/index-DSs-D2Tf.css",
+      "role": "Application styles",
+      "category": "app",
+      "required": true,
+      "wireBytes": 7980,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/assets/index-DSs-D2Tf.css",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 7980
+    },
+    {
+      "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+      "role": "Bundle runtime",
+      "category": "app",
+      "required": true,
+      "wireBytes": 543,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/assets/rolldown-runtime-CEoa-xHZ.js",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 543
+    },
+    {
+      "url": "/capture",
+      "role": "App shell served for a route navigation",
+      "category": "app",
+      "required": true,
+      "wireBytes": 905,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/index.html",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 905
+    },
+    {
+      "url": "/icons/receipt-lens-192.png",
+      "role": "Launcher icon",
+      "category": "app",
+      "required": false,
+      "wireBytes": 562,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/icons/receipt-lens-192.png",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 562
+    },
+    {
+      "url": "/icons/receipt-lens-512-maskable.png",
+      "role": "Launcher icon",
+      "category": "app",
+      "required": false,
+      "wireBytes": 2515,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/icons/receipt-lens-512-maskable.png",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 2515
+    },
+    {
+      "url": "/icons/receipt-lens-512.png",
+      "role": "Launcher icon",
+      "category": "app",
+      "required": false,
+      "wireBytes": 2642,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/icons/receipt-lens-512.png",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 2642
+    },
+    {
+      "url": "/index.html",
+      "role": "App shell document (precached)",
+      "category": "app",
+      "required": true,
+      "wireBytes": 905,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/index.html",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 905
+    },
+    {
+      "url": "/manifest.webmanifest",
+      "role": "Web app manifest",
+      "category": "app",
+      "required": true,
+      "wireBytes": 728,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/manifest.webmanifest",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 728
+    },
+    {
+      "url": "/sw.js",
+      "role": "Service worker script",
+      "category": "app",
+      "required": true,
+      "wireBytes": 2872,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 10,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [
+        304
+      ],
+      "warmVisitOutcome": "revalidated-304",
+      "warmVisitValidators": {
+        "/sw.js": "\"65274200df333a977d36a741a50a7327\""
+      },
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/sw.js",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 2872
+    },
+    {
+      "url": "/assets/models/manifest.json",
+      "role": "Model manifest",
+      "category": "model",
+      "required": true,
+      "wireBytes": 2700,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 10,
+      "warmVisitBytesPaid": 2700,
+      "warmVisitStatuses": [
+        200
+      ],
+      "warmVisitOutcome": "redownloaded-200",
+      "warmVisitValidators": {
+        "/assets/models/manifest.json": "\"0179bb711e74f5aca22834747f42e5b5\""
+      },
+      "bytesOfRecord": {
+        "kind": "committed",
+        "file": "assets/models/manifest.json"
+      },
+      "localFileBytes": 2700
+    },
+    {
+      "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+      "role": "Detection model (PP-OCRv6 Tiny)",
+      "category": "model",
+      "required": true,
+      "wireBytes": 1780590,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "committed",
+        "file": "assets/models/PP-OCRv6_tiny_det.onnx",
+        "bytes": 1780590,
+        "sha256": "193bab7a04fca699a6c82e6abb5b81bdb28177f0abd4062552b04908dafb19f8"
+      },
+      "localFileBytes": 1780590
+    },
+    {
+      "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+      "role": "Recognition model (PP-OCRv6 Tiny)",
+      "category": "model",
+      "required": true,
+      "wireBytes": 4462639,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "committed",
+        "file": "assets/models/PP-OCRv6_tiny_rec.onnx",
+        "bytes": 4462639,
+        "sha256": "9ef676d6ed3c88256a2d92c640c44f25b0c40947e111b14b8be8f594091563e6"
+      },
+      "localFileBytes": 4462639
+    },
+    {
+      "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+      "role": "Recognition dictionary",
+      "category": "model",
+      "required": true,
+      "wireBytes": 34063,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "committed",
+        "file": "assets/models/PP-OCRv6_tiny_rec.txt",
+        "bytes": 34063,
+        "sha256": "65f694d6e8cd39efa1c5480bbfd2fe90e631a6b17bbb3190089f261eb5e6f043"
+      },
+      "localFileBytes": 34063
+    },
+    {
+      "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+      "role": "Inference runtime WASM",
+      "category": "runtime",
+      "required": true,
+      "wireBytes": 14848852,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 14848852
+    },
+    {
+      "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+      "role": "Inference runtime JS loader",
+      "category": "runtime",
+      "required": true,
+      "wireBytes": 74322,
+      "bytesStable": true,
+      "fetchedByColdVisits": 10,
+      "ofColdSamples": 10,
+      "requestedOnWarmVisits": 0,
+      "warmVisitBytesPaid": 0,
+      "warmVisitStatuses": [],
+      "warmVisitOutcome": "worker-served",
+      "warmVisitValidators": {},
+      "bytesOfRecord": {
+        "kind": "built",
+        "file": "packages/pwa/dist/app/assets/ort.wasm.bundle.min-DEokbyO3.js",
+        "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
+      },
+      "localFileBytes": 74322
+    }
+  ],
+  "findings": [
+    {
+      "code": "warm_not_zero_ort_wasm_exceeds_cache_entity_limit",
+      "detail": "Chromium HTTP cache retains ~6-8 MiB per entity; the 14.85 MB ort-wasm-simd-threaded.wasm answers 200 with full body on every warm visit, while 7 of 8 assets revalidate as 304",
+      "evidence": "session probe: 6 MiB entity retained, 8 MiB entity not retained, same server/headers as harness; 512 MB disk cache rules out eviction",
+      "remedy": "ticket 17 Cache API; header changes cannot fix browser per-entity limits",
+      "affectsClaim": "section 9 initial-download / re-fetch cost, not the local-processing claim (same-origin only)",
+      "resolvedBy": "ticket 17",
+      "resolvedAt": "2026-11-06",
+      "resolution": "the worker precaches the runtime WASM into the Cache API, which is not subject to the HTTP cache's per-entity limit; this artifact's warm visit no longer lists it (DECISIONS/0027 W16)"
+    },
+    {
+      "code": "warm_visit_served_by_service_worker",
+      "detail": "a warm visit moves 2700 B over the wire, and the requests that reached the origin are /assets/models/manifest.json, /sw.js, /assets/cache-names-BCswqTtv.js",
+      "evidence": "this artifact's warm runs[]: five samples per class, counted from the origin's own request log (DECISIONS/0012 F5), cross-checked at ±0 against benchmarks/results/warm-bytes.json",
+      "affectsClaim": "section 9 initial-download / re-fetch cost: the second visit is no longer priced at the runtime WASM",
+      "history": [
+        {
+          "warmBytesOverTheWire": 6527,
+          "measuredAt": "2026-11-06T08:51:45.182Z",
+          "artifact": "footprint-2026-11-06-6b3ca50.json",
+          "supersededBy": "ticket 17c",
+          "why": "the origin began answering code assets with an ETag, so a warm visit revalidates instead of re-downloading"
+        }
+      ]
+    },
+    {
+      "code": "warm_worker_module_chunk_refetched",
+      "detail": "the worker's module chunk no longer moves a body on a warm visit; it answers revalidated-304 at 0 B",
+      "evidence": "the warm runs[] path list and per-path status in this artifact, against benchmarks/results/warm-bytes.json's warmPerAsset",
+      "remedy": "ticket 17c: an ETag on code assets, which DECISIONS/0012 F10 measured already revalidating correctly under the entity limit. the ETag change and the regeneration of both footprint artifacts land in the same commit (DECISIONS/0028 T3/T7): a header change moves the number two artifacts publish",
+      "affectsClaim": "the warm-visit byte total, not the local-processing claim",
+      "resolvedBy": "ticket 17c",
+      "resolvedAt": "2026-11-06"
+    },
+    {
+      "code": "sw_js_byte_check_conditional",
+      "detail": "the browser's /sw.js byte-check now sends If-None-Match and is answered with a 304 carrying no body, so the worker script costs 0 B on a warm visit",
+      "evidence": "the warm runs[] entry for /sw.js in this artifact: its status, bodyBytes and etag",
+      "affectsClaim": "which of the three warm line items the ETag actually removed",
+      "resolvedBy": null
+    }
+  ],
+  "totals": {
+    "perCategoryBytes": {
+      "app": 263120,
+      "model": 6279992,
+      "runtime": 14923174
+    },
+    "initialDownloadBytes": {
+      "n": 10,
+      "min": 21718277,
+      "median": 21718277,
+      "max": 21718277,
+      "mean": 21718277,
+      "samples": [
+        21718277,
+        21718277,
+        21718277,
+        21718277,
+        21718277,
+        21718277,
+        21718277,
+        21718277,
+        21718277,
+        21718277
+      ]
+    },
+    "secondVisitBytesOverTheWire": {
+      "n": 10,
+      "min": 2700,
+      "median": 2700,
+      "max": 2700,
+      "mean": 2700,
+      "samples": [
+        2700,
+        2700,
+        2700,
+        2700,
+        2700,
+        2700,
+        2700,
+        2700,
+        2700,
+        2700
+      ]
+    },
+    "cacheHeldBytes": 21459809,
+    "cacheHeldBasis": "deterministic: the built worker's precache manifest (packages/pwa/dist/app/sw.js, stat'd from disk) plus the verified model set named by assets/models/manifest.json. Not 'bytes currently in the named caches', which would depend on eviction (DECISIONS/0028 T8, DECISIONS/0027 W18).",
+    "assetsHeldByWorker": 14,
+    "assetsRevalidatedOnWarmVisits": [
+      "/assets/cache-names-BCswqTtv.js",
+      "/sw.js"
+    ],
+    "assetsRevalidatedCount": 2,
+    "assetsRequestedFromOriginEveryWarmVisit": [
+      "/assets/models/manifest.json"
+    ],
+    "requestedFromOriginEveryWarmVisitBytes": 2700,
+    "assets": 17,
+    "requestsPerColdVisit": {
+      "n": 10,
+      "min": 22,
+      "median": 22,
+      "max": 22,
+      "mean": 22,
+      "samples": [
+        22,
+        22,
+        22,
+        22,
+        22,
+        22,
+        22,
+        22,
+        22,
+        22
+      ]
+    },
+    "requestsPerWarmVisit": {
+      "n": 10,
+      "min": 3,
+      "median": 3,
+      "max": 3,
+      "mean": 3,
+      "samples": [
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    "conditionalRefetchesPerColdVisit": {
+      "n": 10,
+      "min": 1,
+      "median": 1,
+      "max": 1,
+      "mean": 1,
+      "samples": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    "conditionalRefetchPathsPerColdVisit": [
+      "/assets/cache-names-BCswqTtv.js"
+    ],
+    "duplicateFetchesPerColdVisit": {
+      "n": 10,
+      "min": 5,
+      "median": 5,
+      "max": 5,
+      "mean": 5,
+      "samples": [
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    "coldPageObserved": {
+      "transferBytes": {
+        "n": 10,
+        "min": 253191,
+        "median": 3395287,
+        "max": 6534383,
+        "mean": 3394087,
+        "samples": [
+          6534383,
+          6534383,
+          6534383,
+          6534383,
+          6534383,
+          253191,
+          256191,
+          253191,
+          253191,
+          253191
+        ]
+      },
+      "headerBytes": {
+        "n": 10,
+        "min": 1200,
+        "median": 1950,
+        "max": 2400,
+        "mean": 1830,
+        "samples": [
+          2400,
+          2400,
+          2400,
+          2400,
+          2400,
+          1200,
+          1500,
+          1200,
+          1200,
+          1200
+        ]
+      },
+      "resources": {
+        "n": 10,
+        "min": 10,
+        "median": 10,
+        "max": 10,
+        "mean": 10,
+        "samples": [
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10,
+          10
+        ]
+      },
+      "servedWithoutNetwork": {
+        "n": 10,
+        "min": 2,
+        "median": 3.5,
+        "max": 6,
+        "mean": 3.9,
+        "samples": [
+          2,
+          2,
+          2,
+          2,
+          2,
+          6,
+          5,
+          6,
+          6,
+          6
+        ]
+      }
+    },
+    "warmPageObserved": {
+      "transferBytes": {
+        "n": 10,
+        "min": 0,
+        "median": 0,
+        "max": 0,
+        "mean": 0,
+        "samples": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "headerBytes": {
+        "n": 10,
+        "min": 0,
+        "median": 0,
+        "max": 0,
+        "mean": 0,
+        "samples": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "resources": {
+        "n": 10,
+        "min": 11,
+        "median": 11,
+        "max": 11,
+        "mean": 11,
+        "samples": [
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11
+        ]
+      },
+      "servedWithoutNetwork": {
+        "n": 10,
+        "min": 11,
+        "median": 11,
+        "max": 11,
+        "mean": 11,
+        "samples": [
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11,
+          11
+        ]
+      }
+    },
+    "pageObservationNote": "The page's own resource timings cover only the resources the *document* fetched. The worker's install precache, the WASM and the model downloads are not document resources and never appear here — that is why F5 counts bytes at the origin. So this pair is reported beside the totals and never added to them, and it is not the header cost of the whole visit."
+  },
+  "latency": {
+    "desktop-chromium-unthrottled": {
+      "cold": {
+        "required": true,
+        "label": "Cold start — first visit, empty context, worker installs and verifies",
+        "appReadyMs": {
+          "n": 5,
+          "min": 37.6,
+          "median": 38.8,
+          "max": 40.6,
+          "mean": 39,
+          "samples": [
+            37.8,
+            38.8,
+            37.6,
+            40,
+            40.6
+          ]
+        },
+        "firstResultMs": {
+          "n": 5,
+          "min": 1228.6,
+          "median": 1256.7,
+          "max": 1310,
+          "mean": 1260.2,
+          "samples": [
+            1310,
+            1228.6,
+            1229.5,
+            1256.7,
+            1276.3
+          ]
+        },
+        "downloadBytes": {
+          "n": 5,
+          "min": 21718277,
+          "median": 21718277,
+          "max": 21718277,
+          "mean": 21718277,
+          "samples": [
+            21718277,
+            21718277,
+            21718277,
+            21718277,
+            21718277
+          ]
+        },
+        "notSeparable": [
+          {
+            "field": "ocrReadyMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "modelLoadMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "inferenceMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          }
+        ],
+        "basis": "timed from performance.timeOrigin of this navigation, inside the page: appReadyMs is the load event and firstResultMs is the instant the draft-review node was observed"
+      },
+      "warm": {
+        "required": true,
+        "label": "Warm visit — same context, page.reload(), answered by the active caches",
+        "appReadyMs": {
+          "n": 5,
+          "min": 20.4,
+          "median": 20.8,
+          "max": 23.9,
+          "mean": 21.5,
+          "samples": [
+            20.6,
+            20.8,
+            23.9,
+            21.7,
+            20.4
+          ]
+        },
+        "firstResultMs": {
+          "n": 5,
+          "min": 579.3,
+          "median": 623.5,
+          "max": 661.5,
+          "mean": 624.1,
+          "samples": [
+            620.9,
+            623.5,
+            661.5,
+            635.3,
+            579.3
+          ]
+        },
+        "downloadBytes": {
+          "n": 5,
+          "min": 2700,
+          "median": 2700,
+          "max": 2700,
+          "mean": 2700,
+          "samples": [
+            2700,
+            2700,
+            2700,
+            2700,
+            2700
+          ]
+        },
+        "notSeparable": [
+          {
+            "field": "ocrReadyMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "modelLoadMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "inferenceMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          }
+        ],
+        "basis": "timed from performance.timeOrigin of this navigation, inside the page: appReadyMs is the load event and firstResultMs is the instant the draft-review node was observed"
+      },
+      "repeat": {
+        "required": false,
+        "label": "Second receipt — same page, sessions already in memory",
+        "appReadyMs": {
+          "n": 0,
+          "min": null,
+          "median": null,
+          "max": null,
+          "mean": null,
+          "samples": []
+        },
+        "firstResultMs": {
+          "n": 5,
+          "min": 420.6,
+          "median": 434.3,
+          "max": 443.3,
+          "mean": 433,
+          "samples": [
+            420.6,
+            425.2,
+            434.3,
+            443.3,
+            441.5
+          ]
+        },
+        "downloadBytes": {
+          "n": 5,
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "mean": 0,
+          "samples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "notSeparable": [
+          {
+            "field": "ocrReadyMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "modelLoadMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "inferenceMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          }
+        ],
+        "basis": "no navigation: the duration from handing the receipt over to the draft arriving, with the runtime and both sessions already in memory"
+      }
+    },
+    "desktop-chromium-cpu4x": {
+      "cold": {
+        "required": true,
+        "label": "Cold start — first visit, empty context, worker installs and verifies",
+        "appReadyMs": {
+          "n": 5,
+          "min": 104.8,
+          "median": 118.4,
+          "max": 134.8,
+          "mean": 119.7,
+          "samples": [
+            118.4,
+            112.5,
+            134.8,
+            104.8,
+            127.8
+          ]
+        },
+        "firstResultMs": {
+          "n": 5,
+          "min": 3588.1,
+          "median": 3817.6,
+          "max": 4162.5,
+          "mean": 3861.6,
+          "samples": [
+            3772.2,
+            3817.6,
+            4162.5,
+            3588.1,
+            3967.7
+          ]
+        },
+        "downloadBytes": {
+          "n": 5,
+          "min": 21718277,
+          "median": 21718277,
+          "max": 21718277,
+          "mean": 21718277,
+          "samples": [
+            21718277,
+            21718277,
+            21718277,
+            21718277,
+            21718277
+          ]
+        },
+        "notSeparable": [
+          {
+            "field": "ocrReadyMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "modelLoadMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "inferenceMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          }
+        ],
+        "basis": "timed from performance.timeOrigin of this navigation, inside the page: appReadyMs is the load event and firstResultMs is the instant the draft-review node was observed"
+      },
+      "warm": {
+        "required": true,
+        "label": "Warm visit — same context, page.reload(), answered by the active caches",
+        "appReadyMs": {
+          "n": 5,
+          "min": 39.2,
+          "median": 41.7,
+          "max": 44,
+          "mean": 41.4,
+          "samples": [
+            39.2,
+            39.7,
+            42.4,
+            41.7,
+            44
+          ]
+        },
+        "firstResultMs": {
+          "n": 5,
+          "min": 2255.1,
+          "median": 2375.2,
+          "max": 2411.3,
+          "mean": 2353.9,
+          "samples": [
+            2388.8,
+            2375.2,
+            2339,
+            2255.1,
+            2411.3
+          ]
+        },
+        "downloadBytes": {
+          "n": 5,
+          "min": 2700,
+          "median": 2700,
+          "max": 2700,
+          "mean": 2700,
+          "samples": [
+            2700,
+            2700,
+            2700,
+            2700,
+            2700
+          ]
+        },
+        "notSeparable": [
+          {
+            "field": "ocrReadyMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "modelLoadMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "inferenceMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          }
+        ],
+        "basis": "timed from performance.timeOrigin of this navigation, inside the page: appReadyMs is the load event and firstResultMs is the instant the draft-review node was observed"
+      },
+      "repeat": {
+        "required": false,
+        "label": "Second receipt — same page, sessions already in memory",
+        "appReadyMs": {
+          "n": 0,
+          "min": null,
+          "median": null,
+          "max": null,
+          "mean": null,
+          "samples": []
+        },
+        "firstResultMs": {
+          "n": 5,
+          "min": 1569.8,
+          "median": 1686.5,
+          "max": 2039.2,
+          "mean": 1720.9,
+          "samples": [
+            1579.9,
+            1729,
+            1569.8,
+            1686.5,
+            2039.2
+          ]
+        },
+        "downloadBytes": {
+          "n": 5,
+          "min": 0,
+          "median": 0,
+          "max": 0,
+          "mean": 0,
+          "samples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        "notSeparable": [
+          {
+            "field": "ocrReadyMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "modelLoadMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          },
+          {
+            "field": "inferenceMs",
+            "reason": "no test-only timing hook ships in the bundle (DECISIONS/0027 W15 following DECISIONS/0023 S1), and the app surfaces no OCR duration to the DOM at all — verified by grep of packages/pwa/src"
+          }
+        ],
+        "basis": "no navigation: the duration from handing the receipt over to the draft arriving, with the runtime and both sessions already in memory"
+      }
+    }
+  },
+  "runs": [
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "cold",
+      "sample": 0,
+      "appReadyMs": 37.8,
+      "firstResultMs": 1310,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:41051"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 6534383,
+      "pageObservedHeaderBytes": 2400,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 2,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "warm",
+      "sample": 0,
+      "appReadyMs": 20.6,
+      "firstResultMs": 620.9,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:41051"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "repeat",
+      "sample": 0,
+      "appReadyMs": null,
+      "firstResultMs": 420.6,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:41051"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "cold",
+      "sample": 1,
+      "appReadyMs": 38.8,
+      "firstResultMs": 1228.6,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:44163"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 6534383,
+      "pageObservedHeaderBytes": 2400,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 2,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "warm",
+      "sample": 1,
+      "appReadyMs": 20.8,
+      "firstResultMs": 623.5,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:44163"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "repeat",
+      "sample": 1,
+      "appReadyMs": null,
+      "firstResultMs": 425.2,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:44163"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "cold",
+      "sample": 2,
+      "appReadyMs": 37.6,
+      "firstResultMs": 1229.5,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:33421"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 6534383,
+      "pageObservedHeaderBytes": 2400,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 2,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "warm",
+      "sample": 2,
+      "appReadyMs": 23.9,
+      "firstResultMs": 661.5,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:33421"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "repeat",
+      "sample": 2,
+      "appReadyMs": null,
+      "firstResultMs": 434.3,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:33421"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "cold",
+      "sample": 3,
+      "appReadyMs": 40,
+      "firstResultMs": 1256.7,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:32969"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 6534383,
+      "pageObservedHeaderBytes": 2400,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 2,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "warm",
+      "sample": 3,
+      "appReadyMs": 21.7,
+      "firstResultMs": 635.3,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:32969"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "repeat",
+      "sample": 3,
+      "appReadyMs": null,
+      "firstResultMs": 443.3,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:32969"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "cold",
+      "sample": 4,
+      "appReadyMs": 40.6,
+      "firstResultMs": 1276.3,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:41891"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 6534383,
+      "pageObservedHeaderBytes": 2400,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 2,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "warm",
+      "sample": 4,
+      "appReadyMs": 20.4,
+      "firstResultMs": 579.3,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:41891"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "repeat",
+      "sample": 4,
+      "appReadyMs": null,
+      "firstResultMs": 441.5,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:41891"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "cold",
+      "sample": 0,
+      "appReadyMs": 118.4,
+      "firstResultMs": 3772.2,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:33313"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 253191,
+      "pageObservedHeaderBytes": 1200,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 6,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "warm",
+      "sample": 0,
+      "appReadyMs": 39.2,
+      "firstResultMs": 2388.8,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:33313"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "repeat",
+      "sample": 0,
+      "appReadyMs": null,
+      "firstResultMs": 1579.9,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:33313"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "cold",
+      "sample": 1,
+      "appReadyMs": 112.5,
+      "firstResultMs": 3817.6,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:45783"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 256191,
+      "pageObservedHeaderBytes": 1500,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 5,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "warm",
+      "sample": 1,
+      "appReadyMs": 39.7,
+      "firstResultMs": 2375.2,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:45783"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "repeat",
+      "sample": 1,
+      "appReadyMs": null,
+      "firstResultMs": 1729,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:45783"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "cold",
+      "sample": 2,
+      "appReadyMs": 134.8,
+      "firstResultMs": 4162.5,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:34183"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 253191,
+      "pageObservedHeaderBytes": 1200,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 6,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "warm",
+      "sample": 2,
+      "appReadyMs": 42.4,
+      "firstResultMs": 2339,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:34183"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "repeat",
+      "sample": 2,
+      "appReadyMs": null,
+      "firstResultMs": 1569.8,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:34183"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "cold",
+      "sample": 3,
+      "appReadyMs": 104.8,
+      "firstResultMs": 3588.1,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:39287"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 253191,
+      "pageObservedHeaderBytes": 1200,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 6,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "warm",
+      "sample": 3,
+      "appReadyMs": 41.7,
+      "firstResultMs": 2255.1,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:39287"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "repeat",
+      "sample": 3,
+      "appReadyMs": null,
+      "firstResultMs": 1686.5,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:39287"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "cold",
+      "sample": 4,
+      "appReadyMs": 127.8,
+      "firstResultMs": 3967.7,
+      "downloadBytes": 21718277,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:38019"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 253191,
+      "pageObservedHeaderBytes": 1200,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 6,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-0itO_252.js",
+          "status": 200,
+          "bodyBytes": 242513,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-DSs-D2Tf.css",
+          "status": 200,
+          "bodyBytes": 7980,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "warm",
+      "sample": 4,
+      "appReadyMs": 44,
+      "firstResultMs": 2411.3,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:38019"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-cpu4x",
+      "phase": "repeat",
+      "sample": 4,
+      "appReadyMs": null,
+      "firstResultMs": 2039.2,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:38019"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    }
+  ],
+  "provenance": {
+    "script": "benchmarks/scripts/measure-footprint.mjs",
+    "rules": "benchmarks/src/footprint/rules.ts (DECISIONS/0028 T1-T10, pinned by benchmarks/tests/footprint/pins.test.ts)",
+    "regenerate": "node benchmarks/scripts/measure-footprint.mjs && node benchmarks/scripts/render-footprint-table.mjs --write",
+    "table": "packages/core/README.md, between the footprint markers, generated by benchmarks/scripts/render-footprint-table.mjs",
+    "supersedes": "the harness measurement archived at benchmarks/results/footprint-2026-11-04-16ae8de.json (21,299,089 B cold / 14,848,852 B warm at 4 ORT threads). Also the withdrawn \"~4.3 MB complete OCR pipeline\" claim (ADR-002), which stays withdrawn.",
+    "sequencing": {
+      "blocks": "18",
+      "deferredTo": "17c",
+      "why": "ticket 18 writes claims against the generated table, and while that table is the harness's it would be citing harness bytes as product bytes — the exact failure ADR-002 and DECISIONS/0012 F1 exist to prevent. The ETag header change is post-SW honest measurement's remaining known cost and belongs to 17c, which changes what ships, not what is measured."
+    },
+    "note": "measuredAt and the request log are the record of one run on one machine. Latency is not a constant: it is a distribution of n samples on the declared class, and a different machine class will produce a different table."
+  }
+}

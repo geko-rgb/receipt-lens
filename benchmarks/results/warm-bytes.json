@@ -2,11 +2,11 @@
   "schemaVersion": "1.0",
   "kind": "warm-bytes",
   "protocol": "receipt-lens-warm-bytes/1",
-  "measuredAt": "2026-11-05T20:25:15.187Z",
+  "measuredAt": "2026-11-06T12:45:46.643Z",
   "git": {
-    "revision": "8349728ccc87f98d98b6a68a64ada6282bec756a",
-    "shortRevision": "8349728",
-    "branch": "ticket/17-service-worker-offline-cache"
+    "revision": "2782934d3828e1c3a6b97e330dfb1fa1464815d5",
+    "shortRevision": "2782934",
+    "branch": "ticket/17c-etag-code-assets"
   },
   "claim": "F12's remedy, measured: what one warm visit costs over the wire now that the service worker's Cache API holds the runtime WASM.",
   "deployment": {
@@ -23,30 +23,30 @@
   "byteCounting": "summed from the origin's own request log (DECISIONS/0012 F5), so a response the worker served never appears as a byte moved over the wire",
   "samples": {
     "n": 5,
-    "min": 6527,
-    "max": 6527,
-    "median": 6527,
-    "mean": 6527,
+    "min": 2700,
+    "max": 2700,
+    "median": 2700,
+    "mean": 2700,
     "samples": [
-      6527,
-      6527,
-      6527,
-      6527,
-      6527
+      2700,
+      2700,
+      2700,
+      2700,
+      2700
     ]
   },
   "coldVisit": {
     "n": 5,
-    "min": 21719410,
-    "max": 21719410,
-    "median": 21719410,
-    "mean": 21719410,
+    "min": 21718277,
+    "max": 21718277,
+    "median": 21718277,
+    "mean": 21718277,
     "samples": [
-      21719410,
-      21719410,
-      21719410,
-      21719410,
-      21719410
+      21718277,
+      21718277,
+      21718277,
+      21718277,
+      21718277
     ]
   },
   "requests": {
@@ -81,8 +81,8 @@
   },
   "warmPerAsset": {
     "/assets/models/manifest.json": 2700,
-    "/sw.js": 2872,
-    "/assets/cache-names-BCswqTtv.js": 955
+    "/sw.js": 0,
+    "/assets/cache-names-BCswqTtv.js": 0
   },
   "warmPaths": [
     "/assets/cache-names-BCswqTtv.js",
@@ -90,16 +90,17 @@
     "/sw.js"
   ],
   "before": {
-    "artifact": "benchmarks/results/footprint.json (ticket 08, harness deployment)",
+    "artifact": "benchmarks/results/footprint-2026-11-04-16ae8de.json (ticket 08, the §9 M1 harness deployment this replaces)",
     "secondVisitBytesOverTheWire": 14848852,
     "redownloadedOnEveryVisit": [
       "/ort/ort-wasm-simd-threaded.wasm"
     ],
-    "findingResolvedBy": null
+    "findingResolvedBy": null,
+    "measuredDeployment": "harness/index.html — the PROJECT(1).md §9 M1 minimal inference harness page"
   },
   "reduction": {
     "fromBytes": 14848852,
-    "toBytes": 6527,
-    "factor": 2275
+    "toBytes": 2700,
+    "factor": 5499.6
   }
 }

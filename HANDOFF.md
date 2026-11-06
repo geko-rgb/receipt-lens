@@ -894,3 +894,45 @@ filter that deleted the evidence its own pass condition asked for; and a `git st
 published a path with its first character missing. All three were caught by the cross-checks and by reading the
 numbers the generator printed - not by reading the code first. The net is the deliverable; one run that ships a
 negative byte count is worse than four that do not.
+
+## Ticket 17c complete (2026-11-06)
+
+Ticket 17c complete (2026-11-06): code assets answer conditional requests. One policy module
+(`benchmarks/src/footprint/etag-policy.ts`) is imported by **both** origins — `scripts/serve-app.mjs` (shipping)
+and `scripts/serve-measure-app.mjs` (measured) — because a parity test comparing two implementations of a policy
+can pass while the two have drifted. Code and app metadata: `no-cache` + content `ETag` (sha256 of the body, 32
+hex, strong, no `Last-Modified`), `304` with no body on a matching `If-None-Match`. Model weights, the
+dictionary and the runtime WASM keep `no-store` and advertise no validator: the worker's Cache API owns them and
+an HTTP-cache copy would be a second 21 MB and a stale-weights path around W5. The app shell keeps `no-store`.
+
+Published numbers, regenerated together in one branch with `git.dirtyPaths == []` on revision `2782934`: cold
+**21,718,277 B**, warm **2,700 B** (5499.6× against ticket 08's 14,848,852 B), `cacheHeldBytes`
+**21,459,809 B** (unchanged, as pinned — it is a derivation, not an observation). `/assets/cache-names-BCswqTtv.js, /sw.js` revalidate
+to `304`; the only warm body left is W6's `cache: "reload"` version probe at 2,700 B. Cold moved **−955 B**, which
+`DECISIONS/0029` P4 had pinned at ±0: a cold visit fetches the worker's module chunk twice and the second fetch
+now revalidates. The falsification is in the record with its mechanism, and the artifact publishes
+`conditionalRefetchesPerColdVisit` so the total has an explanation attached to it.
+
+Three defects this ticket found in 17b's work, all recorded rather than silently patched: the cold gate rejected
+*any* `304` where F9 condition 1 is about **first use** (invisible until 304s existed);
+`measure-warm-bytes.mjs`'s baseline wiring, pinned in 17b with a green test, was never connected to the driver
+(17c commit 1); and `verify:warm-bytes` had **no CI gate**, so T7's both-artifacts-in-one-commit condition was
+enforced only by remembering it — it now runs in `ci.yml` after the Chromium install.
+
+Tool traps unchanged and still true: `gh run watch --exit-timeout` does not exist in the installed gh;
+`waitForFunction` does not await a promise-returning predicate; no `sleep` in tool calls to wait for CI.
+
+**One latency cell failed its own stop trigger, and it is published as measured.** `DECISIONS/0029` P8 said to
+report a latency move beyond the run's spread: the committed run's unthrottled cold median is 1,256.7 ms against
+17b's 1,206.0 ms and the two within-run ranges do not overlap. The same 17c code measured 1,213 ms in an earlier
+pass on this branch, and the committed run's five cold samples drift monotonically (1,228.6 → 1,310.0) while
+17b's are flat; a loopback conditional round trip is microseconds, not 51 ms. So it is recorded as **not
+attributable to 17c**, with the variance evidence in `DECISIONS/0029`'s checkpoint-3 finding, and the artifact was
+**not** re-run until it matched the old number. The transferable lesson for any future latency comparison: five
+samples on one desktop cannot resolve a 4% difference, so comparing latency *between tickets* needs interleaved
+A/B runs in one process, not two artifacts measured an hour apart. Ticket 18 owns the README sentence that says
+what a published latency is accurate to.
+
+**Next: ticket 18 (privacy audit and claims), which 17c's merge unblocks against these numbers. ADR-002's dated
+amendment and 18's `Blocked by:` gaining 17b/17c are 18's to make.**
+

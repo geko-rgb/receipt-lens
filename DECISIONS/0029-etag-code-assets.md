@@ -321,3 +321,43 @@ added ~200 B of `304` header bytes to a total from which `DECISIONS/0012` F7 exc
 first cut put the model weights under `no-cache`, which would have doubled the on-device binary footprint to
 optimize 955 bytes.
 
+---
+
+## Checkpoint-3 finding — P8's stop trigger fired on one latency cell, and it is reported, not re-rolled
+
+`DECISIONS/0029` P8 said: if a latency number moves more than the run's own spread, report before committing. It
+moved.
+
+| cell | 17b committed | 17c committed | ranges overlap |
+|---|---:|---:|---|
+| unthrottled cold `firstResultMs` | 1,206.0 ms | 1,256.7 ms | **no** (1,186.7–1,226.1 vs 1,228.6–1,310.0) |
+| unthrottled warm | 618.7 ms | 623.5 ms | yes |
+| unthrottled repeat | 426.2 ms | 434.3 ms | yes |
+| 4× cold | 3,670.8 ms | 3,817.6 ms | yes |
+| 4× warm | 2,308.8 ms | 2,375.2 ms | yes |
+| 4× repeat | 1,566.3 ms | 1,686.5 ms | yes |
+
+Three pieces of evidence, and none of them is a mechanism claim:
+
+1. **Same-code variance exceeds the gap.** The 17c code on this branch measured unthrottled cold at **1,213 ms**
+   in the pre-commit pass (a dirty-tree run, discarded, not published) and **1,257 ms** in the committed run — a
+   44 ms swing with nothing in the deployment changed. 17b's own five runs of identical code spanned
+   1,206–1,240 ms.
+2. **The committed 17c run drifts within itself.** Its five cold samples are 1,228.6 → 1,229.5 → 1,256.7 →
+   1,276.3 → 1,310.0, monotonic across ~6 minutes. 17b's committed run's samples are flat. A trend inside a run is
+   machine state, not a property of the code under measurement.
+3. **The plausible mechanism is four orders of magnitude too small.** The header change adds one conditional
+   round trip over loopback per revalidated asset. Loopback RTT is microseconds; the gap is 51 ms.
+
+Disposition, and why it is this one: **publish the measurement as taken, and attach the variance evidence.**
+The alternative — re-running until the cell lands inside the old range — is fitting a measurement to an
+expectation, which is the specific act `DECISIONS/0012` F10 and ADR-002 exist to forbid. The number in the
+artifact is the one the tree produced; the claim a reader should take is "unthrottled first result is about
+1.2–1.3 s on this machine, and this deployment's latency is not separable from this machine's run-to-run
+variance at better than ~5%". That sentence belongs in the README's emulation caveat area for ticket 18 to
+own (it is a claim about claims), and it is flagged here rather than written into the generator, because
+17c's scope was headers and bytes.
+
+**What this costs the next session to know:** a footprint table with five samples per cell on a single desktop
+cannot resolve a 4% latency difference. If latency ever needs to be *compared* between tickets rather than
+published, the comparison needs interleaved A/B runs in one process — not two artifacts measured an hour apart.
