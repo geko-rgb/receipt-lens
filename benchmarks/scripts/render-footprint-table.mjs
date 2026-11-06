@@ -171,6 +171,48 @@ emit();
 emit("**Measured deployment:** " + code(deployment.entry) + " — the built, installable PWA. Served by " + code(deployment.servedBy.split(" — ")[0]) + ",");
 emit("the same origin the offline and capture specs run against.");
 emit();
+{
+  // P11.3's interpretation paragraph, derived rather than typed. The brief for ticket 18 carried "2,700 B — a
+  // 5,499.6x reduction" as if it were cold-versus-warm; 21,718,277 / 2,700 is 8,043.8x, and 5,499.6x is the
+  // *pre-ticket-17 warm visit* (14,848,852 B) divided by this one. Both are true, they are different claims, and
+  // publishing either as "the" reduction without naming its base is the class of error ADR-002 exists to forbid —
+  // so this paragraph names both bases and derives both factors from committed figures.
+  const factor = (value) => value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const round = (stat) => Math.round(stat.median).toLocaleString("en-US");
+  const classOf = (id) => {
+    const entry = results.latency?.[id];
+    if (!entry) throw new Error("footprint.json has no latency class " + id + " — the published paragraph reads it");
+    return entry;
+  };
+  const fast = classOf("desktop-chromium-unthrottled");
+  const slow = classOf("desktop-chromium-cpu4x");
+  const coldToWarm = downloadTotal.median / Math.max(1, warmTotal.median);
+  const supersededToWarm = supersededWarm / Math.max(1, warmTotal.median);
+  emit(
+    "**In one paragraph.** A cold visit — first load, models downloaded — moves **" + bytes(downloadTotal.median) +
+      " B**. A warm visit — a reload with the service worker controlling — moves **" + bytes(warmTotal.median) +
+      " B**: " + factor(coldToWarm) + "x less than the cold visit in this same measurement, and " + factor(supersededToWarm) +
+      "x less than the pre-ticket-17 warm visit it replaced (" + bytes(supersededWarm) + " B, " +
+      code("crossCheck.harnessWarmBytesOverTheWire") + "). The residual is the worker's deliberate model-manifest version",
+  );
+  emit(
+    "probe, not a cache miss. The caches hold " + bytes(heldTotal) + " B at install. Latency, medians: cold " +
+      round(fast.cold.firstResultMs) + " ms / warm " + round(fast.warm.firstResultMs) + " ms unthrottled, " +
+      round(slow.cold.firstResultMs) + " ms / " + round(slow.warm.firstResultMs) + " ms at 4x CPU throttle. Measured on a",
+  );
+  emit(
+    "synthetic " + results.measurement.image.lines.length + "-line receipt — a real receipt with more lines costs more per line, so these are a",
+  );
+  emit(
+    "floor rather than a bound. Latency at " + env.runtime.wasmThreads + " ORT thread" + (env.runtime.wasmThreads === 1 ? "" : "s") +
+      " (no COOP/COEP isolation, so the harness's 4-thread numbers do not carry over). Every figure above is derived from",
+  );
+  emit(
+    code("benchmarks/results/footprint.json") + " and " + code("benchmarks/results/warm-bytes.json") + " by this generator, and " +
+      code("verify:footprint") + " re-derives it in CI.",
+  );
+  emit();
+}
 emit("### What a first visit downloads");
 emit();
 emit("| Component | Request | Bytes | MB | Held for the next visit | Bytes of record |");
