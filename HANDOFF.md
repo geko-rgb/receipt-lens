@@ -860,3 +860,37 @@ numbers the generator printed. The safety net working is the point - one run tha
 is worse than four that do not.
 
 **Next: 17c (ETag on code assets + regenerate both artifacts together), then 18 (privacy audit and claims).**
+
+## Process notes for measurement tickets (added 2026-11-06, before ticket 17c)
+
+Three things ticket 17b learned that are not about the footprint and belong where the next session will read
+them.
+
+**Tool traps.**
+
+- `gh run watch --exit-timeout` is **not supported** by the installed gh, and the failure is quiet: the watcher
+  exits at once and a loop built on it reports empty conclusions while CI has already finished. Poll once with
+  `gh run list -R <owner>/<repo> --branch <branch> --limit 4 --json headSha,workflowName,event,status,conclusion`
+  instead, or read the web UI.
+- `page.waitForFunction` **does not await a predicate that returns a Promise** - it treats the Promise object as
+  truthy and resolves on the first poll. Measured on this tree: an async predicate that always resolves `false`
+  still resolved the wait in 17 ms, and the handle then yielded the awaited `false`. So an async in-page
+  condition inside `waitForFunction` is a gate that opens immediately, and wrapping it in
+  `.catch(() => false)` turns it into a gate that can never fail. Poll async conditions from the driver with an
+  explicit deadline; reserve `waitForFunction` for synchronous predicates.
+- **No `sleep` inside a Bash tool call to wait for CI.** It burns context on a blocked call and can hang the
+  session. A single list call is the check.
+
+**Deferred, with a named owner.** The duplicate-fetch optimisation is **17e** in the backlog: the worker
+precaches with `cache: "reload"`, so a cold visit fetches `/assets/index-*.js` twice (242,513 B of the
+21,719,232 B cold total is the repetition, plus css, the bundle runtime and the worker module - **252,946 B**,
+1.1%). It is not a correctness fix; warm is already correct, and cold is 1.1% larger than it could be. It is
+deliberately *not* folded into 17c, which is a header ticket with a cross-check attached.
+
+**One measurement-ticket habit worth keeping.** Ticket 17b ran the full measurement four times, and the three
+re-runs each bought a *published field* that did not mean what it said: F5's header formula producing
+-18,325,445 B of "response headers" on a deployment whose bytes mostly move through the worker; a zero-transfer
+filter that deleted the evidence its own pass condition asked for; and a `git status` column slice that
+published a path with its first character missing. All three were caught by the cross-checks and by reading the
+numbers the generator printed - not by reading the code first. The net is the deliverable; one run that ships a
+negative byte count is worse than four that do not.
