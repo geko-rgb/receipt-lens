@@ -557,7 +557,7 @@ The claim is scoped and testable: receipt images and OCR text are processed loca
 5. Static-scan first-party code for `fetch`, `XMLHttpRequest`, `navigator.sendBeacon`, `WebSocket`, `EventSource`, `new Image().src`, `form.action`, and dynamic imports of remote URLs. Use this as a supplement to runtime assertions, not a standalone proof.
 6. Keep deliberate external actions (such as opening WhatsApp or sharing a bill) outside the receipt-inference egress claim. The share link intentionally contains selected parsed bill data; the receipt image and raw OCR text are excluded.
 
-`.github/workflows/privacy.yml` runs relevant checks on each pull request and blocks merges on failure. Document browser configuration, service-worker treatment, allowed same-origin assets, and limitations alongside reported results.
+`.github/workflows/privacy.yml` runs relevant checks on each pull request and blocks merges on failure. (Parenthetical, ticket 18: "blocks merges on failure" requires branch protection, which the current private-repo plan does not permit — see `DECISIONS/0030` P10. Enforcement activates at v1 publish when the repository goes public.) Document browser configuration, service-worker treatment, allowed same-origin assets, and limitations alongside reported results.
 
 ### Model and service-worker cache invalidation
 

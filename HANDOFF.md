@@ -756,6 +756,12 @@ must clear it through the review buttons (`review-assumed` on a draft, `review-i
 `reviewAssumedQuantity`). It was invisible before ticket 13 because no earlier spec asserted a clear checklist.
 
 ## Open items / owner decisions pending
+- **v1-publish action item (ticket 18, 2026-11-06): flip `privacy` from advisory to a required status check in
+  branch protection settings when the repository becomes public (v1 npm publish).** `DECISIONS/0030` P10 records the
+  gap; the resolution is a plan/visibility action, not a code change. Measured today against
+  `geko-rgb/receipt-lens`: `gh api …/branches/main` answers `protected: false`, and both the protection and rulesets
+  endpoints answer `403 — Upgrade to GitHub Pro`. So *"status check `unit` required"* in **Where everything lives**
+  above is an intention, not a setting this plan can read or write — re-verify it after the repo goes public.
 - **`@receipt-lens/core` is packable but not published, and declares no licence.** Ticket 07 made it
   publishable (`private` removed, `publishConfig.access: "public"`, `files` covers `dist` + `README.md`;
   `npm pack --dry-run` clean at 85.2 kB / 83 files) and stopped there. Nothing in the repo carries a
