@@ -108,6 +108,15 @@ const warmTotal = results.totals.secondVisitBytesOverTheWire;
 const paidOnWarm = results.assets.filter((asset) => asset.warmVisitCacheState === "requested-from-origin");
 const notSeparable = new Map((deployment.notSeparable ?? []).map((row) => [row.field, row.reason]));
 const supersededWarm = results.measurement.crossCheck.harnessWarmBytesOverTheWire;
+
+/**
+ * The archived §9 M1 measurement, read from the path this run already declares as its baseline. It is what lets
+ * the cold-bytes delta be derived rather than asserted: two committed artifacts, one subtraction, and a check
+ * below that the parts add back up. Paths from it are never printed — only roles and category sums — because a
+ * table of the PWA deployment must not carry a scaffold asset path into the published block.
+ */
+const harnessBaselinePath = results.measurement.crossCheck.harnessBaseline;
+const harnessArtifact = JSON.parse(readFileSync(path.join(repoRoot, harnessBaselinePath), "utf8"));
 const crossCheck = results.measurement.crossCheck;
 
 /** The declared reason a warm request is structural, from the artifact's own list. */
@@ -226,22 +235,95 @@ emit(
   "exempt from the per-entity limit but not from origin quota or eviction (" + code("DECISIONS/0027") + " W18).",
 );
 emit();
+
+emit();
+{
+  // The reader's obvious question: this table replaced a 21.30 MB cold figure with 21.72 MB. Answer it from the
+  // two committed artifacts, and fail the check if the pieces do not sum to the published difference.
+  const pwaCold = downloadTotal.median;
+  const harnessCold = harnessArtifact.totals.initialDownloadBytes.median;
+  const coldDelta = pwaCold - harnessCold;
+  const distinct = results.assets.reduce((sum, asset) => sum + asset.wireBytes, 0);
+  const repeatFetches = pwaCold - distinct;
+  const harnessCategories = harnessArtifact.totals.perCategoryBytes;
+  const appDelta = (results.totals.perCategoryBytes.app ?? 0) - (harnessCategories.app ?? 0);
+  const runtimeDelta = (results.totals.perCategoryBytes.runtime ?? 0) - (harnessCategories.runtime ?? 0);
+  const modelDelta = (results.totals.perCategoryBytes.model ?? 0) - (harnessCategories.model ?? 0);
+  const wasmBytes = (results.assets.find((asset) => asset.role === "Inference runtime WASM") ?? { wireBytes: 0 }).wireBytes;
+  const harnessWasmBytes = (harnessArtifact.assets.find((asset) => asset.role === "Inference runtime WASM") ?? { wireBytes: 0 }).wireBytes;
+  if (appDelta + runtimeDelta + modelDelta + repeatFetches !== coldDelta) {
+    note("the cold-bytes delta does not decompose: app " + appDelta + " + runtime " + runtimeDelta + " + model " + modelDelta + " + repeat fetches " + repeatFetches + " != published delta " + coldDelta);
+  }
+  if (wasmBytes !== harnessWasmBytes) {
+    note("the runtime WASM changed size between the archived measurement and this one (" + harnessWasmBytes + " B then, " + wasmBytes + " B now) — the decomposition below assumes it did not");
+  }
+  const seen = new Map();
+  const coldRuns = results.runs.filter((run) => run.phase === "cold");
+  const oneCold = coldRuns.find((run) => run.class === coldRuns[0].class && run.sample === 0);
+  for (const request of oneCold.wire) seen.set(request.url, (seen.get(request.url) ?? 0) + 1);
+  const repeats = [...seen.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([url, count]) => ({ url, count, extra: (count - 1) * (results.assets.find((asset) => asset.url === url)?.wireBytes ?? 0) }))
+    .sort((a, b) => b.extra - a.extra);
+  const biggestRepeat = repeats[0];
+  const repeatSum = repeats.reduce((sum, row) => sum + row.extra, 0);
+  if (repeatSum !== repeatFetches) {
+    note("the repeat-fetch row does not match the cold visit: per-url duplicates sum to " + repeatSum + " B, the published figure is " + repeatFetches + " B");
+  }
+
+  emit("### Why this cold figure is larger than the one it replaced");
+  emit();
+  emit("The superseded measurement published " + bytes(harnessCold) + " B for a first visit, in");
+  emit(code(harnessBaselinePath) + ". This deployment is " + code(deployment.entry) + ", and the");
+  emit("difference of **" + bytes(coldDelta) + " B** is a change in what ships, not a regression in what any one file");
+  emit("costs. It decomposes exactly, and " + code("verify:footprint") + " re-checks that arithmetic on every run:");
+  emit();
+  emit("| | Bytes | What it is |");
+  emit("|---|---:|---|");
+  emit("| Models and dictionary | " + bytes(modelDelta) + " | unchanged — the same committed " + bytes(results.totals.perCategoryBytes.model ?? 0) + " B set, verified against the same manifest |");
+  emit("| Inference runtime | +" + bytes(runtimeDelta) + " | the WASM is byte-identical at " + bytes(wasmBytes) + " B; the runtime's JS loader grew, because the build emits it into the app's asset graph instead of mounting it from a dependency directory |");
+  emit("| Application | +" + bytes(appDelta) + " | the Svelte shell, its stylesheet, the worker and its module chunk, three launcher icons, the route document and the web app manifest, less the scaffold's single application bundle |");
+  emit("| Repeat fetches inside one visit | +" + bytes(repeatFetches) + " | the worker precaches with " + code("cache: \"reload\"") + ", so it asks again for bytes the document just downloaded" + (biggestRepeat === undefined ? "" : ": " + code(biggestRepeat.url) + " alone accounts for " + bytes(biggestRepeat.extra) + " B of it, fetched " + biggestRepeat.count + " times, across " + repeats.length + " assets that move more than once") + " |");
+  emit("| **Total** | **+" + bytes(coldDelta) + "** | " + bytes(harnessCold) + " B became " + bytes(pwaCold) + " B |");
+  emit();
+  emit("Read the last row twice: a cold visit pays the shell " + (repeatFetches > 0 ? "twice" : "once") + ", and that is a property of a worker");
+  emit("refusing to trust a cached copy of its own shell, not of a larger bundle. The same mechanism is why the warm");
+  emit("visit is cheap, and the " + code("ETag") + " that would make those repeat fetches conditional is ticket 17c's subject.");
+  emit();
+}
 emit("### How long it takes");
 emit();
 emit("| Class | Phase | App ready | OCR ready | First result | Model load | Inference | Download |");
 emit("|---|---|---:|---:|---:|---:|---:|---:|");
 const notSeparableLabel = "*not separable*";
+
+// F8's "repeat" is a name that reads like a second visit. It is not one: the phase is the app's own re-run over
+// an image already decoded, with no navigation in it, and the row has to say that.
+const PHASE_LABEL = { repeat: "Re-run OCR (same image, no navigation)" };
 for (const classSpec of env.classes) {
   for (const phase of ["cold", "warm", "repeat"]) {
     const entry = results.latency[classSpec.id][phase];
     if (!entry) continue;
     const cell = (field) => (notSeparable.has(field) ? notSeparableLabel : ms(entry[field]));
     emit(
-      "| " + classSpec.id + " | " + phase + (phase === "repeat" ? " *(supplementary)*" : "") + " | " + cell("appReadyMs") + " | " + cell("ocrReadyMs") +
+      "| " + classSpec.id + " | " + (phase === "repeat" ? PHASE_LABEL.repeat : phase) + (phase === "repeat" ? " *(supplementary)*" : "") + " | " + cell("appReadyMs") + " | " + cell("ocrReadyMs") + " | **" + ms(entry.firstResultMs) + "** | " + cell("modelLoadMs") + " | " + cell("inferenceMs") + " | " + megabytes(entry.downloadBytes.median) + " MB |",
         " | **" + ms(entry.firstResultMs) + "** | " + cell("modelLoadMs") + " | " + cell("inferenceMs") + " | " + megabytes(entry.downloadBytes.median) + " MB |",
     );
   }
 }
+
+emit();
+emit("**What the latency numbers are measured on.** The receipt is synthetic and deliberately small:");
+emit(results.measurement.image.width + "×" + results.measurement.image.height + ", " + results.measurement.image.lines.length + " declared text lines (" + results.measurement.image.lines.map((line) => code(line)).join(", ") + "),");
+emit("parsed to " + env.underTest.draftEvidence + ". It is the identical fixture that");
+emit(code("playwright/capture.spec.ts") + " and " + code("playwright/offline-reload.spec.ts") + " draw, and it is drawn in the page rather than");
+emit("loaded from a dataset so that the input to a published latency number is committed code with a hash, not a");
+emit("2.7 GB snapshot only one machine has. **So these numbers answer “how long does a user wait for a first");
+emit("result on a small receipt” — they are not a bound on larger ones.** A faded thermal receipt with 20+ lines,");
+emit("tighter leading or perspective distortion produces more detection boxes, more recognition passes and more");
+emit("reviewable rows, and the pipeline's cost is per line, so the figures above are a floor rather than a ceiling.");
+emit("The superseded scaffold run measured a different image as well (a 463×1013 dataset photograph), so pre-17 and");
+emit("post-17 latency are not comparable on image size as well as on thread count.");
 emit();
 emit("*App ready* is this deployment's " + code("load") + " event: the shell document, its entry chunk and its styles are parsed and the capture");
 emit("view can accept a file. *First result* is navigation start to the DOM state " + code("playwright/capture.spec.ts") + " already treats as");

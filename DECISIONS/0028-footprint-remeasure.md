@@ -403,6 +403,26 @@ artifact, and none of them changed a published number by assumption.
    `TICKET_17_MERGED_ON`. The finding's text is verbatim ticket 08's, as W16 requires; only the date follows
    the event it names.
 
+6. **The cold-bytes delta against ticket 08 is +420,143 B and it decomposes exactly** (21,299,089 B scaffold →
+   21,719,232 B PWA). It is not one thing: +117,613 application (the Svelte shell, its stylesheet, the worker and
+   its module chunk, three launcher icons, the route document and the web app manifest, less the scaffold's single
+   144,526 B bundle), +49,584 runtime JS loader (the build emits it into the app's asset graph instead of mounting
+   it from the dependency directory), 0 models (byte-identical set, same manifest), and **+252,946 from assets
+   fetched more than once inside a single cold visit** — the worker precaches with `cache: "reload"`, so it asks
+   again for bytes the document just downloaded, and the entry chunk alone accounts for 242,513 B of that across
+   2 fetches. The generator emits this decomposition from the two committed artifacts and
+   `verify:footprint` re-checks that the four parts sum to the published difference, so the sentence cannot rot
+   into a story. **Not a regression in any file's cost; a change in what ships.**
+7. **The latency fixture is a four-line synthetic receipt, and the table says so.** Cold 1,206 ms answers "how
+   long until a first result on a small receipt" and is a floor, not a ceiling: the pipeline's cost is per line,
+   so a 20+-line faded thermal photograph costs more detection, more recognition and more rows. The fixture is
+   the one `playwright/capture.spec.ts:134` and `playwright/offline-reload.spec.ts:160` draw, declared in the
+   artifact by its four lines, dimensions, byte count and SHA-256.
+8. **The repeat row is labelled for what it measures.** F8 calls it "repeat", which reads like a second visit; it
+   is the app's own re-run over an already-decoded image with no navigation in it. The generated table prints
+   **"Re-run OCR (same image, no navigation)"** on that row, with `supplementary` kept, so 427 ms cannot be
+   misread as a return-visit cost — a return visit is the warm row, 619 ms.
+
 **The escape hatch was not used.** Latency shipped with bytes in this ticket: `appReadyMs` and
 `firstResultMs` are measured against the real capture UI for both classes, and the three fields that cannot be
 separated are published as unseparable rather than carried over. No `17d` was opened, `17c` stays the header
