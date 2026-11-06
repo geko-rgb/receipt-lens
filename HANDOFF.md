@@ -823,3 +823,40 @@ Ticket 16 complete (2026-11-05): snapshot assembly + /share route + codec all me
 ## Ticket 17 complete (2026-11-06)
 
 Ticket 17 complete (2026-11-06): service worker, install prompt, offline-reload spec, warm-bytes measurement all merged. F12 remedy confirmed: warm visit 14,848,852 B → 6,527 B (2,275× reduction, WASM absent from warm bytes), measured on PWA deployment via measure-warm-bytes. The full footprint table re-derivation deferred to ticket/17b-footprint-remeasure (blocks ticket 18). measure-footprint.mjs still measures the harness; its NOT_RETAINABLE exception is correct there and stays until 17b moves the deployment. Hand-written worker (W1.0) — no Workbox, no vite-plugin-pwa, maxFileSizeToCacheInBytes silent-drop risk eliminated by build-time completeness guard (W1.1, runs in writeBundle). beforeinstallprompt does not fire in headless Chromium — install-prompt offering is a manual check ticket 18 inherits. Probe deleted (294 MB freed), whatnext.md at .scratch/receipt-lens-v1/notes/. Next: ticket 17b, then ticket 18.
+
+## Ticket 17b complete (2026-11-06)
+
+Ticket 17b complete (2026-11-06): footprint re-derived on the PWA deployment. `footprint.json` (protocol
+`receipt-lens-footprint/2`) cites cold **21,719,232 B** / warm **6,527 B** / `cacheHeldBytes`
+**21,459,809 B**, latency cold **1,206 ms** / warm **619 ms** native and **3,671 ms** / **2,309 ms** at 4x
+throttle, with app-ready 36 ms and 103 ms, measured on ticket 10/17's synthetic four-line canvas receipt
+(900x1200) and published alongside that scope note. **T3's ±0 cross-check passed byte-identically**:
+`measure-footprint.mjs` and `measure-warm-bytes.mjs` both report 6,527 B across all ten warm samples, and
+`warm-bytes.json` is unchanged (sha256 `dfa19a1c...`) with `measure-warm-bytes.mjs` still its only writer.
+
+`NOT_RETAINABLE` is gone from the measurement code (grep: 0), deleted in the same commit that moved the
+deployment, which is the sequencing `DECISIONS/0012` F12 designed and W14.4 recorded; it survives as prose in
+`DECISIONS/0012` and `DECISIONS/0028`, which is where a deleted thing should be described.
+`maxFileSizeToCacheInBytes` remains absent as configuration (one comment in ticket 17's `vite.config.ts`
+explains the W1.1 build-time guard that replaced it). Hand-written worker remains the only service worker.
+`ocrReadyMs`, `modelLoadMs` and `inferenceMs` are published as **not separable** - `DECISIONS/0027` W15
+corrected, because the app surfaces no OCR duration to the DOM (grep-verified). Ticket 08's finding is closed
+with `resolvedBy: "ticket 17"` and its text untouched, and the open 955 B worker-module-chunk finding is
+published with **17c** named as its owner: 17c changes the `ETag` header and regenerates both artifacts in one
+commit. **18 is unblocked** - 17b was the last ticket its claims depended on.
+
+Tool trap worth remembering: **`page.waitForFunction` does not await a predicate that returns a Promise.** It
+treats the Promise object as truthy and resolves on the first poll - measured, an always-`false` async
+predicate resolved in 17 ms and the handle then yielded the awaited `false`. An async in-page condition written
+the obvious way is therefore a gate that opens immediately: poll async conditions from the driver with an
+explicit deadline, and reserve `waitForFunction` for synchronous predicates.
+
+Measurement cost worth remembering: four full runs (about 8 minutes each). Three were re-runs after a published
+*field* turned out not to mean what it said - F5's header formula producing -18,325,445 B of "response headers"
+on a deployment whose bytes mostly move through the worker, a zero-transfer filter that deleted W15's own
+evidence, and a `git status` column slice that published a path with its first character missing. None of them
+were caught by reading the code first; all of them were caught by the cross-checks and by looking at the
+numbers the generator printed. The safety net working is the point - one run that ships a negative byte count
+is worse than four that do not.
+
+**Next: 17c (ETag on code assets + regenerate both artifacts together), then 18 (privacy audit and claims).**

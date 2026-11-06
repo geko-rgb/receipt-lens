@@ -6,8 +6,13 @@ visible effect is that the warm visit stops paying for the worker's 955 B module
 numbers move.
 
 **Blocked by:** 17b (re-derive the footprint on the PWA deployment)
-**Blocks:** 18 (privacy audit and claims) — 18 writes claims against the generated table, so it must read the
-post-header-change table, not the pre-change one.
+**Blocks:** *potentially* 18 (privacy audit and claims) — this needs an owner's sequencing call, not an
+assumption. 17b's merge unblocks 18 against the current honest table. 17c would then move one published number
+(a warm visit from 6,527 B to about 5,572 B), and any 18 claim quoting the warm figure would have to be
+re-cited. Two coherent options: (a) 18 waits for 17c so its claims are written against the final bytes, or
+(b) 18 proceeds now and 17c is a deliberate, recorded regeneration of a table 18 already cites. **The
+recommendation is (a) only if 17c lands quickly — it is a small change — otherwise 18's privacy audit is the
+gating work and should not wait on 955 bytes.**
 **Status:** ready-for-agent
 **Effort:** ~2 h · **Roadmap:** workstream 3A · **Milestone:** M3
 

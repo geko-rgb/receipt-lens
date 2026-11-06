@@ -446,16 +446,48 @@ chunk is the one of them that could be fixed — an `ETag` on code assets — an
 effect is a smaller published number belongs in a ticket that says so (`DECISIONS/0028` T7). Durability is requested, not assumed: the Cache API is
 exempt from the per-entity limit but not from origin quota or eviction (`DECISIONS/0027` W18).
 
+
+### Why this cold figure is larger than the one it replaced
+
+The superseded measurement published 21,299,089 B for a first visit, in
+`benchmarks/results/footprint-2026-11-04-16ae8de.json`. This deployment is `packages/pwa/dist/app/index.html`, and the
+difference of **420,143 B** is a change in what ships, not a regression in what any one file
+costs. It decomposes exactly, and `verify:footprint` re-checks that arithmetic on every run:
+
+| | Bytes | What it is |
+|---|---:|---|
+| Models and dictionary | 0 | unchanged — the same committed 6,279,992 B set, verified against the same manifest |
+| Inference runtime | +49,584 | the WASM is byte-identical at 14,848,852 B; the runtime's JS loader grew, because the build emits it into the app's asset graph instead of mounting it from a dependency directory |
+| Application | +117,613 | the Svelte shell, its stylesheet, the worker and its module chunk, three launcher icons, the route document and the web app manifest, less the scaffold's single application bundle |
+| Repeat fetches inside one visit | +252,946 | the worker precaches with `cache: "reload"`, so it asks again for bytes the document just downloaded: `/assets/index-0itO_252.js` alone accounts for 242,513 B of it, fetched 2 times, across 4 assets that move more than once |
+| **Total** | **+420,143** | 21,299,089 B became 21,719,232 B |
+
+Read the last row twice: a cold visit pays the shell twice, and that is a property of a worker
+refusing to trust a cached copy of its own shell, not of a larger bundle. The same mechanism is why the warm
+visit is cheap, and the `ETag` that would make those repeat fetches conditional is ticket 17c's subject.
+
 ### How long it takes
 
 | Class | Phase | App ready | OCR ready | First result | Model load | Inference | Download |
 |---|---|---:|---:|---:|---:|---:|---:|
 | desktop-chromium-unthrottled | cold | 36 ms | *not separable* | **1206 ms** | *not separable* | *not separable* | 21.72 MB |
 | desktop-chromium-unthrottled | warm | 20 ms | *not separable* | **619 ms** | *not separable* | *not separable* | 0.01 MB |
-| desktop-chromium-unthrottled | repeat *(supplementary)* | — | *not separable* | **426 ms** | *not separable* | *not separable* | 0.00 MB |
+| desktop-chromium-unthrottled | Re-run OCR (same image, no navigation) *(supplementary)* | — | *not separable* | **426 ms** | *not separable* | *not separable* | 0.00 MB |
 | desktop-chromium-cpu4x | cold | 103 ms | *not separable* | **3671 ms** | *not separable* | *not separable* | 21.72 MB |
 | desktop-chromium-cpu4x | warm | 39 ms | *not separable* | **2309 ms** | *not separable* | *not separable* | 0.01 MB |
-| desktop-chromium-cpu4x | repeat *(supplementary)* | — | *not separable* | **1566 ms** | *not separable* | *not separable* | 0.00 MB |
+| desktop-chromium-cpu4x | Re-run OCR (same image, no navigation) *(supplementary)* | — | *not separable* | **1566 ms** | *not separable* | *not separable* | 0.00 MB |
+
+**What the latency numbers are measured on.** The receipt is synthetic and deliberately small:
+900×1200, 4 declared text lines (`RECEIPT`, `COFFEE 4.50`, `TOTAL 100.00`, `CASH 100.00`),
+parsed to 1 item rows / 0 charge rows rendered from the declared image, zero-items state false. It is the identical fixture that
+`playwright/capture.spec.ts` and `playwright/offline-reload.spec.ts` draw, and it is drawn in the page rather than
+loaded from a dataset so that the input to a published latency number is committed code with a hash, not a
+2.7 GB snapshot only one machine has. **So these numbers answer “how long does a user wait for a first
+result on a small receipt” — they are not a bound on larger ones.** A faded thermal receipt with 20+ lines,
+tighter leading or perspective distortion produces more detection boxes, more recognition passes and more
+reviewable rows, and the pipeline's cost is per line, so the figures above are a floor rather than a ceiling.
+The superseded scaffold run measured a different image as well (a 463×1013 dataset photograph), so pre-17 and
+post-17 latency are not comparable on image size as well as on thread count.
 
 *App ready* is this deployment's `load` event: the shell document, its entry chunk and its styles are parsed and the capture
 view can accept a file. *First result* is navigation start to the DOM state `playwright/capture.spec.ts` already treats as
