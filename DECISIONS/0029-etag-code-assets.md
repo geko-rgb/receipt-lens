@@ -343,8 +343,10 @@ Three pieces of evidence, and none of them is a mechanism claim:
    in the pre-commit pass (a dirty-tree run, discarded, not published) and **1,257 ms** in the committed run — a
    44 ms swing with nothing in the deployment changed. 17b's own five runs of identical code spanned
    1,206–1,240 ms.
-2. **The committed 17c run drifts within itself.** Its five cold samples are 1,228.6 → 1,229.5 → 1,256.7 →
-   1,276.3 → 1,310.0, monotonic across ~6 minutes. 17b's committed run's samples are flat. A trend inside a run is
+2. **The committed 17c run drifts within itself.** ~~Its five cold samples are 1,228.6 → 1,229.5 → 1,256.7 →
+   1,276.3 → 1,310.0, monotonic across ~6 minutes.~~ **Corrected before merge: that is the sorted array, not the
+   run order, and in run order the first sample is the maximum — see the verification section at the end of this
+   record.** 17b's committed run's samples are flat. A trend inside a run is
    machine state, not a property of the code under measurement.
 3. **The plausible mechanism is four orders of magnitude too small.** The header change adds one conditional
    round trip over loopback per revalidated asset. Loopback RTT is microseconds; the gap is 51 ms.
@@ -361,3 +363,71 @@ own (it is a claim about claims), and it is flagged here rather than written int
 **What this costs the next session to know:** a footprint table with five samples per cell on a single desktop
 cannot resolve a 4% latency difference. If latency ever needs to be *compared* between tickets rather than
 published, the comparison needs interleaved A/B runs in one process — not two artifacts measured an hour apart.
+
+### Checkpoint-3 verification, before merge: one sentence above is wrong about its own evidence
+
+Evidence 2 was checked against the committed `runs[]` array, and it does not say what the record claims.
+
+The five unthrottled cold samples **in run order** are 1,310.0 → 1,228.6 → 1,229.5 → 1,256.7 → 1,276.3. The
+monotonic sequence quoted above (1,228.6 → … → 1,310.0) is the **sorted** array, which is also how `samples[]`
+reads once the driver pushes them, and the sentence mistook the sorted list for the timeline. A trend inside a
+run is only evidence of machine state if it is a trend: what the artifact actually shows is a run whose
+**first sample is its maximum** — the shape you expect from a cold Chromium profile and a cold WASM compile
+cache, not from drift.
+
+What survives the check, and carries the same conclusion without the trend:
+
+| claim | in the artifact | 17b (6b3ca50) | 17c (2782934) |
+|---|---|---:|---:|
+| unthrottled cold range | `latency…cold.firstResultMs.min/max` | 39.4 ms (3.3% of median) | 81.4 ms (6.5%) |
+| 4× cold range | same, `desktop-chromium-cpu4x` | 267.2 ms (7.3%) | 574.4 ms (15.1%) |
+| samples with no trend | `runs[]` in order | down-up-down-up | max first, then a rise |
+| ranges overlap | min/max of the two runs | — | **no**: 1,226.1 < 1,228.6 |
+
+17b's samples are not "flat" either — they are a 39 ms range with no direction. The 17c run is simply noisier
+in every cell (its 4× repeat series is 1,569.8–1,729.0 with one 2,039.2 outlier), which is the honest form of
+the argument: the run-to-run and within-run spread of this machine is several times the size of the difference
+being attributed to a response header.
+
+**Disposition unchanged — published as measured, not re-rolled** — and the README now carries the comparison
+with its per-cell ranges, so a reader sees the non-overlap rather than being asked to trust a footnote. The
+lesson is sharper than the one originally written: a claim about a *trend* needs the run order, and every claim
+in this lineage has to be re-readable from the field it cites, including the claims this record makes about its
+own measurement.
+
+**P8, in the form the README cites.** Latency stop trigger fired on unthrottled cold `firstResultMs` —
+1,256.7 ms against 17b's 1,206.0, +50.7 ms (+4.2%), ranges non-overlapping. Published as measured, not
+re-rolled. The same code on this branch measured 1,213 ms in a pre-commit pass; the committed run spans
+1,228.6–1,310.0 with its maximum in the first sample, while 17b's five samples span 1,186.7–1,226.1 with no
+direction. The only mechanism the header change supplies is one conditional round trip over loopback per
+revalidated asset — microseconds, four orders of magnitude short of 51 ms. So the gap is not attributable to
+this ticket, and five samples on one desktop cannot resolve 4% anyway: a cross-ticket latency comparison needs
+interleaved A/B runs in one process, which is a follow-up ticket, not a re-run of this one.
+
+---
+
+## Implementation finding 9 — two strings in the committed artifacts described the ticket that wrote them, not the deployment measured
+
+`DECISIONS/0012` F1's discipline applies to prose as much as to bytes: a published artifact may not assert
+something the deployment contradicts. Three strings did.
+
+| Where | Said | Contradicted by |
+|---|---|---|
+| `footprint.json` `measurement.phases.warm.description` | "…because this origin answers no `304`" | `totals.assetsRevalidatedOnWarmVisits` in the same file: this origin answered `304` twice on every warm sample |
+| `footprint.json` `warmStructuralRequests[]` for `/assets/cache-names-*.js` | "the open defect ticket 17c owns" | `findings[].code: warm_worker_module_chunk_refetched`, `resolvedBy: "ticket 17c"` in the same file |
+| `warm-bytes.json` `deployment.servedBy` | "`cache-control: no-store`, exactly as the shipping server" | the two-policy contract P2 ruled, in `footprint.json`'s `deployment.cacheContract` |
+
+**Mechanism.** The F8 phase text and the structural reasons were literals in `measure-footprint.mjs`, and the
+served-by line was a literal in `measure-warm-bytes.mjs`. P5's pin updated the one copy of this class that
+already lived in the rule module (`deployment().cacheContract`), so the copies that had not been moved drifted
+silently — the same "a green rule does not make the behaviour correct" family as Blocker A, one level down.
+
+**Fix, and why it is not a hand edit of a measurement.** The phase descriptions and the structural reasons now
+come from `rules.ts` (`phaseDescriptions()`, `warmRequestReason(path, outcome)`), both drivers call them, and
+`render-footprint-table.mjs` fails when a committed artifact's prose differs from what those functions derive
+from that artifact's **own numbers**. The two committed artifacts were then repaired by calling those same
+functions, not by typing sentences. No numeric field moved: cold, warm, `cacheHeldBytes` and every latency
+sample in this file are the ones the run produced, so P8's "published, not re-rolled" disposition is untouched
+by this repair. Where the correction needed a fact the driver measures rather than derives — which asset
+carries the whole warm cost — the sentence is now assembled from the artifact's paid-path list, so the finding
+naming 2,700 B also names W6's `cache: "reload"` probe as its mechanism.
