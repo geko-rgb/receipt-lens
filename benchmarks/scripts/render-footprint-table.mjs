@@ -163,7 +163,7 @@ if (paidOnWarm.length > 0) {
     "| **Paid again on every visit** | " + paidOnWarm.map((asset) => code(asset.url)).join(" ") + " | **" +
       bytes(results.totals.requestedFromOriginEveryWarmVisitBytes) + "** | **" +
       megabytes(results.totals.requestedFromOriginEveryWarmVisitBytes) + "** | no | " +
-      paidOnWarm.map((asset) => asset.url + " — " + structuralReason(asset.url)).join("; ") + " |",
+      paidOnWarm.map((asset) => structuralReason(asset.url)).join("; ") + " |",
   );
 }
 emit(
@@ -173,7 +173,8 @@ emit(
 emit();
 emit(
   "| What the page itself observed | " + results.totals.coldPageObserved.resources.median + " cold / " +
-    results.totals.warmPageObserved.resources.median + " warm document resources | " +
+    results.totals.warmPageObserved.resources.median + " warm document resources, of which " +
+    results.totals.warmPageObserved.servedWithoutNetwork.median + " warm ones moved zero bytes | " +
     bytes(results.totals.coldPageObserved.transferBytes.median) + " cold / " + bytes(results.totals.warmPageObserved.transferBytes.median) +
     " B warm | | of which " + bytes(results.totals.coldPageObserved.headerBytes.median) + " B / " +
     bytes(results.totals.warmPageObserved.headerBytes.median) + " B are response headers | " +
@@ -181,6 +182,28 @@ emit(
 );
 emit();
 emit("MB = 10⁶ bytes. The receipt image is not in this table on purpose: it is user data, never a network request.");
+
+// The owner directive from ticket 11: the table has to reconcile to app shell / models+WASM / total. The
+// categories above are finer-grained, so this is a rollup of them — and the fourth row is what makes the three
+// add up, because one visit fetches some assets more than once.
+{
+  const distinct = results.assets.reduce((sum, asset) => sum + asset.wireBytes, 0);
+  const total = downloadTotal.median;
+  const app = results.totals.perCategoryBytes.app ?? 0;
+  const modelsAndWasm = (results.totals.perCategoryBytes.model ?? 0) + (results.totals.perCategoryBytes.runtime ?? 0);
+  const repeatFetches = total - distinct;
+  emit();
+  emit("**Reconciled to the three rows ticket 11 asks for.** These add to the initial download, and the fourth row");
+  emit("is why the first two do not: a cold visit is " + results.totals.requestsPerColdVisit.median + " requests for");
+  emit(results.assets.length + " assets, so some assets move more than once inside one visit.");
+  emit();
+  emit("| | Bytes | MB |");
+  emit("|---|---:|---:|");
+  emit("| App shell (document, entry script, styles, worker and its module, icons, web manifest) | " + bytes(app) + " | " + megabytes(app) + " |");
+  emit("| Models + inference runtime (WASM and its JS loader) | " + bytes(modelsAndWasm) + " | " + megabytes(modelsAndWasm) + " |");
+  emit("| Repeat fetches within the same visit | " + bytes(repeatFetches) + " | " + megabytes(repeatFetches) + " |");
+  emit("| **Total, first visit, empty cache** | **" + bytes(total) + "** | **" + megabytes(total) + "** |");
+}
 emit();
 emit(
   "**Initial download: " + megabytes(downloadTotal.median) + " MB. Second visit: " + bytes(warmTotal.median) + " B** — a warm visit moves " +

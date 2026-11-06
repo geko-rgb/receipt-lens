@@ -252,16 +252,12 @@ function pageEvidence() {
     swController: Boolean(navigator.serviceWorker.controller),
     userAgent: navigator.userAgent,
     // F5: the page's own view is a cross-check and the header cost, never the byte total.
-    resources: performance.getEntriesByType("resource")
-      .map((entry) => ({
-        path: new URL(entry.name, location.href).pathname,
-        transferBytes: entry.transferSize,
-        encodedBytes: entry.encodedBodySize,
-        decodedBytes: entry.decodedBodySize,
-      }))
-      // transferSize is 0 for anything read from a cache without revalidation, and then it carries no header
-      // cost either — only entries that actually came over the wire can price one.
-      .filter((entry) => entry.transferBytes > 0),
+    resources: performance.getEntriesByType("resource").map((entry) => ({
+      path: new URL(entry.name, location.href).pathname,
+      transferBytes: entry.transferSize,
+      encodedBytes: entry.encodedBodySize,
+      decodedBytes: entry.decodedBodySize,
+    })),
   };
 }
 
@@ -532,6 +528,13 @@ if (warmPathSets.length !== 1) {
 }
 
 /**
+ * The header cost of one page-observed resource. `transferSize` is 0 for anything served by a cache without
+ * revalidation, and such a resource moved no headers either — pricing it as `0 - encodedBodySize` is what
+ * produced a first draft that reported negative millions.
+ */
+const headerCost = (resource) => (resource.transferBytes === 0 ? 0 : Math.max(0, resource.transferBytes - resource.encodedBytes));
+
+/**
  * What the *document* could see, per phase. Reported beside the totals and never added to them (F5): the
  * worker's install precache, the WASM and the model downloads are not document resources, so the page's view is
  * a cross-check on a subset, not a second measurement of the same set.
@@ -541,14 +544,16 @@ function pageObservedOf(phase) {
     const resources = sample.phases[phase].evidence.resources;
     return {
       transferBytes: resources.reduce((sum, resource) => sum + resource.transferBytes, 0),
-      headerBytes: resources.reduce((sum, resource) => sum + Math.max(0, resource.transferBytes - resource.encodedBytes), 0),
+      headerBytes: resources.reduce((sum, resource) => sum + headerCost(resource), 0),
       resources: resources.length,
+      withoutNetwork: resources.filter((resource) => resource.transferBytes === 0).length,
     };
   });
   return {
     transferBytes: summarize(fromRuns.map((row) => row.transferBytes)),
     headerBytes: summarize(fromRuns.map((row) => row.headerBytes)),
     resources: summarize(fromRuns.map((row) => row.resources)),
+    servedWithoutNetwork: summarize(fromRuns.map((row) => row.withoutNetwork)),
   };
 }
 
@@ -607,8 +612,9 @@ for (const sample of observed) {
       zeroItems: entry.evidence.zeroItems,
       crossOriginIsolated: entry.evidence.crossOriginIsolated,
       pageObservedTransferBytes: entry.evidence.resources.reduce((sum, resource) => sum + resource.transferBytes, 0),
-      pageObservedHeaderBytes: entry.evidence.resources.reduce((sum, resource) => sum + Math.max(0, resource.transferBytes - resource.encodedBytes), 0),
+      pageObservedHeaderBytes: entry.evidence.resources.reduce((sum, resource) => sum + headerCost(resource), 0),
       pageObservedResources: entry.evidence.resources.length,
+      pageObservedWithoutNetwork: entry.evidence.resources.filter((resource) => resource.transferBytes === 0).length,
       wire: entry.wire.map((item) => ({ url: item.path, status: item.status, bodyBytes: item.bodyBytes, completed: item.completed })),
     });
   }
