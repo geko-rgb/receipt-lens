@@ -108,7 +108,16 @@ const gitInfo = {
   revision: git(["rev-parse", "HEAD"]),
   shortRevision: git(["rev-parse", "--short", "HEAD"]),
   branch: git(["rev-parse", "--abbrev-ref", "HEAD"]),
-  dirtyPaths: git(["status", "--porcelain"]).split("\n").filter((line) => line.trim() !== "").map((line) => line.slice(3)),
+  // Ask for the file lists directly rather than parsing `status --porcelain` columns: slicing a fixed offset
+  // out of a formatted line is how a first draft of this field published "ECISIONS/0028-…", a path that does
+  // not exist, because the line it was cut from did not have the shape the offset assumed.
+  dirtyPaths: [
+    ...git(["diff", "--name-only", "HEAD"]),
+    ...git(["ls-files", "--others", "--exclude-standard"]),
+  ]
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== ""),
 };
 
 const round = (value) => Math.round(value * 10) / 10;
@@ -764,7 +773,6 @@ const report = {
     }),
     cacheHeldBasis:
       "deterministic: the built worker's precache manifest (packages/pwa/dist/app/sw.js, stat'd from disk) plus the verified model set named by assets/models/manifest.json. Not 'bytes currently in the named caches', which would depend on eviction (DECISIONS/0028 T8, DECISIONS/0027 W18).",
-    secondVisitRevalidationOverheadPageObserved: summarize(observed.map((sample) => sample.phases.warm.evidence.resources.reduce((sum, resource) => sum + resource.transferBytes, 0))),
     assetsHeldByWorker: heldByWorker.length,
     assetsRequestedFromOriginEveryWarmVisit: paidOnWarm.map((asset) => asset.url),
     requestedFromOriginEveryWarmVisitBytes: paidOnWarm.reduce((sum, asset) => sum + asset.warmVisitBytesPaid, 0),
