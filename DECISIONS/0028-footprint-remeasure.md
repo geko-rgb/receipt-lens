@@ -131,7 +131,21 @@ ticket exists to remove.
 The **repeat** phase stays supplementary (0012 F8) and keeps F9 condition 5 unchanged: a second receipt in
 the same page must issue zero origin requests. It is a legitimate risk that W2.1's probe fires anyway; if it
 does, the run fails, the delta is reported, and the finding gets recorded in a record rather than
-pre-legislated out of the condition set.
+pre-legislated out of the condition set. (In the shipped measurement it does not: the repeat window is empty
+of origin requests in all ten samples.)
+
+**How the repeat phase is driven, since the pins did not say and the choice moves the number.** It is the
+app's own `[data-testid="process-btn"]` re-run on the same receipt, not a second file upload. Clearing the
+input to force a change event changes the intake path being measured and leaves the DOM's "a new draft
+arrived" condition ambiguous against the parse it is holding; `busy-state` appearing and then disappearing
+bounds the window unambiguously and is a real user action. The consequence is that repeat prices a second
+inference over an already-decoded image of the same dimensions — which is precisely F8's "sessions already in
+memory" — and `measurement.phases.repeat.description` says so on the artifact's face.
+
+**A field retired rather than redefined:** `totals.secondVisitRevalidationOverheadPageObserved` is dropped.
+Its name describes revalidation, which a `no-store` origin does not offer, and its value duplicated
+`totals.warmPageObserved.transferBytes` exactly. A field whose name has stopped meaning anything while its
+number is available elsewhere is deleted, not renamed.
 
 ## T5 — F9's fail-loud set, amended for a worker-served warm visit
 
