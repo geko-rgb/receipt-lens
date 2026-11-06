@@ -80,9 +80,27 @@ correctness argument rests on.
 **Pinned parity:** a test walks the asset classes and asserts both servers emit the same `cache-control`
 directive and the same validator for the same bytes. Not a comment saying they should agree.
 
-**Assets that get it** (the brief's list, corrected): `/assets/*.js`, `/assets/*.css`,
-`/assets/ort-wasm-simd-threaded-*.wasm`, `/assets/cache-names-*.js`, `/sw.js`, `/manifest.webmanifest`,
-`/icons/*.png`, `/assets/models/*.onnx`, `/assets/models/*.txt`, `/assets/models/manifest.json`.
+**P2 split, ruled at checkpoint 1 — two caching policies, not one.** The first cut put every static asset under
+`no-cache`. That was wrong on the merits: a model is 6.3 MB and the runtime WASM 14.85 MB, both already held by
+the worker's Cache API, so an HTTP-cache copy is a **second copy** that the worker never consults — it doubles
+on-device footprint for zero warm-visit gain, and it opens a stale-weights path that bypasses the worker's
+update protocol (`DECISIONS/0027` W5's verified-before-activate rule). So:
+
+| Policy | Assets | Why |
+|---|---|---|
+| **`no-cache` + `ETag`** | `/assets/*.js` (entry, bundle runtime, worker module, runtime JS loader), `/assets/*.css`, `/sw.js`, `/manifest.webmanifest`, `/icons/*.png`, `/assets/models/manifest.json` | code and metadata: small, revalidated every visit, and the whole point of the ticket |
+| **`no-store`, no validator** | `/assets/models/*.onnx`, `/assets/models/*.txt`, `/assets/ort-wasm-simd-threaded-*.wasm` | bulk binary: the Cache API owns it, an HTTP-cache copy would be dead weight and a staleness risk |
+
+Emitting an `ETag` on a `no-store` response would advertise a validator the client is forbidden to use, so the
+bulk assets get neither. `/assets/models/manifest.json` is in the `no-cache` group because it is *data about*
+the models — 2,700 B, re-read every visit by design (W6's probe) — not model bytes.
+
+**Two extensions of the approved list, made explicitly so they can be vetoed:** `/manifest.webmanifest` and
+`/icons/*.png` were not named in the ruling. They are app static metadata and artwork, not bulk binary and not
+user data, and their names are *not* content-hashed, which is exactly the case `no-cache` + a content validator
+serves. `/assets/ort-wasm-simd-threaded-*.wasm` takes the ruling's `no-store` slot: the brief named
+`/ort/*.wasm`, a harness mount that does not exist in this deployment (P2 above), and the emitted WASM is its
+equivalent here.
 
 **Not on the brief's list, and must not be added:** `/ort/*.wasm` — that mount belongs to the §9 M1 harness
 server, which 17b deleted from the measured deployment. Grepping `packages/pwa` for `wasmPaths` returns nothing,
@@ -105,21 +123,26 @@ three servers and only two changed?" deserves an answer in the record rather tha
 
 For an ETag'd asset:
 
-- **first response:** `200` with `cache-control: no-cache`, `etag`, `content-length`. `no-cache` means "you may
-  store this, but ask me every time" — which is the whole point: the browser keeps a copy to revalidate against,
-  and the origin still sees a request, so `DECISIONS/0012` F5's byte accounting keeps working and the privacy
-  audit still sees every request.
+- **first response:** `200` with `cache-control: no-cache`, `etag`, `content-length` — for the `no-cache`
+  asset group only (P2's split). `no-cache` means "you may store this, but ask me every time", which is the whole
+  point: the browser keeps a copy to revalidate against, and the origin still sees a request, so
+  `DECISIONS/0012` F5's byte accounting keeps working and the privacy audit still sees every request. Bulk
+  binaries keep `no-store` and serve no validator at all.
 - **`If-None-Match` equal:** `304` with `etag`, `cache-control: no-cache`, **no body, no `content-length`**.
   The origin log records `status: 304, bodyBytes: 0` — the existing `completed` marker (added by 17b for F9.7)
   must be set from the `end` callback of the header-only response, or every 304 looks like an interrupted
   download and 17b's F9.7 gate fails the run for a working feature.
 - **`If-None-Match` different, or absent:** `200` with the body. No 412, no special casing.
 
-**Privacy consequence, stated rather than discovered by ticket 18:** `no-cache` means app and model bytes are now
-written to the browser's HTTP cache, which `no-store` forbade. No *user* data is affected, because a receipt
-image is never a network request (`DECISIONS/0012` F7's exclusion, §9's claim) — but 18's audit wording about
-"what the deployment leaves on a device" now has a second storage surface to describe, alongside the Cache API
-(W18) and IndexedDB. Handed forward with the reason.
+**Privacy consequence, scoped by P2's split rather than discovered by ticket 18:** `no-cache` puts **code and
+metadata** (~256 KB: chunks, worker script, stylesheet, icons, web manifest, model manifest) into the browser's
+HTTP cache, which `no-store` forbade. Model weights, the dictionary and the runtime WASM do not — that is the
+ruling's point, and it keeps the doubling of a 21 MB binary footprint off the table. No *user* data is ever
+affected, because a receipt image is not a network request (`DECISIONS/0012` F7's exclusion, §9's claim). What
+ticket 18 now has to describe is a three-surface story rather than two: the worker's Cache API (W18: requested
+durability, not assumed), IndexedDB, and — for static code only — the HTTP cache. The defensible sentence is
+"code assets revalidate, model data is never HTTP-cached, the worker's Cache API owns model caching", and it is
+true of this deployment rather than aspirational.
 
 ## P4 — The re-derivation contract, and the three candidate warm numbers
 
@@ -164,11 +187,24 @@ nothing about a response header can move it. If it does move, the derivation was
 neither driver may write the other's artifact. A disagreement is a finding to report, not a bug to fix by
 editing a number.
 
-**A null result is a valid result.** If neither fetch becomes conditional, 17c ships the header (it is still the
-right contract for a deployment whose assets are static), publishes **6,527 B unchanged**, and records that the
-`ETag` did not move the number because a service worker's own module import is fetched the way its script is.
-`warm_worker_module_chunk_refetched` then stays open with a new reason, and 17c says so instead of shipping a
-smaller number it did not measure. **That branch is the difference between a ticket and a wish.**
+**A null result is a valid result — and ruling 2 named the mechanism to look for.** If neither fetch becomes
+conditional, 17c ships the header (still the right contract for a deployment whose assets are static), publishes
+**6,527 B unchanged**, and records *why* rather than leaving the reader to guess. The candidate mechanism, cross-
+referenced with 17b's duplicate-fetch finding: the worker precaches with `cache: "reload"`, which bypasses the
+browser's HTTP cache entirely — so no cached copy exists, no `If-None-Match` is ever sent, and an origin-side
+validator cannot help. If that is what the run shows, then:
+
+1. 17c ships the header anyway, because it *is* correct for requests that do go through the HTTP cache (the
+   first warm visit before the worker claims, and any fetch the worker does not make `reload`);
+2. 17c publishes 6,527 B unchanged, with the measured per-path statuses in the artifact so the claim is visible;
+3. 17c extends **17e**'s scope to "the worker's `cache: "reload"` precache bypasses the HTTP cache, which is
+   both why the cold visit fetches the shell twice *and* why an ETag does not move the warm number" — one
+   mechanism, two published symptoms, one owner;
+4. the README cites 6,527 B with a footnote saying a warm-byte reduction requires 17e, rather than implying a
+   fix that did not land.
+
+**That branch is the difference between a ticket and a wish.** Forcing the number down by suppressing the actual
+mechanism is the failure F12 was written to end.
 
 **Pins that go red and must be updated in the implementation commit — exactly these three:**
 
@@ -176,7 +212,7 @@ smaller number it did not measure. **That branch is the difference between a tic
 |---|---|---|---|
 | cache contract | `pins.test.ts:194` | `cacheContract` contains `no-store` | contains `no-cache` **and** `ETag`, and still says no `304` is *required* for the pass condition |
 | header guard | `pins.test.ts:467` | server contains `no-store`, no ETag | server emits a content-derived ETag and `no-cache` for code assets, `no-store` for the document |
-| deployment text | `rules.ts` `deployment().cacheContract` | "answers no 304 to anything, so warm liveness is proven by …" | "answers `200` or `304`; warm liveness is proven by **no body served over the origin** for anything the caches hold, and a `304` is evidence *for* the claim, not against it" |
+| deployment text | `rules.ts` `deployment().cacheContract` | "answers no 304 to anything, so warm liveness is proven by …" | "answers `200` or `304`; code assets revalidate under `no-cache` + `ETag`, bulk binaries stay `no-store` with no validator; warm liveness is proven by **no body served over the origin** for anything the caches hold, and a `304` is evidence *for* the claim, not against it" |
 
 `DECISIONS/0012` F9's 17b amendment (condition 3: "no network request served the body") needs a matching
 sentence, because a `304` is a network request that serves no body — the amended wording said "absent from the
@@ -245,3 +281,21 @@ state has not been updated, only re-run.
 - **Whether `no-cache` is the right long-term contract** for a deployment whose code assets are content-hashed.
   For `/assets/index-<hash>.js` an immutable cache would be faster still; this ticket deliberately does not go
   there, because "always revalidate" is what the current privacy and update-prompt story assumes.
+
+
+---
+
+## Checkpoint-1 rulings (2026-11-06), and what each one changed in this record
+
+| | Ruling | Effect |
+|---|---|---|
+| 1 | **Blocker A lands in 17c commit 1**, not a separate ticket | Done first: `warmBytesBeforeBlock()` in the rule module, the driver calling it, and a test bound to the *driver* rather than the rule. Three of four assertions were red before the wiring; the one that was already green is the lesson — a green rule test did not make the behaviour correct |
+| 2 | **Null result pre-authorized**, with the mechanism named | P5 rewritten: `cache: "reload"` is the candidate cause, 17e absorbs it, README footnotes 6,527 B rather than implying a fix that did not land |
+| 3 | **`no-cache` for code only; models and WASM keep `no-store`** | P2 split into two policy rows; P3 and the privacy paragraph scoped accordingly; the 14.85 MB WASM and the 6.3 MB model set never enter the HTTP cache |
+| 4 | **18 waits for 17c** | The 17c ticket file's "Blocks: *potentially* 18" becomes a real block: any of the three outcomes changes what the README must cite, so the audit is written against the final number |
+
+Two corrections to earlier text, kept visible rather than silently edited: the ticket file's `5,572 B` estimate
+added ~200 B of `304` header bytes to a total from which `DECISIONS/0012` F7 excludes headers, and this record's
+first cut put the model weights under `no-cache`, which would have doubled the on-device binary footprint to
+optimize 955 bytes.
+
