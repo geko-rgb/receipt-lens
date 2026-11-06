@@ -697,6 +697,15 @@ loopback origin, 20 s poll, online and after an offline reload). The e2e proves 
 fabricated event; whether a real browser offers install is a manual check nobody has run. Ticket 18 also
 inherits the audit scenario with workers *allowed*, asserting the worker's own egress (W19).
 
+**Cleanup in this branch (owner ruling, 2026-11-06):** `scripts/pwa-framework/` is deleted — 38 tracked probe
+files, its own lockfile and `results/framework-evidence.json`, which the 2026-11-04 ruling said to remove when
+10a merged and which survived three tickets. `DECISIONS/0017`'s Artifact Retention rule required an annotation
+on pruning, so it now states plainly that the G1 table is **no longer re-derivable** and where its numbers
+live on instead. The repo is consequently free of `workbox`/`vite-plugin-pwa` by grep, not merely by the
+lockfile. `whatnext.md` was the owner's paste-ready ruling text — session and planning content, so it is
+tracked now at `.scratch/receipt-lens-v1/notes/whatnext.md` rather than sitting untracked where `git add -A`
+keeps catching it (it landed in two commits that way before either push).
+
 **Next:** 17b (footprint table), then 18 (privacy audit). Nothing pushed or merged at the time of writing;
 PR per standing rules.
 
