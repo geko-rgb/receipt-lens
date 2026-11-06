@@ -160,6 +160,20 @@ is now read from the DOM state rather than a hook: a warm/cold run that renders 
 survives the move: W17 allows this file an opt-in request log "in the shape F5 needs", and today it lacks
 the one field a completeness check needs. Additive, default behaviour byte-identical, no header change.
 
+**Addition ruled at checkpoint 2 (owner-approved): fail-loud violations carry machine-readable codes, not
+messages.** Every violation throws `FootprintFailLoud` with a `code` from the `FailLoudCode` union, and the
+pins assert `code === "…"` — never `.toThrow(/message/)` — with a separate `not.toThrow()` form for the cases
+that must pass. This prevents stub implementations from satisfying assertions via stub-message substring
+matches, which was the failure mode of the first draft: eight assertions were vacuous and three of them were
+actually green, because their regex matched the word `WASM` in the stub's own apology. A keyword regex is a
+claim about prose; a code is a claim about a branch.
+
+**Addition ruled at checkpoint 2, same reasoning: F9.5's repeat phase has a DOM form.** `busy-state` renders
+only while `{#if busy}` holds, so "the second receipt touched the network" is measured over an origin-log
+window bounded by `busy-state` appearing and then disappearing — and that same pair of signals is what makes
+the repeat row's `firstResultMs` a duration rather than a navigation-relative instant, because the repeat
+phase has no navigation to be relative to.
+
 ## T6 — `NOT_RETAINABLE` is deleted *in the commit that moves the deployment*, never before
 
 W14.4's amendment is the whole point: on the harness the declaration is **still true** — the harness has no
@@ -221,6 +235,14 @@ Only measurement belongs in the measurement ticket. 17c is opened at
   field becomes `cacheHeldBytes`: bytes held by the active caches, derived from the precache manifest plus
   the verified model set, with F7's HTTP-cache sentence amended in place in `DECISIONS/0012`. A field that
   silently reads 0 because the mechanism changed would be the loudest possible understatement.
+- **`totals.cacheHeldBytes` is deterministic, not observational (ruled at checkpoint 2).** It is
+  `sum(bytes of every entry in the built worker's precache manifest) + sum(bytes of the verified model set
+  named by assets/models/manifest.json)`, both read from files on disk. It is **not** "sum of the responses
+  currently sitting in the named caches": that would make a published byte count depend on eviction, on which
+  cache a previous run left behind, and on the storage-pressure behaviour W18 refuses to assume away. The
+  first is re-derivable by `verify:footprint` from committed inputs; the second is a weather report. The
+  renderer re-derives both sums from the built `dist/app/sw.js` manifest and the committed model manifest and
+  fails on drift, which is what makes the distinction enforced rather than asserted.
 - The harness artifact needs **no new archive copy**: `footprint.json` on `main` was measured at
   `2026-11-04T06:25:09.912Z` at revision `16ae8de`, and `benchmarks/results/footprint-2026-11-04-16ae8de.json`
   is already byte-identical to it (`cmp`, 2026-11-06). W14.1's obligation is discharged by ticket 08's own
@@ -240,7 +262,12 @@ Only measurement belongs in the measurement ticket. 17c is opened at
   archived harness artifact** (`footprint-2026-11-04-16ae8de.json`), so `before` keeps naming the deployment
   it is actually comparing against, and `warm-bytes.json`'s published 6,527 B and 2,275× do not move. This
   is a *source of a number* fix, not a re-measurement, which keeps it inside 17b's scope; the measured number
-  itself is untouched and `measure-warm-bytes.mjs` remains the only writer of that artifact.
+  itself is untouched and `measure-warm-bytes.mjs` remains the only writer of that artifact. **Approved at
+  checkpoint 2 with the consequence stated plainly: `warm-bytes.json`'s measured 6,527 B does not move in
+  17b, is not rewritten by 17b, and keeps the bytes it has on `main`. Only its `before` block's provenance
+  changes, and it changes the next time that artifact is regenerated — which is 17c's job. 17b's deliverable
+  is that when someone re-runs `pnpm measure:warm-bytes`, the `before` numbers that come out are still
+  ticket 08's.**
 - **`pnpm verify:footprint` survives, and only its inputs change.** It remains `render-footprint-table.mjs
   --check`: regenerate the README block from `footprint.json`, fail on drift, re-stat and re-hash every
   committed asset, re-hash the manifest, and require the dated archive to be byte-identical. The renderer
@@ -282,6 +309,14 @@ committed measurement of the deployment users actually receive. While the table 
 claim it would cite cites scaffold bytes — and the ordering was already corrected at ticket 17's checkpoint
 3 for exactly that reason. This sentence is restated here so a future session does not have to rediscover
 it from two records and a HANDOFF paragraph.
+
+**Handed to 18, approved as a forward at checkpoint 2:** `docs/adr/0002`'s present-tense *"the runtime binary
+is not held in the HTTP cache at that size, so a warm visit is not free. Both are in the table with their
+measured values"* goes stale the moment this table moves. It is ticket 18's claim surface and outside 17b's
+approved edit set (`DECISIONS/0012` and `DECISIONS/0027` only). **Ticket 18 amends ADR-0002 with a dated
+note: pre-17 values superseded by ticket 17's 6,527 B warm measurement, cited from
+`benchmarks/results/warm-bytes.json`** — a dated note, not a rewrite, because the ADR's own history of
+withdrawing "~4.3 MB" is the evidence that the discipline worked.
 
 ## Escape hatch, restated as a discipline
 
