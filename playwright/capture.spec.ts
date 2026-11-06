@@ -11,6 +11,7 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -210,7 +211,11 @@ test("recrop and rerun keep the previous parse until discarded or accepted", asy
 
 test("no receipt image bytes reach any store", async ({ page }) => {
   await page.goto(baseUrl);
-  await upload(page, await receiptPng(page, RECEIPT_LINES));
+  // Held in the driver and hashed there, so the census below can compare it against every cached response
+  // body byte for byte — the same technique offline.spec.ts uses for request bodies (DECISIONS/0013 T5).
+  const receipt = await receiptPng(page, RECEIPT_LINES);
+  const receiptSha = createHash("sha256").update(receipt).digest("hex");
+  await upload(page, receipt);
   await expect(page.getByTestId("draft-review")).toBeVisible({ timeout: 120_000 });
   // Ticket 14 kept the opt-in box off, and this is the case that proves "off" means off.
   await expect(page.getByTestId("keep-photo")).not.toBeChecked();
@@ -252,10 +257,67 @@ test("no receipt image bytes reach any store", async ({ page }) => {
   expect(census.stores.find((store) => store.name === "retainedImages")).toEqual({ name: "retainedImages", records: 0 });
   // (c) and nothing else was created to hold one instead — the store list is exactly the pinned three.
   expect(census.names).toEqual(["bills", "creatorProfile", "retainedImages"]);
-  // The other three storage surfaces are untouched, unchanged from ticket 10.
+  // The other three storage surfaces are untouched, unchanged from ticket 10 — except the Cache API, which
+  // ticket 17 put to use. `caches.keys()` used to be empty and now is not, so this assertion had to change
+  // shape: the claim has never been "no cache exists", it is "no receipt image reached anything". The old form
+  // proved the stronger statement only because nothing else was ever written. What is checked now is the
+  // content: every cache is one of ticket 17's three kinds, and every entry is a deployment asset served by
+  // URL — the uploaded receipt is a `File`, it is never a URL, and it cannot appear here by construction.
   expect(await page.evaluate(() => Object.keys(localStorage))).toEqual([]);
   expect(await page.evaluate(() => Object.keys(sessionStorage))).toEqual([]);
-  expect(await page.evaluate(() => caches.keys())).toEqual([]);
+
+  const cacheCensus = await page.evaluate(async () => {
+    const names = (await caches.keys()).sort();
+    const urls: Record<string, string[]> = {};
+    for (const name of names) {
+      const entries = await (await caches.open(name)).keys();
+      urls[name] = entries.map((request) => request.url);
+    }
+    return { names, urls };
+  });
+  const SHELL = /^receipt-lens-shell-v[0-9a-f]{12}$/;
+  const MODELS = /^receipt-lens-models:[^:]+:[0-9a-f]{64}$/;
+  expect(cacheCensus.names.every((name) => SHELL.test(name) || MODELS.test(name) || name === "receipt-lens-active-model-cache")).toBe(true);
+  const allUrls = Object.values(cacheCensus.urls).flat();
+  /**
+   * Deployment assets, plus the one synthetic key ticket 17 owns: the pointer cache stores the active model
+   * cache name under `/active` (DECISIONS/0027 W3), which is a record rather than a file. Everything else is a
+   * hashed build output, a model byte, an icon, the manifest or the worker script.
+   */
+  const CACHEABLE = new Set(["/index.html", "/manifest.webmanifest", "/sw.js", "/active"]);
+  const deployAsset = (url: string): boolean => {
+    const path = new URL(url).pathname;
+    return /^\/(assets|icons)\//.test(path) || CACHEABLE.has(path);
+  };
+  expect(
+    allUrls.every((url) => url.startsWith(baseUrl) && deployAsset(url)),
+    `unexpected cache entries: ${allUrls.filter((url) => !deployAsset(url)).join(", ") || "(none)"}`,
+  ).toBe(true);
+  // No blob or data URL ever entered a cache — the only way an in-memory image could be stored by reference.
+  expect(allUrls.some((url) => url.startsWith("blob:") || url.startsWith("data:"))).toBe(false);
+
+  /**
+   * And the claim itself, by content rather than by name. Checking only which *URLs* are cached would be
+   * weaker than the `caches.keys()` assertion it replaced: the old form failed on any cache content at all,
+   * so it would also have caught image bytes filed under a plausible deployment path. Every cached response
+   * body is therefore hashed and compared with the uploaded receipt — the way `offline.spec.ts` proves an
+   * image never left the device, applied to the cache instead of to the wire.
+   */
+  const imageInCache = await page.evaluate(async (needle) => {
+    const matches: string[] = [];
+    for (const name of await caches.keys()) {
+      const cache = await caches.open(name);
+      for (const request of await cache.keys()) {
+        const response = await cache.match(request);
+        if (!response) continue;
+        const digest = await crypto.subtle.digest("SHA-256", await response.clone().arrayBuffer());
+        const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+        if (hex === needle) matches.push(`${name} ${request.url}`);
+      }
+    }
+    return matches;
+  }, receiptSha);
+  expect(imageInCache, `the receipt image was found cached at: ${imageInCache.join(", ")}`).toEqual([]);
   // The bill itself is on disk (asserted for its own sake in persistence.spec.ts), so an empty
   // `retainedImages` is a real emptiness rather than a database that never got written.
   expect(census.stores.find((store) => store.name === "bills")?.records).toBe(1);

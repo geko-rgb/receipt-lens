@@ -6,6 +6,9 @@
   import Bills from "./routes/Bills.svelte";
   import StorageStatus from "./components/StorageStatus.svelte";
   import Share from "./routes/Share.svelte";
+  import InstallBanner from "./components/InstallBanner.svelte";
+  import ModelStatus from "./components/ModelStatus.svelte";
+  import { onRouteChange } from "./lib/models/model-state.svelte.js";
   import NotFound from "./routes/NotFound.svelte";
 
   let route = $state<RouteName>("capture");
@@ -19,6 +22,10 @@
     route = resolved.route;
     fragment = resolved.fragment;
     renders += 1;
+    // DECISIONS/0027 W2.1 (ruled): `/capture` is the only route that may prepare a model set. Every other
+    // route reaches this same function and is refused by the trigger predicate, so a `/share` recipient or a
+    // ledger browser never downloads weights.
+    onRouteChange(route);
   }
 
   function go(pathname: string): void {
@@ -54,7 +61,13 @@
   <a href={ROUTE_PATHS.share} data-nav="share" onclick={(e) => onNavClick(e, ROUTE_PATHS.share)}>Share</a>
 </nav>
 
+<InstallBanner />
+
 {#if route !== "share"}
+  <!-- Ticket 17: like the storage screens below, the model cache is shell state, not a condition of one view.
+       It is absent on /share for the same reason DECISIONS/0023 gives — a recipient has no model history on
+       this device and must not be told about one. -->
+  <ModelStatus />
   <!-- Ticket 14: the storage screens are shell-level, because a migration gate or a full disk is not a
        condition of any one view — and /share must not show them (a recipient has no ledger on this device). -->
   <StorageStatus />
