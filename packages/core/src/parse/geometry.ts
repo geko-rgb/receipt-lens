@@ -10,7 +10,15 @@
 
 import type { OcrBox, OcrWord } from "../ocr/types.js";
 import { unionBoxes } from "../ocr/pp-ocrv6/lines.js";
-import { MIN_ROW_BAND_TOLERANCE, PRICE_COLUMN_WIDTH_RATIO, ROW_BAND_HEIGHT_RATIO } from "./constants.js";
+import {
+  ANCHOR_DOWN_REACH_RATIO,
+  ANCHOR_MERGE_PX,
+  ANCHOR_MIN_COLUMN_MEMBERS,
+  ANCHOR_UP_REACH_RATIO,
+  MIN_ROW_BAND_TOLERANCE,
+  PRICE_COLUMN_WIDTH_RATIO,
+  ROW_BAND_HEIGHT_RATIO,
+} from "./constants.js";
 
 /** A word placed in a parser row, carrying the provider line it came from. */
 export interface RowWord {
@@ -77,7 +85,7 @@ export function rowBandTolerance(medianWordHeight: number): number {
  * consecutive centres exceeds the tolerance; ties break on left edge. Chain rather than radius, so
  * the result never depends on the order words were fed in.
  */
-export function clusterRows(words: readonly RowWord[], tolerance: number): ParsedRow[] {
+export function clusterRowsByTolerance(words: readonly RowWord[], tolerance: number): ParsedRow[] {
   if (words.length === 0) return [];
   const ordered = [...words].sort(
     (a, b) => verticalCenter(a) - verticalCenter(b) || a.box.x - b.box.x || a.text.localeCompare(b.text),
@@ -143,14 +151,16 @@ function amountEdges(rows: readonly ParsedRow[]): EdgePoint[] {
 }
 
 /**
- * P6: group amount-shaped right edges from the right inward, keep groups of two or more, and take
- * the rightmost such group as the price column. With no group of two the column is unverifiable
- * and the per-row fallback applies.
+ * P6: group amount-shaped right edges from the right inward and take the rightmost group of at least
+ * `minMembers` as the column. Groups are built from the right so a stray amount left of the column
+ * cannot shift an anchor that a real column already fixed.
  */
-export function inferPriceColumn(rows: readonly ParsedRow[], imageWidth: number): PriceColumn | null {
-  const points = amountEdges(rows);
-  if (points.length < 2) return null;
-  const tolerance = imageWidth * PRICE_COLUMN_WIDTH_RATIO;
+function columnFromEdges(
+  points: readonly EdgePoint[],
+  tolerance: number,
+  minMembers: number
+): { column: PriceColumn; members: readonly EdgePoint[] } | null {
+  if (points.length < minMembers) return null;
   const sorted = [...points].sort((a, b) => b.right - a.right);
 
   const groups: { anchor: number; members: EdgePoint[] }[] = [];
@@ -160,10 +170,185 @@ export function inferPriceColumn(rows: readonly ParsedRow[], imageWidth: number)
     else current.members.push(point);
   }
 
-  const qualified = groups.filter((group) => group.members.length >= 2);
-  if (qualified.length === 0) return { center: sorted[0]!.right, tolerance, fallback: true, qualifiedClusters: 0 };
+  const qualified = groups.filter((group) => group.members.length >= minMembers);
+  if (qualified.length === 0) return null;
   const rightmost = qualified.reduce((best, group) => (group.anchor > best.anchor ? group : best));
-  return { center: rightmost.anchor, tolerance, fallback: false, qualifiedClusters: qualified.length };
+  return {
+    column: { center: rightmost.anchor, tolerance, fallback: false, qualifiedClusters: qualified.length },
+    members: rightmost.members,
+  };
+}
+
+/**
+ * P6: group amount-shaped right edges from the right inward, keep groups of two or more, and take
+ * the rightmost such group as the price column. With no group of two the column is unverifiable
+ * and the per-row fallback applies.
+ */
+export function inferPriceColumn(rows: readonly ParsedRow[], imageWidth: number): PriceColumn | null {
+  const points = amountEdges(rows);
+  if (points.length < 2) return null;
+  const tolerance = imageWidth * PRICE_COLUMN_WIDTH_RATIO;
+  const found = columnFromEdges(points, tolerance, 2);
+  if (!found) {
+    const rightmost = Math.max(...points.map((point) => point.right));
+    return { center: rightmost, tolerance, fallback: true, qualifiedClusters: 0 };
+  }
+  return found.column;
+}
+
+/**
+ * P6, before any rows exist: the price column read from raw words alone, so anchor row clustering
+ * has something to anchor to. Returns null unless at least `ANCHOR_MIN_COLUMN_MEMBERS` amounts align
+ * — a column the page repeats is the only evidence strong enough to re-cut every row against it.
+ */
+export function inferPriceColumnFromWords(words: readonly RowWord[], imageWidth: number): PriceColumn | null {
+  const points: EdgePoint[] = [];
+  for (const word of words) {
+    if (isAmountShaped(word.text)) points.push({ right: word.box.x + word.box.width, word });
+  }
+  return columnFromEdges(points, imageWidth * PRICE_COLUMN_WIDTH_RATIO, ANCHOR_MIN_COLUMN_MEMBERS)?.column ?? null;
+}
+
+function inPriceColumn(word: RowWord, column: PriceColumn): boolean {
+  return Math.abs(word.box.x + word.box.width - column.center) <= column.tolerance;
+}
+
+/** One anchor line: where a row's amount sits, and how tall that amount's box is. */
+interface AnchorLine {
+  readonly centre: number;
+  readonly height: number;
+}
+
+/**
+ * The anchor lines: vertical centres of the amount words printing in the price column, merged within
+ * `ANCHOR_MERGE_PX` and ascending. Each line is one printed row's money, whatever the word heights
+ * on that row happen to be. The tallest box wins a merge, because reach is scaled by height.
+ */
+function anchorLines(words: readonly RowWord[], column: PriceColumn): AnchorLine[] {
+  const centre = (word: RowWord) => verticalCenter(word);
+  const inColumn = words
+    .filter((word) => isAmountShaped(word.text) && inPriceColumn(word, column))
+    .map((word) => ({ centre: centre(word), height: word.box.height }))
+    .sort((a, b) => a.centre - b.centre);
+
+  const anchors: AnchorLine[] = [];
+  for (const line of inColumn) {
+    const previous = anchors[anchors.length - 1];
+    if (previous && line.centre - previous.centre <= ANCHOR_MERGE_PX) {
+      if (line.height > previous.height) anchors[anchors.length - 1] = { ...previous, height: line.height };
+      continue;
+    }
+    anchors.push(line);
+  }
+  return anchors;
+}
+
+/**
+ * P5 anchor rows (DECISIONS/0008 P5 extension): rows cut against the price column's amount lines
+ * rather than a single y-band. A band sized at 0.4 × the weighted median cannot hold a row whose
+ * words range from 22px to 79px tall — on the dev receipt that split ten priced rows into five —
+ * while the amount column repeats once per row regardless of how badly the name words are boxed.
+ *
+ * Each word goes to the first anchor line whose asymmetric reach holds its centre — reach is scaled
+ * by the anchor word's own height and extends further down than up, because names print below their
+ * amount, and is clamped to the neighbouring line so it can never reach past the next row's amount.
+ * Words no line reaches (receipt header, footer, and short printed lines like `Round off`) are
+ * clustered on the y-band as before, so furniture keeps the rows it always had.
+ *
+ * Returns null — the caller keeps its band rows — when the anchors cannot describe the page: fewer
+ * than two lines, an empty line, or a line that still carries two price-column amounts.
+ */
+export function clusterRowsByAnchor(
+  words: readonly RowWord[],
+  column: PriceColumn,
+  tolerance: number
+): ParsedRow[] | null {
+  const anchors = anchorLines(words, column);
+  if (anchors.length < 2) return null;
+
+  const bands: RowWord[][] = anchors.map(() => []);
+  const unanchored: RowWord[] = [];
+  for (const word of words) {
+    const centre = verticalCenter(word);
+    // An anchor's own amount belongs to its own line, whatever a taller neighbour's reach claims:
+    // without this, a tall row above swallowed the next row's price and the row below lost its seed.
+    if (isAmountShaped(word.text) && inPriceColumn(word, column)) {
+      let nearest = 0;
+      for (let index = 1; index < anchors.length; index += 1) {
+        if (Math.abs(centre - anchors[index]!.centre) < Math.abs(centre - anchors[nearest]!.centre)) nearest = index;
+      }
+      bands[nearest]!.push(word);
+      continue;
+    }
+    const index = anchors.findIndex((anchor, at) => {
+      const previous = anchors[at - 1];
+      const next = anchors[at + 1];
+      const up = Math.min(
+        anchor.height * ANCHOR_UP_REACH_RATIO,
+        previous ? anchor.centre - previous.centre : Number.POSITIVE_INFINITY
+      );
+      const down = Math.min(
+        anchor.height * ANCHOR_DOWN_REACH_RATIO,
+        next ? next.centre - anchor.centre : Number.POSITIVE_INFINITY
+      );
+      return centre >= anchor.centre - up && centre < anchor.centre + down;
+    });
+    if (index < 0) unanchored.push(word);
+    else bands[index]!.push(word);
+  }
+
+  if (bands.some((band) => band.length === 0)) return null;
+
+  const rows: ParsedRow[] = bands.map((band) => toParsedRow(band, 0));
+  rows.push(...clusterRowsByTolerance(unanchored, tolerance));
+  // Two anchors' rows collapsing into one would put two amounts on a row; that is an overlap, not a
+  // reading, so the band rows stand.
+  if (rows.some((row) => priceCandidatesForRow(row, column).length >= 2)) return null;
+
+  return [...rows]
+    .sort((a, b) => a.box.y - b.box.y || a.left - b.left)
+    .map((row, index) => ({ ...row, index }));
+}
+
+/**
+ * The anchor lines a row's price-column amounts land on. One printed row can print two amounts into
+ * the price column — that is P6's `ambiguous_price_separator`, a decision this stage must not make —
+ * but two *different* anchor lines on one row means the y-band merged two printed rows.
+ */
+function anchorIndexesOf(row: ParsedRow, anchors: readonly AnchorLine[], column: PriceColumn): Set<number> {
+  const found = new Set<number>();
+  for (const word of row.words) {
+    if (!isAmountShaped(word.text) || !inPriceColumn(word, column)) continue;
+    const centre = verticalCenter(word);
+    let nearest = 0;
+    for (let index = 1; index < anchors.length; index += 1) {
+      if (Math.abs(centre - anchors[index]!.centre) < Math.abs(centre - anchors[nearest]!.centre)) nearest = index;
+    }
+    found.add(nearest);
+  }
+  return found;
+}
+
+/**
+ * P5: rows for an `OcrResult`'s words. The y-band is the normal reading; anchor rows take over only
+ * on a three-column receipt — one that prints a quantity column beside the price column, which the
+ * caller establishes and passes as `anchorEligible` — and only when the band demonstrably failed on
+ * it, by putting two amount lines on one row. Two-column pages (`name | price`, which is every
+ * CORD/SROIE fixture) keep exactly the rows they were measured with.
+ */
+export function clusterRows(
+  words: readonly RowWord[],
+  tolerance: number,
+  column: PriceColumn | null = null,
+  anchorEligible = false
+): ParsedRow[] {
+  if (words.length === 0) return [];
+  const bands = clusterRowsByTolerance(words, tolerance);
+  if (!anchorEligible || !column || column.fallback) return bands;
+  const anchors = anchorLines(words, column);
+  if (anchors.length < 2) return bands;
+  if (!bands.some((row) => anchorIndexesOf(row, anchors, column).size >= 2)) return bands;
+  return clusterRowsByAnchor(words, column, tolerance) ?? bands;
 }
 
 /**
