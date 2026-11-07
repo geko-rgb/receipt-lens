@@ -18,6 +18,39 @@ export const MIN_ROW_BAND_TOLERANCE = 1;
 /** §5.2 price-column inference: right edges aligning within 5% of image width. */
 export const PRICE_COLUMN_WIDTH_RATIO = 0.05;
 
+/**
+ * DECISIONS/0008 P5 anchor rows: amount words whose vertical centres fall this close are one anchor
+ * line. One printed row can hand the price column several words (a rate, a rounded re-read of the
+ * same amount), and those must not become two lines.
+ */
+export const ANCHOR_MERGE_PX = 8;
+
+/**
+ * DECISIONS/0008 P5 anchor rows: aligned amounts the price column needs before its lines are trusted
+ * as row anchors. Two members is P6's floor for *inferring* a column; three is the weaker claim that
+ * the column repeats down the page, which is what anchoring a whole receipt to it rests on.
+ */
+export const ANCHOR_MIN_COLUMN_MEMBERS = 3;
+
+/**
+ * DECISIONS/0008 P5 anchor rows: how far above its amount's centre a word may sit and still belong
+ * to that row, as a fraction of the anchor word's own box height.
+ */
+export const ANCHOR_UP_REACH_RATIO = 0.25;
+
+/**
+ * DECISIONS/0008 P5 anchor rows: the same reach downward, deliberately larger. Name words print
+ * lower than the amount they belong to — on the dev receipt a dish name's centre runs 15–29px under
+ * its amount's while the row above's amount is only ~43px away — so the row's reach is asymmetric.
+ *
+ * Both reaches are fractions of the anchor's box height, and both are clamped to the distance to the
+ * neighbouring anchor line, so a tall box can never reach past the next row's amount into that row's
+ * unit price. Height, not row pitch, is the scale because it is the only measure of a row's text the
+ * page offers once the y-band has been shown to fail: a short printed line (`Round off +0.50`, 31px
+ * under a 26px-tall amount) stays its own row instead of joining the grand total above it.
+ */
+export const ANCHOR_DOWN_REACH_RATIO = 0.7;
+
 /** DECISIONS/0008 P1: continuation length cap floor, applied as max(floor, 2 × running median). */
 export const CONTINUATION_LENGTH_FLOOR = 20;
 

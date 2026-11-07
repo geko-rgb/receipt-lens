@@ -9,7 +9,9 @@
 import type { OcrResult } from "../ocr/types.js";
 import {
   clusterRows,
+  clusterRowsByTolerance,
   inferPriceColumn,
+  inferPriceColumnFromWords,
   priceCandidatesForRow,
   rowBandTolerance,
   weightedMedianWordHeight,
@@ -18,6 +20,7 @@ import {
   type RowWord,
 } from "./geometry.js";
 import { isAllCapsStandalone, matchesChargeLabel, matchesHeaderOrNoisePattern, matchesTenderFamily } from "./patterns.js";
+import { detectQuantityColumn } from "./quantity.js";
 import { CONTINUATION_LENGTH_FLOOR, CONTINUATION_LENGTH_MEDIAN_MULTIPLIER } from "./constants.js";
 
 export type RowClassification = "item" | "continuation" | "noise_header" | "ambiguous";
@@ -147,7 +150,15 @@ export function classifyRows(ocrResult: OcrResult, options: ClassifyOptions = {}
   const words = collectWords(ocrResult);
   const medianWordHeight = weightedMedianWordHeight(words);
   const bandTolerance = rowBandTolerance(medianWordHeight);
-  const rows = clusterRows(words, bandTolerance);
+  // The column is inferred twice on purpose: once from words, before any row exists, so anchor rows
+  // have a column to anchor to; then from the finished rows, which is the column 05 has always
+  // reported and the one price candidates are read against.
+  const wordColumn = inferPriceColumnFromWords(words, ocrResult.imageSize.width);
+  // Anchor rows are for three-column receipts. §5's quantity column is a per-row statistic, so it is
+  // measured on the y-band rows first; without it — a `name | price` page — the band rows stand, and
+  // that is exactly the shape the CORD/SROIE fixtures were measured on.
+  const quantityColumn = detectQuantityColumn(clusterRowsByTolerance(words, bandTolerance), ocrResult.imageSize.width, wordColumn);
+  const rows = clusterRows(words, bandTolerance, wordColumn, quantityColumn !== null);
   const column = inferPriceColumn(rows, ocrResult.imageSize.width);
 
   const classified: ClassifiedRow[] = [];
