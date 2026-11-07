@@ -17,6 +17,7 @@
   import { CONTRAST_LIMIT_PERCENT, clampContrastPercent } from "../lib/capture/contrast.js";
   import { extractInBrowser } from "../lib/ocr.js";
   import { setDraft } from "../lib/draft.js";
+  import { billStore, clearBillDocument } from "../lib/bill/bill-document.svelte.js";
   import { targetUrl } from "../lib/router.js";
   import type { ParseResult, ParseValidationResult, ParsedItem, ParsedOtherCharge } from "@receipt-lens/core";
 
@@ -67,6 +68,13 @@
    */
   let workingBlob = $state<Blob | null>(null);
   let keepPhoto = $state(false);
+
+  /**
+   * The confirm that stands between an edited bill and a new capture. The bill root is module-scope, so it
+   * survives the route change; accepting a receipt while one is open would otherwise hand `/bill` the old
+   * document. An untouched import (revision 0) is dropped silently — there is nothing to lose.
+   */
+  let pendingReplace = $state(false);
 
   let fileInput = $state<HTMLInputElement | null>(null);
 
@@ -326,6 +334,21 @@
 
   function accept(): void {
     if (!current) return;
+    // T5's identity rule, read the other way round: a bill already in memory came from a different capture.
+    // Revision 0 means nobody has touched it, so discarding it costs nothing; above 0 the edits exist
+    // nowhere else, so the creator is asked before they are thrown away.
+    const open = billStore.document;
+    if (open && open.revision > 0) {
+      pendingReplace = true;
+      return;
+    }
+    openAccepted();
+  }
+
+  /** Publishes the handoff the reviewer accepted, over a cleared root. */
+  function openAccepted(): void {
+    if (!current) return;
+    clearBillDocument();
     setDraft(
       keepPhoto && workingBlob
         ? { ...current, retainedImage: { blob: workingBlob, mediaType: workingBlob.type || "image/jpeg" } }
@@ -333,6 +356,15 @@
     );
     window.history.pushState({}, "", targetUrl("/bill", window.location.hash));
     window.dispatchEvent(new PopStateEvent("popstate"));
+  }
+
+  function confirmReplace(): void {
+    pendingReplace = false;
+    openAccepted();
+  }
+
+  function cancelReplace(): void {
+    pendingReplace = false;
   }
 
   /** Restores the prior parse without asking OCR again — the rerun already happened. */
@@ -362,6 +394,31 @@
 {/if}
 {#if notice}
   <div class="notice" data-testid="capture-notice">{notice}</div>
+{/if}
+
+{#if pendingReplace}
+  <div class="dialog-backdrop">
+    <div
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="unfinished-bill-title"
+      data-testid="unfinished-bill-warning"
+    >
+      <h2 id="unfinished-bill-title">You have an unfinished bill</h2>
+      <p>Discard it and start a new bill?</p>
+      <p class="hint">
+        The current bill keeps your edits. Starting over drops them from this screen; a bill already saved is
+        still in your past bills.
+      </p>
+      <div class="actions">
+        <button type="button" data-testid="unfinished-bill-cancel" onclick={cancelReplace}>Keep the current bill</button>
+        <button type="button" data-testid="unfinished-bill-confirm" onclick={confirmReplace}>
+          Discard and start a new bill
+        </button>
+      </div>
+    </div>
+  </div>
 {/if}
 
 <div class="intake">
@@ -650,5 +707,23 @@
     flex-wrap: wrap;
     gap: 8px;
     margin-top: 16px;
+  }
+
+  .dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  .dialog {
+    background: #fff;
+    border-radius: 6px;
+    padding: 16px 20px;
+    max-width: 32rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   }
 </style>

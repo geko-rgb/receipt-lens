@@ -131,7 +131,21 @@ async function upload(page: Page, buffer: Buffer, name = "receipt.png"): Promise
   await page.getByTestId("file-input").setInputFiles({ name, mimeType: "image/png", buffer });
 }
 
+/**
+ * A bill line renders its name in an input, so `toContainText` cannot see it — the value is the reading.
+ * Drafts and finalized items are the same line at two stages, so both testids are matched.
+ */
+function billLineNames(page: Page) {
+  return page.locator('[data-testid="draft-name"], [data-testid="item-name"]');
+}
+
 const RECEIPT_LINES = ["RECEIPT", "COFFEE 4.50", "TOTAL 100.00", "CASH 100.00"];
+/**
+ * A second, visibly different receipt: the assertions below must be able to tell the two bills apart. The item
+ * line is a long word on purpose — a three-letter name (`TEA`) is not reliably read into an item row by the
+ * small model, and this test is about which bill opened, not about recognition quality.
+ */
+const SECOND_RECEIPT_LINES = ["RECEIPT", "PANCAKE 6.25", "TOTAL 200.00", "CASH 200.00"];
 
 test("a selected file reaches a populated draft with provenance", async ({ page }) => {
   page.on("console", (m) => console.log("PAGE:", m.type(), m.text()));
@@ -207,6 +221,74 @@ test("recrop and rerun keep the previous parse until discarded or accepted", asy
   await expect(page).toHaveURL(/\/bill/);
   await expect(page.getByTestId("draft-count")).toContainText("draft line(s)");
   await expect(page.getByTestId("printed-grand-total")).toContainText("₹100.00");
+});
+
+/**
+ * Ticket 27 follow-up — the bill root is module-scope and outlives the route change, so a second capture used
+ * to open the *first* receipt's bill. These two tests are the reproduction, split by whether the open bill
+ * had been edited: revision 0 is discarded silently, above 0 is confirmed first.
+ */
+test("a second capture after an untouched bill opens the new receipt, not the old one", async ({ page }) => {
+  await page.goto(baseUrl);
+  await upload(page, await receiptPng(page, RECEIPT_LINES));
+  await expect(page.getByTestId("draft-review")).toBeVisible({ timeout: 120_000 });
+  await page.getByTestId("accept-btn").click();
+  await expect(page).toHaveURL(/\/bill/);
+  await expect(billLineNames(page).first()).toHaveValue(/COFFEE/i);
+  await expect(page.getByTestId("printed-grand-total")).toContainText("₹100.00");
+
+  // Back to capture with the bill untouched: revision is 0, so no dialog stands in the way.
+  await page.goBack();
+  await expect(page.locator("#shell-view")).toHaveAttribute("data-route", "capture");
+
+  await upload(page, await receiptPng(page, SECOND_RECEIPT_LINES));
+  await expect(page.getByTestId("draft-review")).toBeVisible({ timeout: 120_000 });
+  await page.getByTestId("accept-btn").click();
+
+  await expect(page).toHaveURL(/\/bill/);
+  await expect(page.getByTestId("unfinished-bill-warning")).toHaveCount(0);
+  // The second receipt's bill, not the first one's: its line and its printed total.
+  await expect(billLineNames(page).first()).toHaveValue(/PANCAK/i);
+  await expect(page.getByTestId("printed-grand-total")).toContainText("₹200.00");
+  await expect(page.getByTestId("printed-grand-total")).not.toContainText("₹100.00");
+});
+
+test("accepting over an edited bill asks before discarding the edits", async ({ page }) => {
+  await page.goto(baseUrl);
+  await upload(page, await receiptPng(page, RECEIPT_LINES));
+  await expect(page.getByTestId("draft-review")).toBeVisible({ timeout: 120_000 });
+  await page.getByTestId("accept-btn").click();
+  await expect(page).toHaveURL(/\/bill/);
+
+  // An added line is a committed transaction, which is what pushes the revision above 0.
+  await page.getByTestId("new-line-name").fill("EDITED LINE");
+  await page.getByTestId("new-line-price").fill("1.00");
+  await page.getByTestId("add-line").click();
+  await expect(page.getByTestId("draft-name").last()).toHaveValue("EDITED LINE");
+
+  await page.goBack();
+  await expect(page.locator("#shell-view")).toHaveAttribute("data-route", "capture");
+  await upload(page, await receiptPng(page, SECOND_RECEIPT_LINES));
+  await expect(page.getByTestId("draft-review")).toBeVisible({ timeout: 120_000 });
+
+  await page.getByTestId("accept-btn").click();
+  const warning = page.getByTestId("unfinished-bill-warning");
+  await expect(warning).toBeVisible();
+
+  // Cancelling keeps the creator on capture, with the new receipt still reviewed and unsent.
+  await page.getByTestId("unfinished-bill-cancel").click();
+  await expect(warning).toHaveCount(0);
+  await expect(page.locator("#shell-view")).toHaveAttribute("data-route", "capture");
+
+  // Confirming drops the edited bill and opens the receipt just accepted.
+  await page.getByTestId("accept-btn").click();
+  await expect(warning).toBeVisible();
+  await page.getByTestId("unfinished-bill-confirm").click();
+  await expect(page).toHaveURL(/\/bill/);
+  // The confirmed bill is the new receipt, not the edited one.
+  await expect(billLineNames(page).first()).toHaveValue(/PANCAK/i);
+  await expect(page.getByTestId("printed-grand-total")).toContainText("₹200.00");
+  await expect(page.getByTestId("printed-grand-total")).not.toContainText("₹100.00");
 });
 
 test("no receipt image bytes reach any store", async ({ page }) => {

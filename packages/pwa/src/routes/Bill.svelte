@@ -10,9 +10,9 @@
    * bill's still-true value back into the field, so the screen cannot show a number the data disagrees with.
    */
   import { onMount } from "svelte";
-  import { getDraft } from "../lib/draft.js";
+  import { clearDraft, getDraft } from "../lib/draft.js";
   import { storage } from "../lib/storage/storage-state.svelte.js";
-  import { billStore } from "../lib/bill/bill-document.svelte.js";
+  import { billStore, clearBillDocument } from "../lib/bill/bill-document.svelte.js";
   import Units from "../components/Units.svelte";
   import Lock from "../components/Lock.svelte";
   import Settlement from "../components/Settlement.svelte";
@@ -286,6 +286,18 @@
   function participantName(participantId: string): string {
     return bill?.working.participants.find((entry) => entry.id === participantId)?.name ?? participantId;
   }
+
+  /**
+   * The way out of a bill left open in memory — the same reset `/capture` runs before a new handoff, plus the
+   * handoff itself so a later visit to `/bill` cannot rebuild this receipt as a second bill. The saved record
+   * stays in the ledger (P7): this closes the screen, it does not delete anything.
+   */
+  function discardBill(): void {
+    clearBillDocument();
+    clearDraft();
+    window.history.pushState({}, "", "/capture");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }
 </script>
 
 <h1>Bill</h1>
@@ -329,6 +341,11 @@
       A newer accepted parse is available. This bill keeps your edits until you choose to replace it.
     </div>
   {/if}
+
+  <section class="start-over" data-testid="start-over-section">
+    <button type="button" data-testid="discard-bill" onclick={discardBill}>Discard bill and start over</button>
+    <span class="hint">Closes this bill on screen and opens capture. Anything already saved stays in your past bills.</span>
+  </section>
 
   <section class="totals" data-testid="totals">
     <h2>Totals</h2>

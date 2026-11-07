@@ -188,11 +188,28 @@ export const billStore = {
    * (P7), and deletion is an explicit ledger action with its own confirmation.
    */
   clear(): void {
-    current = null;
-    imported = null;
-    rejection = null;
-    diverged = null;
-    saveCause = null;
-    status = "idle";
+    reset();
   },
 };
+
+/**
+ * Back to the state this module starts in: no document, no import, no rejection, no save chip. Memory only —
+ * storage is untouched, for the same reason `clear()` gives (P7): a bill already written is in the creator's
+ * ledger, and "start a new bill" is not a delete.
+ *
+ * `/capture` calls this before publishing a new handoff. Without it the root outlives the route change, and
+ * `/bill`'s `if (billStore.document) return` guard reads the previous receipt's document instead of the one
+ * just accepted — the bug this function exists for.
+ */
+export function clearBillDocument(): void {
+  reset();
+}
+
+function reset(): void {
+  current = null;
+  imported = null;
+  rejection = null;
+  diverged = null;
+  saveCause = null;
+  status = "idle";
+}
