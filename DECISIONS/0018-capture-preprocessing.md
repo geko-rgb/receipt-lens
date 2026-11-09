@@ -148,6 +148,108 @@ Consequences for this ticket's method:
 - Nothing here consumes or amends `DECISIONS/0007` (OCR worker deferral) or `DECISIONS/0017` (PWA
   framework). Those records own their respective domains.
 
+## Amendment A1 — preprocessing measured against the real photographs (2026-11-10)
+
+**Verdict: no variant is adopted. The shipped pipeline stays exactly as P1–P6 pin it, and the null is recorded rather
+than papered over.** Ticket 26 carries the work; `benchmarks/results/ocr-preprocess.json` is the reproducible artifact
+and `benchmarks/scripts/bench-ocr-preprocess.mjs` regenerates it (`--write` / `--check`).
+
+### What was asked and how it was measured
+
+`next.md`'s polish item: improve recognition on the garbled lines of the two acceptance photographs (`offee`, `Po8`,
+`Wtnin 2gis`, the KOT marks) **without regressing a single currently-correct field** — a polish task, not a
+correctness one, because both bills already parse (4 items / ₹474.00; KOT 1 line 3 × 25.00 = 75.00) and every name is
+editable in the review UI.
+
+Method, one variant at a time, 28 variants over both photographs:
+
+- the candidate transform runs in a **canvas on the app's own origin** (nothing leaves the browser; `DECISIONS/0030`'s
+  egress audit is untouched), then the shipped `PP-OCRv6 Tiny` provider runs through `harness/dist/batch.html` —
+  the same weights, the same runtime, the same code path as the product;
+- **token level**, against `benchmarks/ocr-preprocess-ground-truth.json`: `exact` (the token stands alone), `covered`
+  (its characters appear anywhere on the page — the phenomenon under test is precisely the token that arrives glued
+  to its neighbour), and `money` (every money token must stand alone). Ground truth marks each token `printed`,
+  `obscured` (partly cut off or faint; a variant that invents characters is not rewarded) or `illegible` (not
+  readable by the transcription either — nothing is scored);
+- **the regression gate**: the shipped `parse()` runs over every variant's OCR in Node and its item names,
+  quantities, rates, line totals and grand total are compared to the baseline's. A variant that reads a nicer-looking
+  word but moves a price fails, and the artifact records which fields moved (`parseDiffersFromBaselineIn`).
+
+### The measurement
+
+Baseline is the shipped pipeline with no change (source → canvas → JPEG 0.95; P2 at 0°, P3 full image, P5 at 0%):
+
+| | Saravana | KOT |
+|---|---|---|
+| token exact / covered | **16 / 18 · 18 / 18** | **6 / 6 · 6 / 6** |
+| money exact | **10 / 10** | **2 / 2** |
+| parsed | 4 items, grand 474.00 | 1 item (3 × 25.00 = 75.00) |
+
+**No variant improves any of those numbers.** The differences that exist are all losses or lateral moves:
+
+| variant | Saravana (exact/covered, money, items) | KOT (exact/covered, money, items) | verdict |
+|---|---|---|---|
+| `png` (lossless instead of JPEG 0.95) | 16/18 · 18/18 · 10/10 · 4 | 6/6 · 6/6 · 2/2 · 1 | identical — JPEG 0.95 costs nothing here |
+| `upscale-2`, `upscale-3` | 16/18 · 18/18 · 10/10 · 4 | 6/6 · 6/6 · 2/2 · 1 | token-identical; only the fourth name's formatting moves (`chapati/,Po8` → `chapati/Po8`), no character recovered |
+| `gray-contrast-30` (P5 at its limit) | 16/18 · 18/18 · 10/10 · 4 | 6/6 · 6/6 · 2/2 · 1 | lateral: `2Po8` replaces `,Po8` — not better |
+| `unsharp` | 16/18 · 17/18 · 10/10 · 4 | 6/6 · 6/6 · 2/2 · 1 | loses coverage (`2Po`) |
+| `autocontrast` (stronger than P5 allows) | 16/18 · 17/18 · 10/10 · **3** | 6/6 · 6/6 · 2/2 · 1 | **loses an item** |
+| `otsu` | 14/18 · 15/18 · **9/10** · **3** | 5/6 · 6/6 · 2/2 · **2** | loses money and items |
+| `adaptive-15` (denoised, fair version) | **0/18** · 0/18 · 0/10 · **0** | 0/6 · 0/6 · 0/2 · **0** | destroys the page: 46% of the frame binarizes as ink, because the paper in these photographs is mid-grey and the backdrop is dark |
+| `receipt-crop-upscale-2` (receipt-region crop) | 12/18 · 13/18 · 10/10 · 3 | 6/6 · 6/6 · 2/2 · 1 | loses tokens and an item (`Ffee`, `da`, `appathi Empty`) |
+| `receipt-crop-otsu-upscale-2` | 12/18 · 13/18 · 10/10 · 3 | 5/6 · 6/6 · 2/2 · 1 | thresholding only helps *after* the crop, and still loses |
+| `receipt-crop-adaptive-upscale-2` | 1/18 · 2/18 · **1/10** · 3 | 0/6 · 0/6 · 0/2 · **0** | refused |
+| `deskew` (3.0° estimate, P4's gate) | 12/18 · 13/18 · 10/10 · 3 | 6/6 · 6/6 · 2/2 · 1 | **loses 4 tokens and an item** on the page it corrects |
+| `deskew-noshrink` (full extent, corners clip) | 12/18 · 13/18 · 10/10 · **2** | same as baseline | worse still |
+| `det-limit-1280/1536/1920/2560` | 16/18 · 17/18 · 10/10 · 3 | 6/6 · 6/6 · 2/2 · 1 → **3/6 · 1/2 money** at 1920+ | larger detection input loses money on the larger photograph |
+| `det-box-0.60` | 16/18 · 18/18 · 10/10 · 4 | 6/6 · 6/6 · 2/2 · 1 | exact tie with baseline |
+| `rec-max-1280`, `reading-order-0.8` | 16/18 · 18/18 · 10/10 · 4 | 6/6 · 6/6 · 2/2 · 1 | exact tie with baseline |
+
+### What the null is made of — three mechanisms, not three coincidences
+
+1. **The recoverable content is already recovered.** On both photographs `covered` is 18/18 and 6/6 *at baseline*:
+   every printable character sequence of the item and money lines is present in the OCR output. The two `exact`
+   near-misses are `chapati` and `Po8`, which arrive glued inside `chapati/,Po8` — a *detection-box segmentation*
+   artifact of the recognizer, downstream of every pixel-level transform here. No preprocessing can un-glue them;
+   `upscale-2` merely changes the junk character (`,` → nothing) on a token the ground truth marks obscured.
+2. **Upscaling is inert by construction below the detector's cap.** `detection.preprocessing.limitSideLen = 960`
+   resizes the long side *down* to 960, so a 2× or 3× image is discarded again before the detector sees it. The
+   combined variants (`upscale-2 + limitSideLen 1920`) remove that ceiling and are still no better — Saravana drops
+   from 4 items to 3, KOT from 2/2 money to 1/2 — so the 960 cap is not costing anything on these two pages.
+3. **Thresholding is the wrong tool for a photographed mid-grey thermal page.** The two photos are dim scans on a
+   dark backdrop, so a global cut (Otsu) makes ~52% of the frame ink and a local cut (adaptive) makes ~46%; the
+   detector then has no page to find. Cropping to the receipt first is the fair version and it still loses tokens,
+   which is why both threshold families are recorded as refused rather than as "untested".
+
+### What this amendment decides
+
+1. **No adoption.** `Capture.svelte`'s transform, `lib/capture/*` and `assets/models/manifest.json` are unchanged. No
+   fixture is re-captured, because a recapture would only re-pin the same pixels through the same pipeline. Po8 stays
+   Po8; `Wtnin 2gis` stays unreadable, which is what ticket 23's human acknowledgement exists for.
+2. **P1–P6 stand unchanged.** The measurement neither loosens nor tightens them. P5's ±20% band is not shown to cost
+   anything: its strongest legal setting (`gray-contrast-30`, factor 1.2) ties the baseline on every token and field,
+   while a stretch *beyond* the pin (`autocontrast`) loses an item — which is the direction the pin already assumes.
+3. **P4 gains a measured caveat, not a new pin.** Deskew is user-initiated (the capture screen applies it only when
+   the user presses the control, and the estimate here is exactly 3.0° on the Saravana page). Applying it costs four
+   tokens and one item on that page. The pin's rule ("apply iff ≥3°, else skip with a status message") is unchanged
+   and still correct as a *decision*; what the measurement adds is that a creator who presses it today on a page like
+   this one makes their own bill slightly worse. That is recorded here as a candidate follow-up (a preview-gated
+   deskew, or a "deskew made it worse, undo?" affordance), not changed in this ticket.
+4. **The ground truth is provisional until the owner confirms it.** Two tokens are marked `obscured`: `offee` (the
+   first glyph is not present in the photograph as far as any transcription can tell — every variant including a
+   lossless 3× upscale reads `offee`, and the crop variants read `Ffee`, so a variant that produced `Coffee` would be
+   inventing a character) and `Po8` (a second transcription reads `P B`). If the owner's ground truth differs, re-run
+   `node benchmarks/scripts/bench-ocr-preprocess.mjs --write` with the corrected file: the conclusion is robust to
+   both readings, because both are already `covered` at baseline and every variant that touches them makes the
+   surrounding text worse.
+
+### Reporting discipline (unchanged)
+
+The numbers above come from `benchmarks/results/ocr-preprocess.json`, which `--check` regenerates byte-identically
+from the two photographs. They are measurements of `PP-OCRv6 Tiny`, the shipped asset set, on one machine, under
+`test.setTimeout`-free headless Chromium — a device class claim would need `DECISIONS/0012`'s protocol, and this
+record makes none.
+
 ## Decision
 
 All six pins (P1–P6) are decisions, committed above. The capture UI must implement exactly these

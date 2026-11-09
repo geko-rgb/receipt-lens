@@ -1,0 +1,1166 @@
+{
+  "_meta": {
+    "purpose": "OCR-preprocessing investigation (DECISIONS/0018 amendment, 2026-11-10). Each entry is one candidate pipeline run over the two local acceptance photographs, scored at token level against benchmarks/ocr-preprocess-ground-truth.json and through the shipped parse() for the regression gate. Counts and outcomes only; no receipt text is recorded here.",
+    "reproducibleWith": "node benchmarks/scripts/bench-ocr-preprocess.mjs --write (and --check)",
+    "tier": "PP-OCRv6 Tiny, the shipped asset set (assets/models/manifest.json)",
+    "dependsOn": "the two acceptance photographs in images/, which are not committed (DECISIONS/0005) — without them the script exits with a clear message",
+    "groundTruthStatus": "provisional: transcribed from the photographs, with the two `obscured` tokens awaiting the owner's confirmation (see the ground-truth file)",
+    "scoring": "exact = token stands alone; covered = characters appear anywhere on the page; money = exact on every money token. `parseDiffersFromBaselineIn` is the regression gate."
+  },
+  "variants": [
+    {
+      "variant": "baseline",
+      "note": "the shipped pipeline: source → canvas → JPEG 0.95, no pixel change (DECISIONS/0018 P2/P3/P5 at default 0%)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 18,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 5,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 0,
+          "lostTokenCount": 0,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 0,
+          "lostTokenCount": 0,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "png",
+      "note": "the same pixels, lossless PNG instead of JPEG 0.95",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 18,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 6,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 7,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 2,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "gray-contrast-30",
+      "note": "grayscale, then a ±20%-legal linear value stretch at the top of P5's range (factor 1.2)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 18,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 6,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 20,
+          "lostTokenCount": 22,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 2,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 2,
+          "lostTokenCount": 3,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "autocontrast",
+      "note": "percentile autocontrast (p2..p98) on the value channel only — a stronger P5-style stretch, measured to see whether the pin is costing anything",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 8,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount"
+          ],
+          "gainedTokenCount": 24,
+          "lostTokenCount": 26,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 2,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 1,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "otsu",
+      "note": "global Otsu binarization (the classic receipt-threshold recipe)",
+      "perImage": {
+        "saravana": {
+          "exact": 14,
+          "covered": 15,
+          "scored": 18,
+          "moneyExact": 9,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 12,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 38,
+          "lostTokenCount": 35,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 5,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 2,
+          "grandTotal": null,
+          "unclassifiedRows": 1,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames",
+            "itemMoney"
+          ],
+          "gainedTokenCount": 3,
+          "lostTokenCount": 5,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "adaptive-15",
+      "note": "local-mean adaptive threshold, 15px window, C=10",
+      "perImage": {
+        "saravana": {
+          "exact": 0,
+          "covered": 0,
+          "scored": 18,
+          "moneyExact": 0,
+          "moneyScored": 10,
+          "itemCount": 0,
+          "grandTotal": null,
+          "unclassifiedRows": 0,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "grandTotal"
+          ],
+          "gainedTokenCount": 0,
+          "lostTokenCount": 78,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 0,
+          "covered": 0,
+          "scored": 6,
+          "moneyExact": 0,
+          "moneyScored": 2,
+          "itemCount": 0,
+          "grandTotal": null,
+          "unclassifiedRows": 0,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount"
+          ],
+          "gainedTokenCount": 0,
+          "lostTokenCount": 23,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "unsharp",
+      "note": "unsharp mask (blur radius 1, amount 0.8) — thermal print edges",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 7,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 17,
+          "lostTokenCount": 19,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 2,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 1,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "upscale-2",
+      "note": "2× bicubic upscale, no other change",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 18,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 6,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 16,
+          "lostTokenCount": 14,
+          "inputWidth": 1440,
+          "inputHeight": 2560
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 0,
+          "lostTokenCount": 0,
+          "inputWidth": 1802,
+          "inputHeight": 3200
+        }
+      }
+    },
+    {
+      "variant": "upscale-3",
+      "note": "3× bicubic upscale",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 18,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 6,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 14,
+          "lostTokenCount": 13,
+          "inputWidth": 2160,
+          "inputHeight": 3840
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 0,
+          "lostTokenCount": 0,
+          "inputWidth": 2703,
+          "inputHeight": 4800
+        }
+      }
+    },
+    {
+      "variant": "gray-upscale-2",
+      "note": "grayscale + 2× upscale (the combination the two single-factor results would suggest, if either helps)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 5,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 15,
+          "lostTokenCount": 14,
+          "inputWidth": 1440,
+          "inputHeight": 2560
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 2,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 2,
+          "lostTokenCount": 2,
+          "inputWidth": 1802,
+          "inputHeight": 3200
+        }
+      }
+    },
+    {
+      "variant": "receipt-crop-upscale-2",
+      "note": "trim the dark background to the receipt's own bounds, then 2× upscale (a receipt-region crop)",
+      "perImage": {
+        "saravana": {
+          "exact": 12,
+          "covered": 13,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 12,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 34,
+          "lostTokenCount": 30,
+          "inputWidth": 974,
+          "inputHeight": 1986
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 0,
+          "lostTokenCount": 0,
+          "inputWidth": 1802,
+          "inputHeight": 3200
+        }
+      }
+    },
+    {
+      "variant": "receipt-crop-otsu-upscale-2",
+      "note": "receipt-region crop, then Otsu, then 2× upscale — thresholding only makes sense once the dark backdrop is out of the frame, so this is the fair version of `otsu`",
+      "perImage": {
+        "saravana": {
+          "exact": 12,
+          "covered": 13,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 14,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 40,
+          "lostTokenCount": 36,
+          "inputWidth": 974,
+          "inputHeight": 1986
+        },
+        "pineapple": {
+          "exact": 5,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 0,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 3,
+          "lostTokenCount": 5,
+          "inputWidth": 1802,
+          "inputHeight": 3200
+        }
+      }
+    },
+    {
+      "variant": "receipt-crop-adaptive-upscale-2",
+      "note": "receipt-region crop, 3×3 denoise + local-mean threshold, 2× upscale — the fair version of `adaptive-15`",
+      "perImage": {
+        "saravana": {
+          "exact": 1,
+          "covered": 2,
+          "scored": 18,
+          "moneyExact": 1,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 8,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames",
+            "itemMoney"
+          ],
+          "gainedTokenCount": 34,
+          "lostTokenCount": 68,
+          "inputWidth": 974,
+          "inputHeight": 1986
+        },
+        "pineapple": {
+          "exact": 0,
+          "covered": 0,
+          "scored": 6,
+          "moneyExact": 0,
+          "moneyScored": 2,
+          "itemCount": 0,
+          "grandTotal": null,
+          "unclassifiedRows": 0,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount"
+          ],
+          "gainedTokenCount": 0,
+          "lostTokenCount": 23,
+          "inputWidth": 1802,
+          "inputHeight": 3200
+        }
+      }
+    },
+    {
+      "variant": "upscale-2+det-limit-1920",
+      "note": "2× upscale **and** detection longest side 960 → 1920: upscaling alone cannot help while detection downsizes the long side back to 960, so the two have to move together",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 11,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 29,
+          "lostTokenCount": 26,
+          "inputWidth": 1440,
+          "inputHeight": 2560
+        },
+        "pineapple": {
+          "exact": 3,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 1,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames",
+            "itemMoney"
+          ],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 7,
+          "inputWidth": 1802,
+          "inputHeight": 3200
+        }
+      }
+    },
+    {
+      "variant": "gray-upscale-2+det-limit-1920",
+      "note": "grayscale, 2× upscale, detection longest side 1920",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 12,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 31,
+          "lostTokenCount": 29,
+          "inputWidth": 1440,
+          "inputHeight": 2560
+        },
+        "pineapple": {
+          "exact": 3,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 1,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 2,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames",
+            "itemMoney"
+          ],
+          "gainedTokenCount": 6,
+          "lostTokenCount": 7,
+          "inputWidth": 1802,
+          "inputHeight": 3200
+        }
+      }
+    },
+    {
+      "variant": "receipt-crop-upscale-2+det-limit-1920",
+      "note": "receipt-region crop, 2× upscale, detection longest side 1920",
+      "perImage": {
+        "saravana": {
+          "exact": 12,
+          "covered": 13,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 10,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 38,
+          "lostTokenCount": 33,
+          "inputWidth": 974,
+          "inputHeight": 1986
+        },
+        "pineapple": {
+          "exact": 3,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 1,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames",
+            "itemMoney"
+          ],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 7,
+          "inputWidth": 1802,
+          "inputHeight": 3200
+        }
+      }
+    },
+    {
+      "variant": "deskew-noshrink",
+      "note": "the same 3° correction drawn at full extent (corners clip, as the shipped transform does) instead of scaled down to fit",
+      "perImage": {
+        "saravana": {
+          "exact": 12,
+          "covered": 13,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 2,
+          "grandTotal": 47400,
+          "unclassifiedRows": 16,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 38,
+          "lostTokenCount": 35,
+          "inputWidth": 487,
+          "inputHeight": 993
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 2,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "deskew",
+      "note": "rotate by the skew estimated from the horizontal projection profile, then re-crop to the receipt",
+      "perImage": {
+        "saravana": {
+          "exact": 12,
+          "covered": 13,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 15,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 40,
+          "lostTokenCount": 35,
+          "inputWidth": 487,
+          "inputHeight": 993
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 3,
+          "lostTokenCount": 3,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "det-limit-1280",
+      "note": "detection longest side 960 → 1280",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 8,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 29,
+          "lostTokenCount": 22,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 6,
+          "lostTokenCount": 4,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "det-limit-1536",
+      "note": "detection longest side 960 → 1536",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 8,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 29,
+          "lostTokenCount": 22,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 5,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 5,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "det-limit-1920",
+      "note": "detection longest side 960 → 1920 with no image change at all",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 8,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 29,
+          "lostTokenCount": 22,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 3,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 1,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames",
+            "itemMoney"
+          ],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 7,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "det-limit-2560",
+      "note": "detection longest side 960 → 2560 (the native height of the larger photograph)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 3,
+          "grandTotal": 47400,
+          "unclassifiedRows": 8,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemCount",
+            "itemNames"
+          ],
+          "gainedTokenCount": 29,
+          "lostTokenCount": 22,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 3,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 1,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames",
+            "itemMoney"
+          ],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 7,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "det-box-0.30",
+      "note": "detection boxThreshold 0.45 → 0.30 (admit fainter text) with unclipRatio 1.6",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 5,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 24,
+          "lostTokenCount": 27,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 3,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "det-box-0.60",
+      "note": "detection boxThreshold 0.45 → 0.60 (reject faint marks)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 18,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 5,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 10,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 2,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "det-unclip-2.0",
+      "note": "detection unclipRatio 1.4 → 2.0 (taller crops for the recognizer)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 5,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 20,
+          "lostTokenCount": 23,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 5,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 2,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 5,
+          "lostTokenCount": 5,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "rec-base-640",
+      "note": "recognition baseWidth 320 → 640 (less padding on short crops)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 17,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 5,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [
+            "itemNames"
+          ],
+          "gainedTokenCount": 21,
+          "lostTokenCount": 21,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 2,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "rec-max-1280",
+      "note": "recognition maxWidth 960 → 1280 (long lines not squashed)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 18,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 6,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 7,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 2,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    },
+    {
+      "variant": "reading-order-0.8",
+      "note": "line-grouping toleranceRatio 0.5 → 0.8 (joins rows the current grouping splits)",
+      "perImage": {
+        "saravana": {
+          "exact": 16,
+          "covered": 18,
+          "scored": 18,
+          "moneyExact": 10,
+          "moneyScored": 10,
+          "itemCount": 4,
+          "grandTotal": 47400,
+          "unclassifiedRows": 6,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 7,
+          "lostTokenCount": 7,
+          "inputWidth": 720,
+          "inputHeight": 1280
+        },
+        "pineapple": {
+          "exact": 6,
+          "covered": 6,
+          "scored": 6,
+          "moneyExact": 2,
+          "moneyScored": 2,
+          "itemCount": 1,
+          "grandTotal": null,
+          "unclassifiedRows": 3,
+          "criticalFindings": 0,
+          "parseDiffersFromBaselineIn": [],
+          "gainedTokenCount": 2,
+          "lostTokenCount": 2,
+          "inputWidth": 901,
+          "inputHeight": 1600
+        }
+      }
+    }
+  ]
+}

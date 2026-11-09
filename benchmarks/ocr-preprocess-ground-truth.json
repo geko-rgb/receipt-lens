@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "purpose": "Token-level ground truth for the OCR-preprocessing investigation (DECISIONS/0018 amendment). Only item and charge lines are recorded: DECISIONS/0005's keep list. Header, business name, date, phone and tax-registration lines are deliberately absent, exactly as they are absent from the committed replay fixtures.",
+    "status": "PROVISIONAL — transcribed from the two photographs by a vision model plus the shipped replay fixtures; the two `obscured` entries are the ones only the owner can settle. Numbers here are not published anywhere until the owner confirms or corrects them.",
+    "statuses": {
+      "printed": "legible on the photograph; a variant that reads it differently is wrong",
+      "obscured": "partly cut off / faint at the crop edge, so the transcription is a best reading; scored separately and never treated as evidence an adoption improved things",
+      "illegible": "not readable by the transcription either; a variant may produce anything and nothing is scored"
+    },
+    "scoring": "case- and punctuation-insensitive token containment over each image's OCR output; `money: true` tokens are the ones a variant must never lose"
+  },
+  "saravana": {
+    "tokens": [
+      { "text": "offee", "status": "obscured", "note": "vision read: 'offee' with the first glyph obscured at the photograph's left edge; baseline OCR also gives 'offee'. Whether the printed word is 'Coffee' is an owner question." },
+      { "text": "vada", "status": "printed" },
+      { "text": "Chappathi", "status": "printed" },
+      { "text": "Empty", "status": "printed" },
+      { "text": "combo", "status": "printed" },
+      { "text": "chapati", "status": "printed" },
+      { "text": "Masala", "status": "printed" },
+      { "text": "Po8", "status": "obscured", "note": "vision read the same region as 'P B'; baseline OCR gives 'chapati/,Po8'. Unresolved without the owner." },
+      { "text": "2.00", "status": "printed", "money": true },
+      { "text": "35.00", "status": "printed", "money": true },
+      { "text": "25.00", "status": "printed", "money": true },
+      { "text": "24.00", "status": "printed", "money": true },
+      { "text": "153.00", "status": "printed", "money": true },
+      { "text": "70.00", "status": "printed", "money": true },
+      { "text": "50.00", "status": "printed", "money": true },
+      { "text": "48.00", "status": "printed", "money": true },
+      { "text": "306.00", "status": "printed", "money": true },
+      { "text": "474.00", "status": "printed", "money": true },
+      { "text": "ocrec re", "status": "illegible" },
+      { "text": "Wtnin 2gis", "status": "illegible" },
+      { "text": "sarrna", "status": "illegible" },
+      { "text": "saraerana", "status": "illegible" }
+    ]
+  },
+  "pineapple": {
+    "tokens": [
+      { "text": "Pineapple", "status": "printed" },
+      { "text": "lime", "status": "printed" },
+      { "text": "3", "status": "printed", "money": false },
+      { "text": "25.00", "status": "printed", "money": true },
+      { "text": "75.00", "status": "printed", "money": true },
+      { "text": "D", "status": "obscured", "note": "a leading mark before 'Pineapple'; baseline OCR calls it 'D'. Could be a column marker or a stray mark." }
+    ]
+  }
+}
