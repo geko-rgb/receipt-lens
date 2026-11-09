@@ -39,6 +39,9 @@ harness/out/
 # ticket 09b: candidate model tier for the G3 comparison. Never committed — a tier
 # that has not won the gate does not join the shipped asset set, and the footprint
 # check must keep verifying the assets the product actually serves (DECISIONS/0012 F11).
+# Experiment leftovers (ticket 26's PP-OCRv6 Small tier) are quarantined *here*, not in
+# assets/models/, which serve-app.mjs serves verbatim; the directory's contents are pinned
+# to the manifest by packages/core/src/ocr/model-assets.test.ts.
 assets/models/candidate/
 # Ticket 14: the migration rig's build output — a test entry, never shipped, and it
 # copies the 14.85 MB ORT wasm alongside the rig chunk (DECISIONS/0023 S1).
