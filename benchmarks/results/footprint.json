@@ -2,13 +2,20 @@
   "schemaVersion": "1.0",
   "kind": "footprint",
   "protocol": "receipt-lens-footprint/2",
-  "measuredAt": "2026-11-06T12:49:39.804Z",
+  "measuredAt": "2026-11-09T15:14:01.783Z",
   "git": {
-    "revision": "2782934d3828e1c3a6b97e330dfb1fa1464815d5",
-    "shortRevision": "2782934",
-    "branch": "ticket/17c-etag-code-assets",
+    "revision": "fb200ee1ce3299382dda429cfcd5d4b4265d2a36",
+    "shortRevision": "fb200ee",
+    "branch": "main",
     "dirtyPaths": [
-      "benchmarks/results/warm-bytes.json"
+      "benchmarks/scripts/measure-footprint.mjs",
+      "benchmarks/src/footprint/rules.ts",
+      "benchmarks/tests/footprint/etag-pins.test.ts",
+      "assets/models/PP-OCRv6_small_det.onnx",
+      "assets/models/PP-OCRv6_small_rec.onnx",
+      "assets/models/PP-OCRv6_small_rec.txt",
+      "v1.1/receipt-lens-option-a.patch",
+      "v1.1/receipt-lens-repro.ts"
     ]
   },
   "measurement": {
@@ -200,11 +207,11 @@
       "localFileBytes": 955
     },
     {
-      "url": "/assets/index-0itO_252.js",
+      "url": "/assets/index-C6aD80ek.js",
       "role": "Application entry script (shell + core + OCR glue)",
       "category": "app",
       "required": true,
-      "wireBytes": 242513,
+      "wireBytes": 287495,
       "bytesStable": true,
       "fetchedByColdVisits": 10,
       "ofColdSamples": 10,
@@ -215,17 +222,17 @@
       "warmVisitValidators": {},
       "bytesOfRecord": {
         "kind": "built",
-        "file": "packages/pwa/dist/app/assets/index-0itO_252.js",
+        "file": "packages/pwa/dist/app/assets/index-C6aD80ek.js",
         "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
       },
-      "localFileBytes": 242513
+      "localFileBytes": 287495
     },
     {
-      "url": "/assets/index-DSs-D2Tf.css",
+      "url": "/assets/index-tDBvMm-M.css",
       "role": "Application styles",
       "category": "app",
       "required": true,
-      "wireBytes": 7980,
+      "wireBytes": 8958,
       "bytesStable": true,
       "fetchedByColdVisits": 10,
       "ofColdSamples": 10,
@@ -236,10 +243,10 @@
       "warmVisitValidators": {},
       "bytesOfRecord": {
         "kind": "built",
-        "file": "packages/pwa/dist/app/assets/index-DSs-D2Tf.css",
+        "file": "packages/pwa/dist/app/assets/index-tDBvMm-M.css",
         "note": "git-ignored Vite build output: pnpm build produces it from packages/pwa/src, so its bytes are re-derivable but not committed"
       },
-      "localFileBytes": 7980
+      "localFileBytes": 8958
     },
     {
       "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
@@ -404,7 +411,7 @@
       ],
       "warmVisitOutcome": "revalidated-304",
       "warmVisitValidators": {
-        "/sw.js": "\"65274200df333a977d36a741a50a7327\""
+        "/sw.js": "\"460aea6ea0cfcd2b788417b647af2dd8\""
       },
       "bytesOfRecord": {
         "kind": "built",
@@ -564,11 +571,11 @@
       "affectsClaim": "section 9 initial-download / re-fetch cost: the second visit is no longer priced at the runtime WASM",
       "history": [
         {
-          "warmBytesOverTheWire": 6527,
-          "measuredAt": "2026-11-06T08:51:45.182Z",
-          "artifact": "footprint-2026-11-06-6b3ca50.json",
-          "supersededBy": "ticket 17c",
-          "why": "the origin began answering code assets with an ETag, so a warm visit revalidates instead of re-downloading"
+          "warmBytesOverTheWire": 2700,
+          "measuredAt": "2026-11-06T12:49:39.804Z",
+          "artifact": "footprint-2026-11-06-2782934.json",
+          "supersededBy": "revision fb200ee",
+          "why": "the built app bundle moved the derived cache-held total from 21,459,809 B to 21,505,769 B (+45,960 B) while the warm path was unchanged: the shell grew (parser and review-UI commits), which is DECISIONS/0012 F11 trigger 1, not a cache finding"
         }
       ]
     },
@@ -579,7 +586,7 @@
       "remedy": "ticket 17c: an ETag on code assets, which DECISIONS/0012 F10 measured already revalidating correctly under the entity limit. the ETag change and the regeneration of both footprint artifacts land in the same commit (DECISIONS/0028 T3/T7): a header change moves the number two artifacts publish",
       "affectsClaim": "the warm-visit byte total, not the local-processing claim",
       "resolvedBy": "ticket 17c",
-      "resolvedAt": "2026-11-06"
+      "resolvedAt": "2026-11-09"
     },
     {
       "code": "sw_js_byte_check_conditional",
@@ -591,27 +598,27 @@
   ],
   "totals": {
     "perCategoryBytes": {
-      "app": 263120,
+      "app": 309080,
       "model": 6279992,
       "runtime": 14923174
     },
     "initialDownloadBytes": {
       "n": 10,
-      "min": 21718277,
-      "median": 21718277,
-      "max": 21718277,
-      "mean": 21718277,
+      "min": 21810197,
+      "median": 21810197,
+      "max": 21810197,
+      "mean": 21810197,
       "samples": [
-        21718277,
-        21718277,
-        21718277,
-        21718277,
-        21718277,
-        21718277,
-        21718277,
-        21718277,
-        21718277,
-        21718277
+        21810197,
+        21810197,
+        21810197,
+        21810197,
+        21810197,
+        21810197,
+        21810197,
+        21810197,
+        21810197,
+        21810197
       ]
     },
     "secondVisitBytesOverTheWire": {
@@ -633,7 +640,7 @@
         2700
       ]
     },
-    "cacheHeldBytes": 21459809,
+    "cacheHeldBytes": 21505769,
     "cacheHeldBasis": "deterministic: the built worker's precache manifest (packages/pwa/dist/app/sw.js, stat'd from disk) plus the verified model set named by assets/models/manifest.json. Not 'bytes currently in the named caches', which would depend on eviction (DECISIONS/0028 T8, DECISIONS/0027 W18).",
     "assetsHeldByWorker": 14,
     "assetsRevalidatedOnWarmVisits": [
@@ -728,29 +735,29 @@
     "coldPageObserved": {
       "transferBytes": {
         "n": 10,
-        "min": 253191,
-        "median": 3395287,
-        "max": 6534383,
-        "mean": 3394087,
+        "min": 299151,
+        "median": 3439747,
+        "max": 6580343,
+        "mean": 3439747,
         "samples": [
-          6534383,
-          6534383,
-          6534383,
-          6534383,
-          6534383,
-          253191,
-          256191,
-          253191,
-          253191,
-          253191
+          6580343,
+          6580343,
+          6580343,
+          6580343,
+          6580343,
+          299151,
+          299151,
+          299151,
+          299151,
+          299151
         ]
       },
       "headerBytes": {
         "n": 10,
         "min": 1200,
-        "median": 1950,
+        "median": 1800,
         "max": 2400,
-        "mean": 1830,
+        "mean": 1800,
         "samples": [
           2400,
           2400,
@@ -758,7 +765,7 @@
           2400,
           2400,
           1200,
-          1500,
+          1200,
           1200,
           1200,
           1200
@@ -786,9 +793,9 @@
       "servedWithoutNetwork": {
         "n": 10,
         "min": 2,
-        "median": 3.5,
+        "median": 4,
         "max": 6,
-        "mean": 3.9,
+        "mean": 4,
         "samples": [
           2,
           2,
@@ -796,7 +803,7 @@
           2,
           2,
           6,
-          5,
+          6,
           6,
           6,
           6
@@ -890,44 +897,44 @@
         "label": "Cold start — first visit, empty context, worker installs and verifies",
         "appReadyMs": {
           "n": 5,
-          "min": 37.6,
-          "median": 38.8,
-          "max": 40.6,
-          "mean": 39,
+          "min": 50,
+          "median": 50.6,
+          "max": 53.1,
+          "mean": 51.3,
           "samples": [
-            37.8,
-            38.8,
-            37.6,
-            40,
-            40.6
+            52,
+            53.1,
+            50.6,
+            50,
+            50.6
           ]
         },
         "firstResultMs": {
           "n": 5,
-          "min": 1228.6,
-          "median": 1256.7,
-          "max": 1310,
-          "mean": 1260.2,
+          "min": 1457.5,
+          "median": 1467.8,
+          "max": 1477.4,
+          "mean": 1467.3,
           "samples": [
-            1310,
-            1228.6,
-            1229.5,
-            1256.7,
-            1276.3
+            1467.8,
+            1477.4,
+            1464.1,
+            1469.6,
+            1457.5
           ]
         },
         "downloadBytes": {
           "n": 5,
-          "min": 21718277,
-          "median": 21718277,
-          "max": 21718277,
-          "mean": 21718277,
+          "min": 21810197,
+          "median": 21810197,
+          "max": 21810197,
+          "mean": 21810197,
           "samples": [
-            21718277,
-            21718277,
-            21718277,
-            21718277,
-            21718277
+            21810197,
+            21810197,
+            21810197,
+            21810197,
+            21810197
           ]
         },
         "notSeparable": [
@@ -951,30 +958,30 @@
         "label": "Warm visit — same context, page.reload(), answered by the active caches",
         "appReadyMs": {
           "n": 5,
-          "min": 20.4,
-          "median": 20.8,
-          "max": 23.9,
-          "mean": 21.5,
+          "min": 24.4,
+          "median": 24.9,
+          "max": 28.2,
+          "mean": 25.7,
           "samples": [
-            20.6,
-            20.8,
-            23.9,
-            21.7,
-            20.4
+            26.3,
+            24.9,
+            24.4,
+            28.2,
+            24.7
           ]
         },
         "firstResultMs": {
           "n": 5,
-          "min": 579.3,
-          "median": 623.5,
-          "max": 661.5,
-          "mean": 624.1,
+          "min": 738.5,
+          "median": 786.9,
+          "max": 792.1,
+          "mean": 778.3,
           "samples": [
-            620.9,
-            623.5,
-            661.5,
-            635.3,
-            579.3
+            785,
+            786.9,
+            792.1,
+            789,
+            738.5
           ]
         },
         "downloadBytes": {
@@ -1020,16 +1027,16 @@
         },
         "firstResultMs": {
           "n": 5,
-          "min": 420.6,
-          "median": 434.3,
-          "max": 443.3,
-          "mean": 433,
+          "min": 501.9,
+          "median": 518,
+          "max": 522.2,
+          "mean": 515.1,
           "samples": [
-            420.6,
-            425.2,
-            434.3,
-            443.3,
-            441.5
+            521.3,
+            512,
+            518,
+            501.9,
+            522.2
           ]
         },
         "downloadBytes": {
@@ -1069,44 +1076,44 @@
         "label": "Cold start — first visit, empty context, worker installs and verifies",
         "appReadyMs": {
           "n": 5,
-          "min": 104.8,
-          "median": 118.4,
-          "max": 134.8,
-          "mean": 119.7,
+          "min": 139.8,
+          "median": 140.7,
+          "max": 142.5,
+          "mean": 140.8,
           "samples": [
-            118.4,
-            112.5,
-            134.8,
-            104.8,
-            127.8
+            140.1,
+            142.5,
+            140.7,
+            140.9,
+            139.8
           ]
         },
         "firstResultMs": {
           "n": 5,
-          "min": 3588.1,
-          "median": 3817.6,
-          "max": 4162.5,
-          "mean": 3861.6,
+          "min": 4632.1,
+          "median": 4704.5,
+          "max": 4770.2,
+          "mean": 4700.8,
           "samples": [
-            3772.2,
-            3817.6,
-            4162.5,
-            3588.1,
-            3967.7
+            4632.1,
+            4704.5,
+            4770.2,
+            4728.4,
+            4668.9
           ]
         },
         "downloadBytes": {
           "n": 5,
-          "min": 21718277,
-          "median": 21718277,
-          "max": 21718277,
-          "mean": 21718277,
+          "min": 21810197,
+          "median": 21810197,
+          "max": 21810197,
+          "mean": 21810197,
           "samples": [
-            21718277,
-            21718277,
-            21718277,
-            21718277,
-            21718277
+            21810197,
+            21810197,
+            21810197,
+            21810197,
+            21810197
           ]
         },
         "notSeparable": [
@@ -1130,30 +1137,30 @@
         "label": "Warm visit — same context, page.reload(), answered by the active caches",
         "appReadyMs": {
           "n": 5,
-          "min": 39.2,
-          "median": 41.7,
-          "max": 44,
-          "mean": 41.4,
+          "min": 47.4,
+          "median": 48.8,
+          "max": 55.8,
+          "mean": 49.9,
           "samples": [
-            39.2,
-            39.7,
-            42.4,
-            41.7,
-            44
+            48.8,
+            47.5,
+            55.8,
+            49.9,
+            47.4
           ]
         },
         "firstResultMs": {
           "n": 5,
-          "min": 2255.1,
-          "median": 2375.2,
-          "max": 2411.3,
-          "mean": 2353.9,
+          "min": 2803.9,
+          "median": 2939.4,
+          "max": 2983.9,
+          "mean": 2925.3,
           "samples": [
-            2388.8,
-            2375.2,
-            2339,
-            2255.1,
-            2411.3
+            2918.6,
+            2803.9,
+            2983.9,
+            2980.9,
+            2939.4
           ]
         },
         "downloadBytes": {
@@ -1199,16 +1206,16 @@
         },
         "firstResultMs": {
           "n": 5,
-          "min": 1569.8,
-          "median": 1686.5,
-          "max": 2039.2,
-          "mean": 1720.9,
+          "min": 1945.9,
+          "median": 1966.3,
+          "max": 2008.8,
+          "mean": 1973.5,
           "samples": [
-            1579.9,
-            1729,
-            1569.8,
-            1686.5,
-            2039.2
+            1966.3,
+            1960.3,
+            2008.8,
+            1945.9,
+            1986.2
           ]
         },
         "downloadBytes": {
@@ -1248,19 +1255,19 @@
       "class": "desktop-chromium-unthrottled",
       "phase": "cold",
       "sample": 0,
-      "appReadyMs": 37.8,
-      "firstResultMs": 1310,
-      "downloadBytes": 21718277,
+      "appReadyMs": 52,
+      "firstResultMs": 1467.8,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:41051"
+        "http://127.0.0.1:40375"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 6534383,
+      "pageObservedTransferBytes": 6580343,
       "pageObservedHeaderBytes": 2400,
       "pageObservedResources": 10,
       "pageObservedWithoutNetwork": 2,
@@ -1272,15 +1279,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -1314,9 +1321,9 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
@@ -1326,9 +1333,9 @@
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -1356,12 +1363,6 @@
           "completed": true
         },
         {
-          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
-          "status": 200,
-          "bodyBytes": 34063,
-          "completed": true
-        },
-        {
           "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
           "status": 200,
           "bodyBytes": 543,
@@ -1371,6 +1372,12 @@
           "url": "/icons/receipt-lens-192.png",
           "status": 200,
           "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
           "completed": true
         },
         {
@@ -1403,12 +1410,12 @@
       "class": "desktop-chromium-unthrottled",
       "phase": "warm",
       "sample": 0,
-      "appReadyMs": 20.6,
-      "firstResultMs": 620.9,
+      "appReadyMs": 26.3,
+      "firstResultMs": 785,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:41051"
+        "http://127.0.0.1:40375"
       ],
       "swController": true,
       "itemRows": 1,
@@ -1445,11 +1452,11 @@
       "phase": "repeat",
       "sample": 0,
       "appReadyMs": null,
-      "firstResultMs": 420.6,
+      "firstResultMs": 521.3,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:41051"
+        "http://127.0.0.1:40375"
       ],
       "swController": true,
       "itemRows": 1,
@@ -1466,19 +1473,19 @@
       "class": "desktop-chromium-unthrottled",
       "phase": "cold",
       "sample": 1,
-      "appReadyMs": 38.8,
-      "firstResultMs": 1228.6,
-      "downloadBytes": 21718277,
+      "appReadyMs": 53.1,
+      "firstResultMs": 1477.4,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:44163"
+        "http://127.0.0.1:45651"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 6534383,
+      "pageObservedTransferBytes": 6580343,
       "pageObservedHeaderBytes": 2400,
       "pageObservedResources": 10,
       "pageObservedWithoutNetwork": 2,
@@ -1490,15 +1497,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -1532,15 +1539,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -1580,12 +1587,6 @@
           "completed": true
         },
         {
-          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
-          "status": 200,
-          "bodyBytes": 34063,
-          "completed": true
-        },
-        {
           "url": "/icons/receipt-lens-192.png",
           "status": 200,
           "bodyBytes": 562,
@@ -1601,6 +1602,12 @@
           "url": "/icons/receipt-lens-512.png",
           "status": 200,
           "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
           "completed": true
         },
         {
@@ -1621,12 +1628,12 @@
       "class": "desktop-chromium-unthrottled",
       "phase": "warm",
       "sample": 1,
-      "appReadyMs": 20.8,
-      "firstResultMs": 623.5,
+      "appReadyMs": 24.9,
+      "firstResultMs": 786.9,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:44163"
+        "http://127.0.0.1:45651"
       ],
       "swController": true,
       "itemRows": 1,
@@ -1663,11 +1670,11 @@
       "phase": "repeat",
       "sample": 1,
       "appReadyMs": null,
-      "firstResultMs": 425.2,
+      "firstResultMs": 512,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:44163"
+        "http://127.0.0.1:45651"
       ],
       "swController": true,
       "itemRows": 1,
@@ -1684,19 +1691,19 @@
       "class": "desktop-chromium-unthrottled",
       "phase": "cold",
       "sample": 2,
-      "appReadyMs": 37.6,
-      "firstResultMs": 1229.5,
-      "downloadBytes": 21718277,
+      "appReadyMs": 50.6,
+      "firstResultMs": 1464.1,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:33421"
+        "http://127.0.0.1:41141"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 6534383,
+      "pageObservedTransferBytes": 6580343,
       "pageObservedHeaderBytes": 2400,
       "pageObservedResources": 10,
       "pageObservedWithoutNetwork": 2,
@@ -1708,15 +1715,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -1750,15 +1757,21 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/models/manifest.json",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-tDBvMm-M.css",
+          "status": 200,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -1768,9 +1781,221 @@
           "completed": true
         },
         {
+          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
+          "status": 200,
+          "bodyBytes": 1780590,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
+          "status": 200,
+          "bodyBytes": 4462639,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
+          "status": 200,
+          "bodyBytes": 74322,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-192.png",
+          "status": 200,
+          "bodyBytes": 562,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512-maskable.png",
+          "status": 200,
+          "bodyBytes": 2515,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
+          "completed": true
+        },
+        {
+          "url": "/icons/receipt-lens-512.png",
+          "status": 200,
+          "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/index.html",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/manifest.webmanifest",
+          "status": 200,
+          "bodyBytes": 728,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "warm",
+      "sample": 2,
+      "appReadyMs": 24.4,
+      "firstResultMs": 792.1,
+      "downloadBytes": 2700,
+      "requests": 3,
+      "origins": [
+        "http://127.0.0.1:41141"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": [
+        {
           "url": "/assets/models/manifest.json",
           "status": 200,
           "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        }
+      ]
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "repeat",
+      "sample": 2,
+      "appReadyMs": null,
+      "firstResultMs": 518,
+      "downloadBytes": 0,
+      "requests": 0,
+      "origins": [
+        "http://127.0.0.1:41141"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 0,
+      "pageObservedHeaderBytes": 0,
+      "pageObservedResources": 11,
+      "pageObservedWithoutNetwork": 11,
+      "wire": []
+    },
+    {
+      "class": "desktop-chromium-unthrottled",
+      "phase": "cold",
+      "sample": 3,
+      "appReadyMs": 50,
+      "firstResultMs": 1469.6,
+      "downloadBytes": 21810197,
+      "requests": 22,
+      "origins": [
+        "http://127.0.0.1:41779"
+      ],
+      "swController": true,
+      "itemRows": 1,
+      "chargeRows": 0,
+      "zeroItems": false,
+      "crossOriginIsolated": false,
+      "pageObservedTransferBytes": 6580343,
+      "pageObservedHeaderBytes": 2400,
+      "pageObservedResources": 10,
+      "pageObservedWithoutNetwork": 2,
+      "wire": [
+        {
+          "url": "/capture",
+          "status": 200,
+          "bodyBytes": 905,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-C6aD80ek.js",
+          "status": 200,
+          "bodyBytes": 287495,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-tDBvMm-M.css",
+          "status": 200,
+          "bodyBytes": 8958,
+          "completed": true
+        },
+        {
+          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
+          "status": 200,
+          "bodyBytes": 543,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/sw.js",
+          "status": 200,
+          "bodyBytes": 2872,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 304,
+          "bodyBytes": 0,
+          "completed": true
+        },
+        {
+          "url": "/assets/cache-names-BCswqTtv.js",
+          "status": 200,
+          "bodyBytes": 955,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-C6aD80ek.js",
+          "status": 200,
+          "bodyBytes": 287495,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/manifest.json",
+          "status": 200,
+          "bodyBytes": 2700,
+          "completed": true
+        },
+        {
+          "url": "/assets/index-tDBvMm-M.css",
+          "status": 200,
+          "bodyBytes": 8958,
+          "completed": true
+        },
+        {
+          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
+          "status": 200,
+          "bodyBytes": 14848852,
           "completed": true
         },
         {
@@ -1838,231 +2063,13 @@
     {
       "class": "desktop-chromium-unthrottled",
       "phase": "warm",
-      "sample": 2,
-      "appReadyMs": 23.9,
-      "firstResultMs": 661.5,
+      "sample": 3,
+      "appReadyMs": 28.2,
+      "firstResultMs": 789,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:33421"
-      ],
-      "swController": true,
-      "itemRows": 1,
-      "chargeRows": 0,
-      "zeroItems": false,
-      "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 0,
-      "pageObservedHeaderBytes": 0,
-      "pageObservedResources": 11,
-      "pageObservedWithoutNetwork": 11,
-      "wire": [
-        {
-          "url": "/assets/models/manifest.json",
-          "status": 200,
-          "bodyBytes": 2700,
-          "completed": true
-        },
-        {
-          "url": "/sw.js",
-          "status": 304,
-          "bodyBytes": 0,
-          "completed": true
-        },
-        {
-          "url": "/assets/cache-names-BCswqTtv.js",
-          "status": 304,
-          "bodyBytes": 0,
-          "completed": true
-        }
-      ]
-    },
-    {
-      "class": "desktop-chromium-unthrottled",
-      "phase": "repeat",
-      "sample": 2,
-      "appReadyMs": null,
-      "firstResultMs": 434.3,
-      "downloadBytes": 0,
-      "requests": 0,
-      "origins": [
-        "http://127.0.0.1:33421"
-      ],
-      "swController": true,
-      "itemRows": 1,
-      "chargeRows": 0,
-      "zeroItems": false,
-      "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 0,
-      "pageObservedHeaderBytes": 0,
-      "pageObservedResources": 11,
-      "pageObservedWithoutNetwork": 11,
-      "wire": []
-    },
-    {
-      "class": "desktop-chromium-unthrottled",
-      "phase": "cold",
-      "sample": 3,
-      "appReadyMs": 40,
-      "firstResultMs": 1256.7,
-      "downloadBytes": 21718277,
-      "requests": 22,
-      "origins": [
-        "http://127.0.0.1:32969"
-      ],
-      "swController": true,
-      "itemRows": 1,
-      "chargeRows": 0,
-      "zeroItems": false,
-      "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 6534383,
-      "pageObservedHeaderBytes": 2400,
-      "pageObservedResources": 10,
-      "pageObservedWithoutNetwork": 2,
-      "wire": [
-        {
-          "url": "/capture",
-          "status": 200,
-          "bodyBytes": 905,
-          "completed": true
-        },
-        {
-          "url": "/assets/index-0itO_252.js",
-          "status": 200,
-          "bodyBytes": 242513,
-          "completed": true
-        },
-        {
-          "url": "/assets/index-DSs-D2Tf.css",
-          "status": 200,
-          "bodyBytes": 7980,
-          "completed": true
-        },
-        {
-          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
-          "status": 200,
-          "bodyBytes": 543,
-          "completed": true
-        },
-        {
-          "url": "/assets/cache-names-BCswqTtv.js",
-          "status": 200,
-          "bodyBytes": 955,
-          "completed": true
-        },
-        {
-          "url": "/sw.js",
-          "status": 200,
-          "bodyBytes": 2872,
-          "completed": true
-        },
-        {
-          "url": "/assets/cache-names-BCswqTtv.js",
-          "status": 304,
-          "bodyBytes": 0,
-          "completed": true
-        },
-        {
-          "url": "/assets/cache-names-BCswqTtv.js",
-          "status": 200,
-          "bodyBytes": 955,
-          "completed": true
-        },
-        {
-          "url": "/assets/index-0itO_252.js",
-          "status": 200,
-          "bodyBytes": 242513,
-          "completed": true
-        },
-        {
-          "url": "/assets/index-DSs-D2Tf.css",
-          "status": 200,
-          "bodyBytes": 7980,
-          "completed": true
-        },
-        {
-          "url": "/assets/ort-wasm-simd-threaded-qh98TCA_.wasm",
-          "status": 200,
-          "bodyBytes": 14848852,
-          "completed": true
-        },
-        {
-          "url": "/assets/models/manifest.json",
-          "status": 200,
-          "bodyBytes": 2700,
-          "completed": true
-        },
-        {
-          "url": "/assets/models/PP-OCRv6_tiny_det.onnx",
-          "status": 200,
-          "bodyBytes": 1780590,
-          "completed": true
-        },
-        {
-          "url": "/assets/models/PP-OCRv6_tiny_rec.onnx",
-          "status": 200,
-          "bodyBytes": 4462639,
-          "completed": true
-        },
-        {
-          "url": "/assets/ort.wasm.bundle.min-DEokbyO3.js",
-          "status": 200,
-          "bodyBytes": 74322,
-          "completed": true
-        },
-        {
-          "url": "/assets/rolldown-runtime-CEoa-xHZ.js",
-          "status": 200,
-          "bodyBytes": 543,
-          "completed": true
-        },
-        {
-          "url": "/icons/receipt-lens-192.png",
-          "status": 200,
-          "bodyBytes": 562,
-          "completed": true
-        },
-        {
-          "url": "/icons/receipt-lens-512-maskable.png",
-          "status": 200,
-          "bodyBytes": 2515,
-          "completed": true
-        },
-        {
-          "url": "/icons/receipt-lens-512.png",
-          "status": 200,
-          "bodyBytes": 2642,
-          "completed": true
-        },
-        {
-          "url": "/index.html",
-          "status": 200,
-          "bodyBytes": 905,
-          "completed": true
-        },
-        {
-          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
-          "status": 200,
-          "bodyBytes": 34063,
-          "completed": true
-        },
-        {
-          "url": "/manifest.webmanifest",
-          "status": 200,
-          "bodyBytes": 728,
-          "completed": true
-        }
-      ]
-    },
-    {
-      "class": "desktop-chromium-unthrottled",
-      "phase": "warm",
-      "sample": 3,
-      "appReadyMs": 21.7,
-      "firstResultMs": 635.3,
-      "downloadBytes": 2700,
-      "requests": 3,
-      "origins": [
-        "http://127.0.0.1:32969"
+        "http://127.0.0.1:41779"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2099,11 +2106,11 @@
       "phase": "repeat",
       "sample": 3,
       "appReadyMs": null,
-      "firstResultMs": 443.3,
+      "firstResultMs": 501.9,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:32969"
+        "http://127.0.0.1:41779"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2120,19 +2127,19 @@
       "class": "desktop-chromium-unthrottled",
       "phase": "cold",
       "sample": 4,
-      "appReadyMs": 40.6,
-      "firstResultMs": 1276.3,
-      "downloadBytes": 21718277,
+      "appReadyMs": 50.6,
+      "firstResultMs": 1457.5,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:41891"
+        "http://127.0.0.1:36631"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 6534383,
+      "pageObservedTransferBytes": 6580343,
       "pageObservedHeaderBytes": 2400,
       "pageObservedResources": 10,
       "pageObservedWithoutNetwork": 2,
@@ -2144,15 +2151,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -2186,15 +2193,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -2240,12 +2247,6 @@
           "completed": true
         },
         {
-          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
-          "status": 200,
-          "bodyBytes": 34063,
-          "completed": true
-        },
-        {
           "url": "/icons/receipt-lens-512-maskable.png",
           "status": 200,
           "bodyBytes": 2515,
@@ -2255,6 +2256,12 @@
           "url": "/icons/receipt-lens-512.png",
           "status": 200,
           "bodyBytes": 2642,
+          "completed": true
+        },
+        {
+          "url": "/assets/models/PP-OCRv6_tiny_rec.txt",
+          "status": 200,
+          "bodyBytes": 34063,
           "completed": true
         },
         {
@@ -2275,12 +2282,12 @@
       "class": "desktop-chromium-unthrottled",
       "phase": "warm",
       "sample": 4,
-      "appReadyMs": 20.4,
-      "firstResultMs": 579.3,
+      "appReadyMs": 24.7,
+      "firstResultMs": 738.5,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:41891"
+        "http://127.0.0.1:36631"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2317,11 +2324,11 @@
       "phase": "repeat",
       "sample": 4,
       "appReadyMs": null,
-      "firstResultMs": 441.5,
+      "firstResultMs": 522.2,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:41891"
+        "http://127.0.0.1:36631"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2338,19 +2345,19 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "cold",
       "sample": 0,
-      "appReadyMs": 118.4,
-      "firstResultMs": 3772.2,
-      "downloadBytes": 21718277,
+      "appReadyMs": 140.1,
+      "firstResultMs": 4632.1,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:33313"
+        "http://127.0.0.1:44681"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 253191,
+      "pageObservedTransferBytes": 299151,
       "pageObservedHeaderBytes": 1200,
       "pageObservedResources": 10,
       "pageObservedWithoutNetwork": 6,
@@ -2362,15 +2369,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -2404,15 +2411,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -2493,12 +2500,12 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "warm",
       "sample": 0,
-      "appReadyMs": 39.2,
-      "firstResultMs": 2388.8,
+      "appReadyMs": 48.8,
+      "firstResultMs": 2918.6,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:33313"
+        "http://127.0.0.1:44681"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2535,11 +2542,11 @@
       "phase": "repeat",
       "sample": 0,
       "appReadyMs": null,
-      "firstResultMs": 1579.9,
+      "firstResultMs": 1966.3,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:33313"
+        "http://127.0.0.1:44681"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2556,22 +2563,22 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "cold",
       "sample": 1,
-      "appReadyMs": 112.5,
-      "firstResultMs": 3817.6,
-      "downloadBytes": 21718277,
+      "appReadyMs": 142.5,
+      "firstResultMs": 4704.5,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:45783"
+        "http://127.0.0.1:42283"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 256191,
-      "pageObservedHeaderBytes": 1500,
+      "pageObservedTransferBytes": 299151,
+      "pageObservedHeaderBytes": 1200,
       "pageObservedResources": 10,
-      "pageObservedWithoutNetwork": 5,
+      "pageObservedWithoutNetwork": 6,
       "wire": [
         {
           "url": "/capture",
@@ -2580,15 +2587,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -2622,15 +2629,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -2711,12 +2718,12 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "warm",
       "sample": 1,
-      "appReadyMs": 39.7,
-      "firstResultMs": 2375.2,
+      "appReadyMs": 47.5,
+      "firstResultMs": 2803.9,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:45783"
+        "http://127.0.0.1:42283"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2753,11 +2760,11 @@
       "phase": "repeat",
       "sample": 1,
       "appReadyMs": null,
-      "firstResultMs": 1729,
+      "firstResultMs": 1960.3,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:45783"
+        "http://127.0.0.1:42283"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2774,19 +2781,19 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "cold",
       "sample": 2,
-      "appReadyMs": 134.8,
-      "firstResultMs": 4162.5,
-      "downloadBytes": 21718277,
+      "appReadyMs": 140.7,
+      "firstResultMs": 4770.2,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:34183"
+        "http://127.0.0.1:33685"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 253191,
+      "pageObservedTransferBytes": 299151,
       "pageObservedHeaderBytes": 1200,
       "pageObservedResources": 10,
       "pageObservedWithoutNetwork": 6,
@@ -2798,15 +2805,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -2840,15 +2847,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -2929,12 +2936,12 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "warm",
       "sample": 2,
-      "appReadyMs": 42.4,
-      "firstResultMs": 2339,
+      "appReadyMs": 55.8,
+      "firstResultMs": 2983.9,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:34183"
+        "http://127.0.0.1:33685"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2971,11 +2978,11 @@
       "phase": "repeat",
       "sample": 2,
       "appReadyMs": null,
-      "firstResultMs": 1569.8,
+      "firstResultMs": 2008.8,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:34183"
+        "http://127.0.0.1:33685"
       ],
       "swController": true,
       "itemRows": 1,
@@ -2992,19 +2999,19 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "cold",
       "sample": 3,
-      "appReadyMs": 104.8,
-      "firstResultMs": 3588.1,
-      "downloadBytes": 21718277,
+      "appReadyMs": 140.9,
+      "firstResultMs": 4728.4,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:39287"
+        "http://127.0.0.1:41073"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 253191,
+      "pageObservedTransferBytes": 299151,
       "pageObservedHeaderBytes": 1200,
       "pageObservedResources": 10,
       "pageObservedWithoutNetwork": 6,
@@ -3016,15 +3023,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -3058,15 +3065,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -3147,12 +3154,12 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "warm",
       "sample": 3,
-      "appReadyMs": 41.7,
-      "firstResultMs": 2255.1,
+      "appReadyMs": 49.9,
+      "firstResultMs": 2980.9,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:39287"
+        "http://127.0.0.1:41073"
       ],
       "swController": true,
       "itemRows": 1,
@@ -3189,11 +3196,11 @@
       "phase": "repeat",
       "sample": 3,
       "appReadyMs": null,
-      "firstResultMs": 1686.5,
+      "firstResultMs": 1945.9,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:39287"
+        "http://127.0.0.1:41073"
       ],
       "swController": true,
       "itemRows": 1,
@@ -3210,19 +3217,19 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "cold",
       "sample": 4,
-      "appReadyMs": 127.8,
-      "firstResultMs": 3967.7,
-      "downloadBytes": 21718277,
+      "appReadyMs": 139.8,
+      "firstResultMs": 4668.9,
+      "downloadBytes": 21810197,
       "requests": 22,
       "origins": [
-        "http://127.0.0.1:38019"
+        "http://127.0.0.1:37177"
       ],
       "swController": true,
       "itemRows": 1,
       "chargeRows": 0,
       "zeroItems": false,
       "crossOriginIsolated": false,
-      "pageObservedTransferBytes": 253191,
+      "pageObservedTransferBytes": 299151,
       "pageObservedHeaderBytes": 1200,
       "pageObservedResources": 10,
       "pageObservedWithoutNetwork": 6,
@@ -3234,15 +3241,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -3276,15 +3283,15 @@
           "completed": true
         },
         {
-          "url": "/assets/index-0itO_252.js",
+          "url": "/assets/index-C6aD80ek.js",
           "status": 200,
-          "bodyBytes": 242513,
+          "bodyBytes": 287495,
           "completed": true
         },
         {
-          "url": "/assets/index-DSs-D2Tf.css",
+          "url": "/assets/index-tDBvMm-M.css",
           "status": 200,
-          "bodyBytes": 7980,
+          "bodyBytes": 8958,
           "completed": true
         },
         {
@@ -3365,12 +3372,12 @@
       "class": "desktop-chromium-cpu4x",
       "phase": "warm",
       "sample": 4,
-      "appReadyMs": 44,
-      "firstResultMs": 2411.3,
+      "appReadyMs": 47.4,
+      "firstResultMs": 2939.4,
       "downloadBytes": 2700,
       "requests": 3,
       "origins": [
-        "http://127.0.0.1:38019"
+        "http://127.0.0.1:37177"
       ],
       "swController": true,
       "itemRows": 1,
@@ -3407,11 +3414,11 @@
       "phase": "repeat",
       "sample": 4,
       "appReadyMs": null,
-      "firstResultMs": 2039.2,
+      "firstResultMs": 1986.2,
       "downloadBytes": 0,
       "requests": 0,
       "origins": [
-        "http://127.0.0.1:38019"
+        "http://127.0.0.1:37177"
       ],
       "swController": true,
       "itemRows": 1,

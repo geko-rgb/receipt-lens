@@ -657,6 +657,12 @@ const moduleChunkBytes = paidOnWarm.find((asset) => /^\/assets\/cache-names-/.te
 const previousFindingArtifact = JSON.parse(readFileSync(path.join(repoRoot, baseline.artifactPath), "utf8"));
 const previousFinding = previousFindingArtifact.findings.find((finding) => finding.code === "warm_not_zero_ort_wasm_exceeds_cache_entity_limit");
 
+/** T8's derivation, computed once: the findings' supersedes-cause reads it and `totals` publishes it. */
+const cacheHeldTotal = cacheHeldBytes({
+  precacheManifest,
+  modelAssets: modelManifest.assets.filter((asset) => !/manifest\.json$/.test(asset.file)),
+});
+
 const report = {
   schemaVersion: SCHEMA_VERSION,
   kind: "footprint",
@@ -790,6 +796,22 @@ const report = {
     })),
     previousWarmBytesPublished: supersededArtifact?.totals?.secondVisitBytesOverTheWire?.median ?? null,
     previousMeasuredAt: supersededArtifact?.measuredAt ?? null,
+    // The bundle moved (a parser or review-UI change), which moves the published byte totals even when the warm
+    // path is untouched. P6's history entry is what P8's latency comparison reads, so the run being superseded
+    // has to be named for *that* reason too (DECISIONS/0012 F11 trigger 1).
+    supersedesCause: (() => {
+      const before = supersededArtifact?.totals?.cacheHeldBytes ?? null;
+      if (before === null || before === cacheHeldTotal) return null;
+      const delta = cacheHeldTotal - before;
+      return {
+        supersededBy: `revision ${gitInfo.shortRevision}`,
+        why:
+          `the built app bundle moved the derived cache-held total from ${before.toLocaleString("en-US")} B to ` +
+          `${cacheHeldTotal.toLocaleString("en-US")} B (${delta > 0 ? "+" : ""}${delta.toLocaleString("en-US")} B) ` +
+          `while the warm path was unchanged: the shell grew (parser and review-UI commits), which is DECISIONS/0012 ` +
+          `F11 trigger 1, not a cache finding`,
+      };
+    })(),
     supersedesArtifact: supersededArtifact
       ? `footprint-${supersededArtifact.measuredAt.slice(0, 10)}-${supersededArtifact.git.shortRevision}.json`
       : null,
@@ -798,10 +820,7 @@ const report = {
     perCategoryBytes,
     initialDownloadBytes: summarize(coldTotalPerSample),
     secondVisitBytesOverTheWire: summarize(warmTotalPerSample),
-    cacheHeldBytes: cacheHeldBytes({
-      precacheManifest,
-      modelAssets: modelManifest.assets.filter((asset) => !/manifest\.json$/.test(asset.file)),
-    }),
+    cacheHeldBytes: cacheHeldTotal,
     cacheHeldBasis:
       "deterministic: the built worker's precache manifest (packages/pwa/dist/app/sw.js, stat'd from disk) plus the verified model set named by assets/models/manifest.json. Not 'bytes currently in the named caches', which would depend on eviction (DECISIONS/0028 T8, DECISIONS/0027 W18).",
     assetsHeldByWorker: heldByWorker.length,

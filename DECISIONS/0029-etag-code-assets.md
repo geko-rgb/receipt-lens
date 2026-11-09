@@ -276,6 +276,23 @@ would render the biggest win of the ticket as "**no** — 0 B paid again, 10/10 
 true and rhetorically the opposite of what happened. A measurement that reports an improvement as a failure
 state has not been updated, only re-run.
 
+### P6 amendment — a supersession caused by a bundle move is a history entry too (2026-11-09)
+
+P6 as written assumes the only reason a run supersedes another is the ETag, i.e. that the warm total moved. The
+2026-11-09 re-derivation (`fb200ee`, `DECISIONS/0012` F11 trigger 1) broke that assumption: the parser and review-UI
+commits grew the shell, which moved the published byte totals (initial download 21,718,277 → 21,810,197 B; held
+21,459,809 → 21,505,769 B) while the warm path stayed at one 2,700 B manifest probe. Under P6's old condition the new
+artifact carried **no** `history` entry, and `render-footprint-table.mjs --check` refused it: P8's latency comparison
+has no superseded run to name, so the reader would have seen a table whose numbers moved with no artifact explaining
+which run they replaced.
+
+`buildFindings` therefore takes an optional `supersedesCause` and appends the history entry when it is supplied even
+if the warm total is unchanged. `measure-footprint.mjs` supplies it only when the *derived* `cacheHeldBytes` differs
+from the superseded artifact's, and the text is generated from those two numbers rather than written by hand. Nothing
+else in P6 changes: the finding's `detail` is never edited, the entry names the superseded artifact, its measurement
+time and the revision that replaced it, and a run with nothing changed still appends nothing (both cases are pinned in
+`benchmarks/tests/footprint/etag-pins.test.ts`).
+
 ## P8 — What must not change, and how it is checked
 
 - **Latency.** Only byte measurements should move. If cold or warm `firstResultMs` shifts more than the run's own

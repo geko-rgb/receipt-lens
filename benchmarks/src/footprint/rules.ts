@@ -190,6 +190,13 @@ export interface FindingsInput {
   readonly previousWarmBytesPublished?: number | null;
   readonly previousMeasuredAt?: string | null;
   readonly supersedesArtifact?: string | null;
+  /**
+   * Why *this* measurement supersedes the one it replaced, when the reason is not the ETag (P6's history entry is
+   * about a superseded measurement, not only about a moved warm total). Supplying it appends a history entry even
+   * when the warm figure is unchanged — the case where the app bundle grew, which moves the published byte totals
+   * and therefore the run P8's latency comparison has to name.
+   */
+  readonly supersedesCause?: { readonly supersededBy: string; readonly why: string } | null;
   /** Warm requests that moved a body, with the artifact's own per-path reason (DECISIONS/0029 finding 9). */
   readonly warmPaid?: readonly { path: string; bytes: number; reason: string }[];
 }
@@ -609,18 +616,22 @@ export function buildFindings(input: FindingsInput): readonly Finding[] {
   const moduleChunkRedownloaded = moduleChunkPaths.some((pathname) => outcomes[pathname] === "redownloaded-200");
   const swState = outcomes["/sw.js"];
 
+  const warmMoved =
+    input.previousWarmBytesPublished !== undefined && input.previousWarmBytesPublished !== input.warmBytes;
   const history =
-    input.previousWarmBytesPublished === undefined || input.previousWarmBytesPublished === input.warmBytes
-      ? undefined
-      : [
+    (warmMoved || input.supersedesCause) && input.supersedesArtifact
+      ? [
           {
-            warmBytesOverTheWire: input.previousWarmBytesPublished,
+            warmBytesOverTheWire: input.previousWarmBytesPublished ?? null,
             measuredAt: input.previousMeasuredAt ?? null,
             artifact: input.supersedesArtifact ?? null,
-            supersededBy: "ticket 17c",
-            why: "the origin began answering code assets with an ETag, so a warm visit revalidates instead of re-downloading",
+            supersededBy: input.supersedesCause?.supersededBy ?? "ticket 17c",
+            why:
+              input.supersedesCause?.why ??
+              "the origin began answering code assets with an ETag, so a warm visit revalidates instead of re-downloading",
           },
-        ];
+        ]
+      : undefined;
 
   return [
     {

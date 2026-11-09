@@ -393,14 +393,14 @@ Re-derive a row: `pnpm measure:accuracy -- --split dev` (parser-only, CI-runnabl
 ## Footprint, measured
 
 Not claimed — measured. Every number below is generated from the committed results file
-`benchmarks/results/footprint.json` (protocol `receipt-lens-footprint/2`, schema `1.0`, measured `2026-11-06` at `2782934`, 5 samples per phase per class).
+`benchmarks/results/footprint.json` (protocol `receipt-lens-footprint/2`, schema `1.0`, measured `2026-11-09` at `fb200ee`, 5 samples per phase per class).
 CI regenerates this block and fails on drift. The old "~4.3 MB complete OCR pipeline" figure is withdrawn (ADR-002) and does not reappear here; what follows is this deployment's measurement.
 
 **Measured deployment:** `packages/pwa/dist/app/index.html` — the built, installable PWA. Served by `scripts/serve-measure-app.mjs`,
 the same origin the offline and capture specs run against.
 
-**In one paragraph.** A cold visit — first load, models downloaded — moves **21,718,277 B**. A warm visit — a reload with the service worker controlling — moves **2,700 B**: 8,043.8x less than the cold visit in this same measurement, and 5,499.6x less than the pre-ticket-17 warm visit it replaced (14,848,852 B, `crossCheck.harnessWarmBytesOverTheWire`). The residual is the worker's deliberate model-manifest version
-probe, not a cache miss. The caches hold 21,459,809 B at install. Latency, medians: cold 1,257 ms / warm 624 ms unthrottled, 3,818 ms / 2,375 ms at 4x CPU throttle. Measured on a
+**In one paragraph.** A cold visit — first load, models downloaded — moves **21,810,197 B**. A warm visit — a reload with the service worker controlling — moves **2,700 B**: 8,077.9x less than the cold visit in this same measurement, and 5,499.6x less than the pre-ticket-17 warm visit it replaced (14,848,852 B, `crossCheck.harnessWarmBytesOverTheWire`). The residual is the worker's deliberate model-manifest version
+probe, not a cache miss. The caches hold 21,505,769 B at install. Latency, medians: cold 1,468 ms / warm 787 ms unthrottled, 4,705 ms / 2,939 ms at 4x CPU throttle. Measured on a
 synthetic 4-line receipt — a real receipt with more lines costs more per line, so these are a
 floor rather than a bound. Latency at 1 ORT thread (no COOP/COEP isolation, so the harness's 4-thread numbers do not carry over). Every figure above is derived from
 `benchmarks/results/footprint.json` and `benchmarks/results/warm-bytes.json` by this generator, and `verify:footprint` re-derives it in CI.
@@ -417,10 +417,10 @@ floor rather than a bound. Latency at 1 ORT thread (no COOP/COEP isolation, so t
 | **Inference runtime (onnxruntime-web, WASM)** | | **14,923,174** | **14.92** | | |
 | Inference runtime WASM | `/assets/ort-wasm-simd-threaded-qh98TCA_.wasm` | 14,848,852 | 14.85 | yes — worker cache, never requested | built · packages/pwa/dist/app/assets/ort-wasm-simd-threaded-qh98TCA_.wasm |
 | Inference runtime JS loader | `/assets/ort.wasm.bundle.min-DEokbyO3.js` | 74,322 | 0.07 | yes — worker cache, never requested | built · packages/pwa/dist/app/assets/ort.wasm.bundle.min-DEokbyO3.js |
-| **Application** | | **263,120** | **0.26** | | |
+| **Application** | | **309,080** | **0.31** | | |
 | Service worker module chunk | `/assets/cache-names-BCswqTtv.js` | 955 | 0.00 | yes — asked, told not modified, 0 B moved (10/10 warm visits) | built · packages/pwa/dist/app/assets/cache-names-BCswqTtv.js |
-| Application entry script (shell + core + OCR glue) | `/assets/index-0itO_252.js` | 242,513 | 0.24 | yes — worker cache, never requested | built · packages/pwa/dist/app/assets/index-0itO_252.js |
-| Application styles | `/assets/index-DSs-D2Tf.css` | 7,980 | 0.01 | yes — worker cache, never requested | built · packages/pwa/dist/app/assets/index-DSs-D2Tf.css |
+| Application entry script (shell + core + OCR glue) | `/assets/index-C6aD80ek.js` | 287,495 | 0.29 | yes — worker cache, never requested | built · packages/pwa/dist/app/assets/index-C6aD80ek.js |
+| Application styles | `/assets/index-tDBvMm-M.css` | 8,958 | 0.01 | yes — worker cache, never requested | built · packages/pwa/dist/app/assets/index-tDBvMm-M.css |
 | Bundle runtime | `/assets/rolldown-runtime-CEoa-xHZ.js` | 543 | 0.00 | yes — worker cache, never requested | built · packages/pwa/dist/app/assets/rolldown-runtime-CEoa-xHZ.js |
 | App shell served for a route navigation | `/capture` | 905 | 0.00 | yes — worker cache, never requested | built · packages/pwa/dist/app/index.html |
 | Launcher icon | `/icons/receipt-lens-192.png` | 562 | 0.00 | yes — worker cache, never requested | built · packages/pwa/dist/app/icons/receipt-lens-192.png |
@@ -429,13 +429,13 @@ floor rather than a bound. Latency at 1 ORT thread (no COOP/COEP isolation, so t
 | App shell document (precached) | `/index.html` | 905 | 0.00 | yes — worker cache, never requested | built · packages/pwa/dist/app/index.html |
 | Web app manifest | `/manifest.webmanifest` | 728 | 0.00 | yes — worker cache, never requested | built · packages/pwa/dist/app/manifest.webmanifest |
 | Service worker script | `/sw.js` | 2,872 | 0.00 | yes — asked, told not modified, 0 B moved (10/10 warm visits) | built · packages/pwa/dist/app/sw.js |
-| **Initial download, empty cache** | 22 requests for 17 assets (5 repeat fetches inside the same visit) | **21,718,277** | **21.72** | | min 21,718,277 / max 21,718,277 |
-| **Held for the next visit** | 14 of 17 assets | **21,459,809** | **21.46** | the service worker's Cache API, not the HTTP cache | derived: built precache manifest + verified model set |
+| **Initial download, empty cache** | 22 requests for 17 assets (5 repeat fetches inside the same visit) | **21,810,197** | **21.81** | | min 21,810,197 / max 21,810,197 |
+| **Held for the next visit** | 14 of 17 assets | **21,505,769** | **21.51** | the service worker's Cache API, not the HTTP cache | derived: built precache manifest + verified model set |
 | **Revalidated, not re-downloaded** | `/assets/cache-names-BCswqTtv.js` `/sw.js` | **0** | **0.00** | yes — `304`, no body moved | `/assets/cache-names-BCswqTtv.js` answered 304: the worker's module import — the defect ticket 17c closed: the repeat fetch now carries If-None-Match and answers 304 with no body (DECISIONS/0028 T7, DECISIONS/0029 P2); `/sw.js` answered 304: the browser's own byte-check of the worker script; a worker never intercepts the fetch of its own script |
 | **Downloaded again on every visit** | `/assets/models/manifest.json` | **2,700** | **0.00** | no | W5 step 1's version probe, deliberately cache: "reload" (DECISIONS/0027 W6) — the app asking the origin what it serves, which is the point of the probe |
 | **Second visit, over the network** | 3 requests | **2,700** | **0.00** | | `benchmarks/results/warm-bytes.json` measures the same quantity with a different driver |
 
-| What the page itself observed | 10 cold / 11 warm document resources, of which 11 warm ones moved zero bytes | 3,395,287 cold / 0 B warm | | of which 1,950 B / 0 B are response headers | The page's own resource timings cover only the resources the *document* fetched. The worker's install precache, the WASM and the model downloads are not document resources and never appear here — that is why F5 counts bytes at the origin. So this pair is reported beside the totals and never added to them, and it is not the header cost of the whole visit. |
+| What the page itself observed | 10 cold / 11 warm document resources, of which 11 warm ones moved zero bytes | 3,439,747 cold / 0 B warm | | of which 1,800 B / 0 B are response headers | The page's own resource timings cover only the resources the *document* fetched. The worker's install precache, the WASM and the model downloads are not document resources and never appear here — that is why F5 counts bytes at the origin. So this pair is reported beside the totals and never added to them, and it is not the header cost of the whole visit. |
 
 MB = 10⁶ bytes. The receipt image is not in this table on purpose: it is user data, never a network request.
 
@@ -445,12 +445,12 @@ is why the first two do not: a cold visit is 22 requests for
 
 | | Bytes | MB |
 |---|---:|---:|
-| App shell (document, entry script, styles, worker and its module, icons, web manifest) | 263,120 | 0.26 |
+| App shell (document, entry script, styles, worker and its module, icons, web manifest) | 309,080 | 0.31 |
 | Models + inference runtime (WASM and its JS loader) | 21,203,166 | 21.20 |
-| Repeat fetches within the same visit | 251,991 | 0.25 |
-| **Total, first visit, empty cache** | **21,718,277** | **21.72** |
+| Repeat fetches within the same visit | 297,951 | 0.30 |
+| **Total, first visit, empty cache** | **21,810,197** | **21.81** |
 
-**Initial download: 21.72 MB. Second visit: 2,700 B** — a warm visit moves 2,700 bytes over 3 requests, where the superseded scaffold measurement moved 14,848,852 (5500×), and the runtime WASM is not among them.
+**Initial download: 21.81 MB. Second visit: 2,700 B** — a warm visit moves 2,700 bytes over 3 requests, where the superseded scaffold measurement moved 14,848,852 (5500×), and the runtime WASM is not among them.
 Two mechanisms do that work, and the headers say which is which. The worker's Cache API holds the bulk binaries: this origin still answers `cache-control: no-store` for the model weights, the recognition dictionary and the runtime WASM — precisely because Chromium's HTTP cache cannot
 hold a 14.85 MB entity (ADR-002, `DECISIONS/0012` F10/F12) and a second copy beside the precache would be dead weight and a stale-weights path
 around `DECISIONS/0027` W5. Code and app metadata instead carry a content `ETag` (`DECISIONS/0029` P1-P3), so a warm
@@ -467,16 +467,16 @@ eviction (`DECISIONS/0027` W18), and `no-cache` is a promise to revalidate, not 
 
 The superseded measurement published 21,299,089 B for a first visit, in
 `benchmarks/results/footprint-2026-11-04-16ae8de.json`. This deployment is `packages/pwa/dist/app/index.html`, and the
-difference of **419,188 B** is a change in what ships, not a regression in what any one file
+difference of **511,108 B** is a change in what ships, not a regression in what any one file
 costs. It decomposes exactly, and `verify:footprint` re-checks that arithmetic on every run:
 
 | | Bytes | What it is |
 |---|---:|---|
 | Models and dictionary | 0 | unchanged — the same committed 6,279,992 B set, verified against the same manifest |
 | Inference runtime | +49,584 | the WASM is byte-identical at 14,848,852 B; the runtime's JS loader grew, because the build emits it into the app's asset graph instead of mounting it from a dependency directory |
-| Application | +117,613 | the Svelte shell, its stylesheet, the worker and its module chunk, three launcher icons, the route document and the web app manifest, less the scaffold's single application bundle |
-| Repeat fetches inside one visit | +251,991 | the worker precaches with `cache: "reload"`, so it asks again for bytes the document just downloaded: `/assets/index-0itO_252.js` alone accounts for 242,513 B of it, fetched 2 times, across 4 assets that move more than once; 1 of those repeat fetches is now answered with a `304` carrying no body (`/assets/cache-names-BCswqTtv.js`), which is ticket 17c's validator and is why this figure is smaller than it was before 17c |
-| **Total** | **+419,188** | 21,299,089 B became 21,718,277 B |
+| Application | +163,573 | the Svelte shell, its stylesheet, the worker and its module chunk, three launcher icons, the route document and the web app manifest, less the scaffold's single application bundle |
+| Repeat fetches inside one visit | +297,951 | the worker precaches with `cache: "reload"`, so it asks again for bytes the document just downloaded: `/assets/index-C6aD80ek.js` alone accounts for 287,495 B of it, fetched 2 times, across 4 assets that move more than once; 1 of those repeat fetches is now answered with a `304` carrying no body (`/assets/cache-names-BCswqTtv.js`), which is ticket 17c's validator and is why this figure is smaller than it was before 17c |
+| **Total** | **+511,108** | 21,299,089 B became 21,810,197 B |
 
 Read the last row twice: a cold visit fetches the shell more than once, and that is a property of a worker
 refusing to trust a cached copy of its own shell, not of a larger bundle. The same mechanism is why the warm
@@ -488,12 +488,12 @@ and the requests themselves are `DECISIONS/0029` P4's other branch, owned by 17e
 
 | Class | Phase | App ready | OCR ready | First result | Model load | Inference | Download |
 |---|---|---:|---:|---:|---:|---:|---:|
-| desktop-chromium-unthrottled | cold | 39 ms | *not separable* | **1257 ms** | *not separable* | *not separable* | 21.72 MB |
-| desktop-chromium-unthrottled | warm | 21 ms | *not separable* | **624 ms** | *not separable* | *not separable* | 0.00 MB |
-| desktop-chromium-unthrottled | Re-run OCR (same image, no navigation) *(supplementary)* | — | *not separable* | **434 ms** | *not separable* | *not separable* | 0.00 MB |
-| desktop-chromium-cpu4x | cold | 118 ms | *not separable* | **3818 ms** | *not separable* | *not separable* | 21.72 MB |
-| desktop-chromium-cpu4x | warm | 42 ms | *not separable* | **2375 ms** | *not separable* | *not separable* | 0.00 MB |
-| desktop-chromium-cpu4x | Re-run OCR (same image, no navigation) *(supplementary)* | — | *not separable* | **1687 ms** | *not separable* | *not separable* | 0.00 MB |
+| desktop-chromium-unthrottled | cold | 51 ms | *not separable* | **1468 ms** | *not separable* | *not separable* | 21.81 MB |
+| desktop-chromium-unthrottled | warm | 25 ms | *not separable* | **787 ms** | *not separable* | *not separable* | 0.00 MB |
+| desktop-chromium-unthrottled | Re-run OCR (same image, no navigation) *(supplementary)* | — | *not separable* | **518 ms** | *not separable* | *not separable* | 0.00 MB |
+| desktop-chromium-cpu4x | cold | 141 ms | *not separable* | **4705 ms** | *not separable* | *not separable* | 21.81 MB |
+| desktop-chromium-cpu4x | warm | 49 ms | *not separable* | **2939 ms** | *not separable* | *not separable* | 0.00 MB |
+| desktop-chromium-cpu4x | Re-run OCR (same image, no navigation) *(supplementary)* | — | *not separable* | **1966 ms** | *not separable* | *not separable* | 0.00 MB |
 
 **What the latency numbers are measured on.** The receipt is synthetic and deliberately small:
 900×1200, 4 declared text lines (`RECEIPT`, `COFFEE 4.50`, `TOTAL 100.00`, `CASH 100.00`),
@@ -513,8 +513,8 @@ proof a draft was produced, so on a cold device it includes downloading and veri
 cold number, not the "models already fetched" one, because navigation to `/capture` is what triggers the download
 (`DECISIONS/0027` W2.1). Medians above; spread per class:
 
-- `desktop-chromium-unthrottled`: cold 1229–1310 ms, n=5, warm 579–662 ms, n=5
-- `desktop-chromium-cpu4x`: cold 3588–4163 ms, n=5, warm 2255–2411 ms, n=5
+- `desktop-chromium-unthrottled`: cold 1458–1477 ms, n=5, warm 739–792 ms, n=5
+- `desktop-chromium-cpu4x`: cold 4632–4770 ms, n=5, warm 2804–2984 ms, n=5
 
 *OCR ready*, *model load* and *inference* are **not separable** in this deployment, and are not published as leftovers
 from the superseded one. The shipped bundle carries no timing hook — `DECISIONS/0027` W15, following
@@ -526,22 +526,22 @@ from outside. The reason recorded on each field in the artifact:
 
 ### How this run's latency compares to the one it replaced
 
-Both runs are this machine, this browser and this receipt, 4.0 h apart, at revisions `6b3ca50` and `2782934`; what changed between them is the header policy `DECISIONS/0029` P2 records, not anything the app executes. Medians, with each run's own range:
+Both runs are this machine, this browser and this receipt, 74.4 h apart, at revisions `2782934` and `fb200ee`; what changed between them is the header policy `DECISIONS/0029` P2 records, not anything the app executes. Medians, with each run's own range:
 
-| Cell | 6b3ca50 | 2782934 | Δ median | ranges overlap |
+| Cell | 2782934 | fb200ee | Δ median | ranges overlap |
 |---|---:|---:|---:|---|
-| desktop-chromium-unthrottled · cold | 1,206.0 (1,186.7–1,226.1) ms | 1,256.7 (1,228.6–1,310.0) ms | +50.7 ms (+4.2%) | **no** |
-| desktop-chromium-unthrottled · warm | 618.7 (590.3–629.0) ms | 623.5 (579.3–661.5) ms | +4.8 ms (+0.8%) | yes |
-| desktop-chromium-unthrottled · repeat | 426.2 (414.9–438.1) ms | 434.3 (420.6–443.3) ms | +8.1 ms (+1.9%) | yes |
-| desktop-chromium-cpu4x · cold | 3,670.8 (3,425.4–3,692.6) ms | 3,817.6 (3,588.1–4,162.5) ms | +146.8 ms (+4.0%) | yes |
-| desktop-chromium-cpu4x · warm | 2,308.8 (2,205.1–2,321.5) ms | 2,375.2 (2,255.1–2,411.3) ms | +66.4 ms (+2.9%) | yes |
-| desktop-chromium-cpu4x · repeat | 1,566.3 (1,526.7–1,573.2) ms | 1,686.5 (1,569.8–2,039.2) ms | +120.2 ms (+7.7%) | yes |
+| desktop-chromium-unthrottled · cold | 1,256.7 (1,228.6–1,310.0) ms | 1,467.8 (1,457.5–1,477.4) ms | +211.1 ms (+16.8%) | **no** |
+| desktop-chromium-unthrottled · warm | 623.5 (579.3–661.5) ms | 786.9 (738.5–792.1) ms | +163.4 ms (+26.2%) | **no** |
+| desktop-chromium-unthrottled · repeat | 434.3 (420.6–443.3) ms | 518.0 (501.9–522.2) ms | +83.7 ms (+19.3%) | **no** |
+| desktop-chromium-cpu4x · cold | 3,817.6 (3,588.1–4,162.5) ms | 4,704.5 (4,632.1–4,770.2) ms | +886.9 ms (+23.2%) | **no** |
+| desktop-chromium-cpu4x · warm | 2,375.2 (2,255.1–2,411.3) ms | 2,939.4 (2,803.9–2,983.9) ms | +564.2 ms (+23.8%) | **no** |
+| desktop-chromium-cpu4x · repeat | 1,686.5 (1,569.8–2,039.2) ms | 1,966.3 (1,945.9–2,008.8) ms | +279.8 ms (+16.6%) | yes |
 
-**One cell does not overlap: desktop-chromium-unthrottled · cold.** `DECISIONS/0029` P8 said to report a latency move beyond the run's own spread rather than absorb it, and that is what happened — the number is **published as measured, not re-rolled**. Re-running until a cell lands inside the previous range would be fitting a measurement to an expectation, which is the act ADR-002 and `DECISIONS/0012` F10 exist to forbid.
+**One cell does not overlap: desktop-chromium-unthrottled · cold; desktop-chromium-unthrottled · warm; desktop-chromium-unthrottled · repeat; desktop-chromium-cpu4x · cold; desktop-chromium-cpu4x · warm.** `DECISIONS/0029` P8 said to report a latency move beyond the run's own spread rather than absorb it, and that is what happened — the number is **published as measured, not re-rolled**. Re-running until a cell lands inside the previous range would be fitting a measurement to an expectation, which is the act ADR-002 and `DECISIONS/0012` F10 exist to forbid.
 
-What the artifact says against that cell: the mechanism this ticket supplies is one conditional round trip over loopback per revalidated asset — microseconds — against a 51 ms gap, and the two runs' within-run spreads (39.4 ms then, 81.4 ms now) are of the same order as the difference itself. In run order this run's cold samples are 1,310.0, 1,228.6, 1,229.5, 1,256.7, 1,276.3, which puts its maximum first: an initial-check-in shape, not a drift shape.
+What the artifact says against that cell: the mechanism this ticket supplies is one conditional round trip over loopback per revalidated asset — microseconds — against a 211 ms gap, and the two runs' within-run spreads (81.4 ms then, 19.9 ms now) are of the same order as the difference itself. In run order this run's cold samples are 1,467.8, 1,477.4, 1,464.1, 1,469.6, 1,457.5, which puts its maximum first: an initial-check-in shape, not a drift shape.
 
-**Read the columns as ranges, not as point estimates.** Five samples per cell on one desktop cannot resolve a 4% difference: across both runs, a cold first result on this deployment is 1.19–1.31 s unthrottled and 3.43–4.16 s at 4×, and a *comparison* between tickets needs interleaved A/B runs in one process (`DECISIONS/0029`'s checkpoint-3 finding). Bytes are the opposite case — they are deterministic at this origin, which is why `verify:warm-bytes` can hold them to ±0 while latency has no such gate.
+**Read the columns as ranges, not as point estimates.** Five samples per cell on one desktop cannot resolve a 4% difference: across both runs, a cold first result on this deployment is 1.23–1.48 s unthrottled and 3.59–4.77 s at 4×, and a *comparison* between tickets needs interleaved A/B runs in one process (`DECISIONS/0029`'s checkpoint-3 finding). Bytes are the opposite case — they are deterministic at this origin, which is why `verify:warm-bytes` can hold them to ±0 while latency has no such gate.
 
 ### Declared conditions
 

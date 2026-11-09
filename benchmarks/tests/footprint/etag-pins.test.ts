@@ -354,6 +354,48 @@ describe("P6 — findings append rather than rewrite", () => {
     ]);
   });
 
+  it("names the run it superseded even when the warm total did not move but the bundle did", () => {
+    // The 2026-11-09 re-derivation: `cacheHeldBytes` grew by 45,960 B because the shell grew, and the warm visit was
+    // still one 2,700 B manifest probe. Without a history entry the P8 latency comparison has no run to name, and the
+    // published byte totals would have moved with the artifact that explains them missing (DECISIONS/0012 F11).
+    const findings = buildFindings({
+      previousFinding: previous,
+      warmBytes: 2_700,
+      warmPaths: [ASSETS.modelManifest],
+      warmOutcomes: { "/assets/models/manifest.json": "redownloaded-200", "/sw.js": "revalidated-304" },
+      moduleChunk: warmModuleChunkDefect(0),
+      measuredAt: "2026-11-09T00:00:00.000Z",
+      previousWarmBytesPublished: 2_700,
+      previousMeasuredAt: "2026-11-06T12:49:39.804Z",
+      supersedesArtifact: "footprint-2026-11-06-2782934.json",
+      supersedesCause: { supersededBy: "revision fb200ee", why: "the app bundle grew, the warm path did not" },
+    });
+    expect(findingBy(findings, "warm_visit_served_by_service_worker").history).toEqual([
+      {
+        warmBytesOverTheWire: 2_700,
+        measuredAt: "2026-11-06T12:49:39.804Z",
+        artifact: "footprint-2026-11-06-2782934.json",
+        supersededBy: "revision fb200ee",
+        why: "the app bundle grew, the warm path did not",
+      },
+    ]);
+  });
+
+  it("adds no history entry when nothing about the superseded run moved", () => {
+    const findings = buildFindings({
+      previousFinding: previous,
+      warmBytes: 2_700,
+      warmPaths: [ASSETS.modelManifest],
+      warmOutcomes: { "/assets/models/manifest.json": "redownloaded-200", "/sw.js": "revalidated-304" },
+      moduleChunk: warmModuleChunkDefect(0),
+      measuredAt: "2026-11-09T00:00:00.000Z",
+      previousWarmBytesPublished: 2_700,
+      previousMeasuredAt: "2026-11-06T12:49:39.804Z",
+      supersedesArtifact: "footprint-2026-11-06-2782934.json",
+    });
+    expect(findingBy(findings, "warm_visit_served_by_service_worker").history).toBeUndefined();
+  });
+
   it("closes the module-chunk finding only when the body actually stopped moving", () => {
     const closed = buildFindings({
       previousFinding: previous, warmBytes: 2_700, warmPaths: [ASSETS.modelManifest],
