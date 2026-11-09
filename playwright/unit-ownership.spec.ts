@@ -94,6 +94,9 @@ test("per-unit ownership: roster, assignment, exact division, acknowledgement an
   await page.locator(`[data-line-id="${naanId}"]`).getByTestId("finalize-line").click();
   await expect(page.getByTestId("item-row")).toHaveCount(2);
 
+  // A two-unit line defaults to the quantity table (the owner's rule), and this spec is about the per-unit
+  // interface, including a unit held by two people — which the table refuses by design.
+  await page.locator(`[data-testid="mode-unit"][data-item-id="${naanId}"]`).click();
   const naanUnits = page.locator(`[data-testid="unit-list"][data-item-id="${naanId}"] [data-testid="unit"]`);
   await expect(naanUnits).toHaveCount(2);
   const unit = (index: number): Locator => naanUnits.nth(index);

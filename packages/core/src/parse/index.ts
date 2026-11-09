@@ -13,8 +13,11 @@ import type { ParseResult, ParseWarning, UnclassifiedRow } from "../types.js";
 import { classifyRows, type ClassifiedRow } from "./classify.js";
 import { readCharges } from "./charges.js";
 import { buildItems } from "./items.js";
+import type { HeaderTable } from "./header.js";
+import type { TableRecord } from "./rows.js";
 import { profileForRows } from "./money.js";
 import { detectQuantityColumn } from "./quantity.js";
+import { readTaxTables } from "./taxes.js";
 
 function copyBox(box: OcrBox): OcrBox {
   return { x: box.x, y: box.y, width: box.width, height: box.height };
@@ -72,19 +75,34 @@ function rowWarnings(rows: readonly ClassifiedRow[], promoted: ReadonlySet<numbe
  * is never mutated, and no nested reference from it is shared into the output.
  */
 export function parse(ocrResult: OcrResult): ParseResult {
-  const { rows, column } = classifyRows(ocrResult);
+  const { rows, column, headerTables, tableRows } = classifyRows(ocrResult);
+  const tableRecords: readonly TableRecord[] = tableRows.records;
   const parsed = rows.map((entry) => entry.row);
   const profile = profileForRows(parsed);
   const band = detectQuantityColumn(parsed, ocrResult.imageSize.width, column);
 
-  const { items, promotedRowIndexes, warnings: itemWarnings } = buildItems(rows, band, column, profile);
+  const { items, promotedRowIndexes, warnings: itemWarnings } = buildItems(
+    rows,
+    band,
+    column,
+    profile,
+    tableRecords
+  );
   const unclassifiedRows = preservedRows(rows, promotedRowIndexes);
-  const charges = readCharges(rows, column, profile);
+  // DECISIONS/0033 P10–P12: a GST breakdown is read as a table, by column position, and its total row is the
+  // value (never the sum of its rows). Its rows then leave the labelled-charge path, so no tax is counted twice.
+  const taxTables = readTaxTables(
+    parsed,
+    headerTables,
+    ocrResult.imageSize.width,
+    profile
+  );
+  const charges = readCharges(rows, column, profile, taxTables.consumedRows);
 
   return {
     items,
     unclassifiedRows,
-    taxes: [...charges.taxes],
+    taxes: [...taxTables.taxes, ...charges.taxes],
     serviceCharge: charges.serviceCharge,
     tip: charges.tip,
     discount: charges.discount,
@@ -99,4 +117,8 @@ export function parse(ocrResult: OcrResult): ParseResult {
 }
 
 export { classifyRows, continuationLengthCap, meetsContinuationConditions } from "./classify.js";
+export { findHeaderTables, readHeaderRow, columnValue, isColumnValueWord } from "./header.js";
+export type { ColumnBand, ColumnRole, HeaderCell, HeaderSpan, HeaderTable } from "./header.js";
+export { isTableRecordRow, reconstructTableRows } from "./rows.js";
+export type { ReconstructionEvidence, TableRecord } from "./rows.js";
 export type { ClassifiedRow, ClassifyOptions, RowClassification, RowClassifyResult } from "./classify.js";

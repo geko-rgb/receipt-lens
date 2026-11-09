@@ -92,14 +92,24 @@ describe("the money census runs under both matcher configurations (DECISIONS/000
 });
 
 describe("price provenance is split before any `detected` figure is published (DECISIONS/0014 M7.3)", () => {
-  it("dev's two datasets together reproduce ticket 07's 331 detected / 230 derivative pair", async () => {
+  // Re-measured at DECISIONS/0033's head. Ticket 07's figures were 331 / 230 / 101 over 518 items; the table
+  // pass adds 39 scored SROIE items (518 → 557), all of them *direct* prices read from a printed rate column,
+  // which is why `direct` rises by the whole 39 and `derivative` is unchanged at 229. The accuracy figures
+  // themselves do not move (SROIE F1 0.647, CORD 0.473, both identical to the previous head) — SROIE's gold has
+  // no item annotations, so the extra items are unscored, not a score claim.
+  it("dev's two datasets together reproduce 428 detected / 223 derivative pair", async () => {
     const [cord, sroie] = [await measure("cord-v2"), await measure("sroie")];
 
     expect({
       detected: cord.provenance.priceSource.detected + sroie.provenance.priceSource.detected,
       derivative: cord.provenance.detectedDerivative + sroie.provenance.detectedDerivative,
       direct: cord.provenance.detectedDirect + sroie.provenance.detectedDirect,
-    }).toEqual({ detected: 331, derivative: 230, direct: 101 });
+      // DECISIONS/0034 H1 re-measured this: 369 → 428 and `direct` 140 → 205, because a printed `Amount` column
+      // now names the line total on 46 more SROIE rows and those rows publish a *read* price, not a promoted one.
+      // `derivative` falls 229 → 223 with the same rows that stopped needing the assumed-qty rescue. Every scored
+      // field in the committed dev artifact is identical before and after this change, which is the pairing that
+      // says the extra prices are read, not invented.
+    }).toEqual({ detected: 428, derivative: 223, direct: 205 });
   });
 
   it("every direct plus derivative equals the detected count, per dataset", async () => {
@@ -109,10 +119,13 @@ describe("price provenance is split before any `detected` figure is published (D
     }
   });
 
-  it("counts every item across both dev datasets, which is the 518 validationPins publishes", async () => {
+  it("counts every item across both dev datasets, which is the 603 validationPins publishes", async () => {
     const [cord, sroie] = [await measure("cord-v2"), await measure("sroie")];
 
-    expect(cord.provenance.items + sroie.provenance.items).toBe(518);
+    // DECISIONS/0033: 518 → 557. The 39 new items are SROIE rows a printed `DESCRIPTION QTY PRICE TOTAL`
+    // header re-cut into one product each; CORD is untouched at 245. DECISIONS/0034 H1: 557 → 603 (245 CORD,
+    // 358 SROIE), the receipts whose line-total column is headed `AMOUNT`.
+    expect(cord.provenance.items + sroie.provenance.items).toBe(603);
   });
 });
 
@@ -127,7 +140,7 @@ describe("confidence in the headline mode (DECISIONS/0014 M7.4)", () => {
       scoredLines: cord.confidence.scoredLines + sroie.confidence.scoredLines,
     }).toEqual({ words: 10424, scoredWords: 0, lines: 5604, scoredLines: 0 });
     expect([cord.confidence.wordScores, sroie.confidence.wordScores]).toEqual([null, null]);
-    expect(cord.confidence.items + sroie.confidence.items).toBe(518);
+    expect(cord.confidence.items + sroie.confidence.items).toBe(603);
     expect(cord.confidence.scoredItems + sroie.confidence.scoredItems).toBe(0);
     expect(cord.confidence.itemsCappedByCritical + sroie.confidence.itemsCappedByCritical).toBe(0);
   });
@@ -145,6 +158,9 @@ describe("the committed dev artifact is this measurement, not a description of i
     expect(artifact.protocol.moneyGate).toContain("DECISIONS/0008");
   });
 
+  // DECISIONS/0033 moved one figure: `zero_items` 42 → 41, because one SROIE receipt that previously produced
+  // no items at all now reads its `DESCRIPTION QTY PRICE TOTAL` table. Every other critical count is unchanged,
+  // which is the point of re-deriving this census rather than trusting it.
   it("carries ticket 07's critical census over the same 250 receipts", async () => {
     const artifact = await committed();
     const byCode = artifact.datasets.reduce((out, dataset) => {
@@ -152,14 +168,18 @@ describe("the committed dev artifact is this measurement, not a description of i
       return out;
     }, {} as Record<string, number>);
 
+    // DECISIONS/0034: `zero_items` 41 → 39 and `item_without_price` 2 → 1, the same receipts that gained an
+    // `AMOUNT` column (and the metadata row that used to be an item with no price). `arithmetic_total`,
+    // `arithmetic_item_sum` and `invalid_result_schema` are untouched, and `receiptsWithCritical` 85 → 82 falls
+    // with the three receipts that stopped being empty or unreadable.
     expect(byCode).toEqual({
-      zero_items: 42,
+      zero_items: 39,
       arithmetic_total: 34,
       arithmetic_item_sum: 27,
-      item_without_price: 2,
+      item_without_price: 1,
       invalid_result_schema: 1,
     });
-    expect(artifact.datasets.reduce((sum, dataset) => sum + dataset.findings.receiptsWithCritical, 0)).toBe(86);
+    expect(artifact.datasets.reduce((sum, dataset) => sum + dataset.findings.receiptsWithCritical, 0)).toBe(82);
   });
 
   it("keeps the null-parser bootstrap at zero through the 09b wrapper", async () => {

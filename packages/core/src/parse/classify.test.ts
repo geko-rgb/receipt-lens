@@ -106,12 +106,10 @@ describe("header and noise rows never become items", () => {
   it("catches column labels, table furniture, tax identifiers and charge labels", () => {
     const args = [COLUMN_LABELS, ITEM_A, ITEM_B, TABLE_ROW, GSTIN_ROW, TAX_ROW] as const;
     expect(parse(receipt(...args)).items.map((item) => item.name)).toEqual(["MIKA GORENG", "NASI PUTIH"]);
-    expect(textsOf("noise_header", ...args)).toEqual([
-      "QTY ITEM PRICE",
-      "TABLE 4",
-      "GSTIN: 07AABCU96031R1Z",
-      "CGST 2.50",
-    ]);
+    // DECISIONS/0034 M1: a table number and a GSTIN are receipt *metadata*, not generic furniture — a more
+    // precise answer to the same question (`is this a product?`), and neither row is an item either way.
+    expect(textsOf("noise_header", ...args)).toEqual(["QTY ITEM PRICE", "CGST 2.50"]);
+    expect(textsOf("metadata", ...args)).toEqual(["TABLE 4", "GSTIN: 07AABCU96031R1Z"]);
   });
 
   it("never marks a header or noise row as a price-less item", () => {

@@ -15,6 +15,7 @@ import type { PriceColumn, RowWord } from "./geometry.js";
 import type { NumberProfile } from "./money.js";
 import { readMoney } from "./money.js";
 import { consumedQuantityWords, readQuantity, type QuantityColumn } from "./quantity.js";
+import type { ReconstructionEvidence, TableRecord } from "./rows.js";
 
 const BARE_INTEGER = /^\d{1,2}$/;
 
@@ -78,6 +79,116 @@ function confidenceOf(words: readonly RowWord[]): number | null {
   return scores.reduce((sum, value) => sum + value, 0) / scores.length;
 }
 
+/** Integer paise for a table column's value, or null when the row left the column empty. */
+function paiseOf(token: TableRecord["qty"]): number | null {
+  return token === null ? null : Math.round(token.value * 100);
+}
+
+/**
+ * DECISIONS/0033 P9: items reconstructed from a printed column table. Provenance follows the evidence and
+ * nothing else — a quantity the row printed in its `Qty` column is `explicit`, one the table did not print is
+ * `unresolved` (never `assumed`: the table proves the column exists and this row left it blank), and a row whose
+ * `qty × rate` disagrees with its printed total keeps all three printed values **and** an evidence-bearing
+ * warning, because §7 forbids repairing one printed number with two others.
+ *
+ * `firstId` is the ordinal this group starts at: ids stay `i1…iN` across both groups, in document order.
+ */
+function buildTableItems(
+  rows: readonly ClassifiedRow[],
+  records: readonly TableRecord[],
+  band: QuantityColumn | null,
+  column: PriceColumn | null,
+  profile: NumberProfile,
+  firstId: number
+): ItemBuild {
+  const items: ParsedItem[] = [];
+  const warnings: ParseWarning[] = [];
+  const promotedRowIndexes = new Set<number>();
+  const byIndex = new Map(rows.map((entry) => [entry.row.index, entry]));
+
+  for (const record of records) {
+    const codes = new Set(record.evidence.map((entry) => entry.code));
+    // A column the table named arrives already marked in `codes` by the reconstruction; the evidence is what
+    // decides, so the two can never disagree.
+    // A quantity that is not a whole number of units is *printed* and still not usable: §10's `Item.qty` is a
+    // positive integer and `ItemUnit` materializes one unit per count, so `0` or `1.5` would publish an item the
+    // bill could never finalize. The value stays in the evidence message and `qty` stays unresolved, which is what
+    // §7 asks for — the receipt said something, the parser just cannot claim it as a count.
+    const printedQty = record.qty?.value ?? null;
+    const qty = codes.has("qty_missing") || codes.has("qty_not_countable") ? null : printedQty;
+    const unitPrice = codes.has("rate_missing") ? null : paiseOf(record.rate);
+    const lineTotal = codes.has("total_missing") ? null : paiseOf(record.total);
+
+    const sourceLineIds: string[] = [];
+    for (const index of record.sourceRowIndexes) {
+      promotedRowIndexes.add(index);
+      for (const lineId of byIndex.get(index)?.row.sourceLineIds ?? []) {
+        if (!sourceLineIds.includes(lineId)) sourceLineIds.push(lineId);
+      }
+    }
+    const confidence = confidenceOf(
+      record.sourceRowIndexes.flatMap((index) => byIndex.get(index)?.row.words ?? [])
+    );
+
+    const item: ParsedItem = {
+      id: `i${firstId + items.length}`,
+      name: record.name,
+      qty,
+      quantitySource: qty === null ? "unresolved" : "explicit",
+      unitPrice,
+      priceSource: unitPrice === null ? "unresolved" : "detected",
+      lineTotal,
+      confidence,
+      sourceLineIds,
+      warnings: [],
+    };
+
+    for (const finding of record.evidence) {
+      const warning: ParseWarning = {
+        // P9's vocabulary: an arithmetic disagreement has its own code so a reviewer can filter for it.
+        code: itemWarningCode(finding.code),
+        message: `Item ${item.id} ("${record.name}"): ${finding.message}`,
+        itemRef: item.id,
+        sourceLineIds: [...sourceLineIds],
+        sourceText: record.name,
+        sourceBox: { ...record.box },
+      };
+      item.warnings.push(warning);
+      warnings.push(warning);
+    }
+    items.push(item);
+  }
+
+  // The band and price column are not consulted here: a table row's values come from its columns, which is the
+  // whole point of the table pass. They stay in the signature because a table record and a loose row are built
+  // by the same caller and a divergence between the two would be a bug worth seeing at the call site.
+  void band;
+  void column;
+  void profile;
+
+  return { items, promotedRowIndexes, warnings };
+}
+
+/** The `ParseWarningCode` a reconstruction finding is published under (DECISIONS/0033 P9). */
+function itemWarningCode(code: ReconstructionEvidence["code"]): ParseWarning["code"] {
+  switch (code) {
+    case "arithmetic_mismatch":
+      return "row_arithmetic_mismatch";
+    case "qty_missing":
+      return "row_qty_missing";
+    case "qty_not_countable":
+      return "row_qty_not_countable";
+    case "rate_missing":
+      return "row_rate_missing";
+    case "total_missing":
+      return "row_total_missing";
+    // Two different numbers in one column is §5's `ambiguous_row` (the same condition 0008 P7 rule 2 names for
+    // a row printing two price-column amounts) and gets that code, not a new one.
+    case "conflicting_value":
+      return "ambiguous_row";
+  }
+}
+
 export interface ItemBuild {
   readonly items: ParsedItem[];
   /** Row indexes 06 promoted to items; they leave `unclassifiedRows`, where §5 keeps the two lists disjoint. */
@@ -94,7 +205,8 @@ export function buildItems(
   rows: readonly ClassifiedRow[],
   band: QuantityColumn | null,
   column: PriceColumn | null,
-  profile: NumberProfile
+  profile: NumberProfile,
+  tableRecords: readonly TableRecord[] = []
 ): ItemBuild {
   const merged = continuationsByItem(rows);
   const items: ParsedItem[] = [];
@@ -173,5 +285,8 @@ export function buildItems(
     items.push(item);
   }
 
-  return { items, promotedRowIndexes, warnings };
+  const table = buildTableItems(rows, tableRecords, band, column, profile, items.length + 1);
+  for (const entry of table.promotedRowIndexes) promotedRowIndexes.add(entry);
+  for (const warning of table.warnings) warnings.push(warning);
+  return { items: [...items, ...table.items], promotedRowIndexes, warnings };
 }

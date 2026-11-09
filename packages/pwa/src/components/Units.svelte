@@ -13,6 +13,7 @@
   import {
     acknowledgeUnassignedUnit,
     addParticipant,
+    allocateItemQuantity,
     assignUnit,
     removeParticipant,
     setParticipantPaid,
@@ -20,6 +21,7 @@
     unassignUnit,
     type TransactionResult,
   } from "../lib/bill/transactions.js";
+  import { planQuantityAllocation } from "../lib/bill/units.js";
   import type { BillDocument } from "../lib/bill/document.js";
 
   let { bill }: { bill: BillDocument } = $props();
@@ -28,6 +30,19 @@
 
   /** The participant whose removal is waiting for confirmation (DECISIONS/0022 A16: confirm first). */
   let removing = $state<string | null>(null);
+
+  /**
+   * Owner request (`next.md` Phase 4): two explicit assignment modes per item.
+   *
+   * `unit` is the shipped per-unit mode (each checkbox is one `assignUnit`, shared units allowed). `quantity` is
+   * the count-entry mode for large quantities: type how many each person had, see the remainder, confirm once.
+   * They are different meanings, so the mode is a choice the creator makes per item rather than a heuristic.
+   */
+  let mode = $state<Record<string, "unit" | "quantity">>({});
+  /** The typed counts per item, keyed `itemId:participantId`; a string so a half-typed value is representable. */
+  let counts = $state<Record<string, string>>({});
+  /** The item whose allocation is waiting for confirmation, plus the numbers it would write. */
+  let pendingAllocation = $state<{ itemId: string; total: number; remaining: number } | null>(null);
 
   const participants = $derived(bill.working.participants);
   const items = $derived(
@@ -95,6 +110,87 @@
   function addName(): void {
     if (billStore.publish(addParticipant(bill, newName)).ok) newName = "";
   }
+
+  /**
+   * The owner's rule, in one line: a one-unit line keeps the shipped checkbox, and anything larger opens on the
+   * quantity table. A table for "how many of your one chapati" is strictly more work than the tick it replaces,
+   * and six checkbox rows for six chapatis is the friction this feature exists to remove. The creator can still
+   * switch either way — this is the default, not a restriction.
+   */
+  function modeOf(itemId: string): "unit" | "quantity" {
+    return mode[itemId] ?? (unitCountOf(itemId) > 1 ? "quantity" : "unit");
+  }
+
+  function unitCountOf(itemId: string): number {
+    return bill.working.itemUnits.filter((unit) => unit.itemId === itemId).length;
+  }
+
+  function countKey(itemId: string, participantId: string): string {
+    return `${itemId}:${participantId}`;
+  }
+
+  /** The parsed, validated counts for one item, in participant order, and the remainder they leave. */
+  function allocationOf(itemId: string): { entries: { participantId: string; quantity: number }[]; total: number; remaining: number; invalid: string[] } {
+    const total = unitCountOf(itemId);
+    const entries: { participantId: string; quantity: number }[] = [];
+    const invalid: string[] = [];
+    for (const participant of participants) {
+      const raw = (counts[countKey(itemId, participant.id)] ?? "").trim();
+      if (raw === "") continue;
+      const value = Number(raw);
+      // Requirement 6: negative or non-integer input is invalid input, never silently coerced to 0 or 1.
+      if (!Number.isInteger(value) || value < 0) {
+        invalid.push(participant.name);
+        continue;
+      }
+      entries.push({ participantId: participant.id, quantity: value });
+    }
+    const allocated = entries.reduce((sum, entry) => sum + entry.quantity, 0);
+    return { entries, total, remaining: total - allocated, invalid };
+  }
+
+  /** Requirement 8: the write waits for confirmation. Requirement 4/5 are shown right here, before the dialog. */
+  function requestAllocation(itemId: string): void {
+    const allocation = allocationOf(itemId);
+    if (allocation.invalid.length > 0) return;
+    pendingAllocation = { itemId, total: allocation.total, remaining: allocation.remaining };
+  }
+
+  function confirmAllocation(): void {
+    if (pendingAllocation === null) return;
+    const { itemId } = pendingAllocation;
+    const allocation = allocationOf(itemId);
+    const published = billStore.publish(allocateItemQuantity(bill, itemId, allocation.entries));
+    // The dialog closes either way. A rejection is reported by the document's own rejection surface — the same
+    // one every other edit uses — and leaving a modal over the page would hide it and block the next attempt.
+    // The typed counts survive a rejection, so the creator can adjust rather than retype.
+    pendingAllocation = null;
+    if (published.ok) {
+      // Requirement 10: the screen reads the committed document, so it updates in the same turn the write lands.
+      const next = { ...counts };
+      for (const participant of participants) delete next[countKey(itemId, participant.id)];
+      counts = next;
+    }
+  }
+
+  /** Prefill from the units already held, so switching mode shows the assignment that exists rather than zeros. */
+  function prefillFromUnits(itemId: string): void {
+    const next = { ...counts };
+    for (const participant of participants) {
+      const held = bill.working.assignments.filter(
+        (assignment) =>
+          assignment.participantId === participant.id &&
+          bill.working.itemUnits.some((unit) => unit.id === assignment.itemUnitId && unit.itemId === itemId),
+      ).length;
+      next[countKey(itemId, participant.id)] = held === 0 ? "" : String(held);
+    }
+    counts = next;
+  }
+
+  function switchMode(itemId: string, next: "unit" | "quantity"): void {
+    mode = { ...mode, [itemId]: next };
+    if (next === "quantity") prefillFromUnits(itemId);
+  }
 </script>
 
 <section data-testid="participants-section">
@@ -156,6 +252,99 @@
 {#each items as entry (entry.item.id)}
   <div class="units" data-testid="unit-list" data-item-id={entry.item.id}>
     <h3>{entry.item.name} — {entry.units.length} unit(s) at {formatPaise(entry.item.unitPrice)}</h3>
+
+    <!--
+      Owner request (`next.md` Phase 4): the two modes are named, not inferred. `By quantity` is the fast path for a
+      large count; `Per unit` keeps the shipped behaviour, including holding one unit between several people.
+    -->
+    <div class="inline mode" data-testid="assignment-mode" data-item-id={entry.item.id}>
+      <span class="provenance">Assign</span>
+      <button
+        type="button"
+        class:active={modeOf(entry.item.id) === "quantity"}
+        data-testid="mode-quantity"
+        data-item-id={entry.item.id}
+        onclick={() => switchMode(entry.item.id, "quantity")}
+      >
+        By quantity
+      </button>
+      <button
+        type="button"
+        class:active={modeOf(entry.item.id) === "unit"}
+        data-testid="mode-unit"
+        data-item-id={entry.item.id}
+        onclick={() => switchMode(entry.item.id, "unit")}
+      >
+        Per unit
+      </button>
+    </div>
+
+    {#if modeOf(entry.item.id) === "quantity"}
+      {@const allocation = allocationOf(entry.item.id)}
+      <div class="quantity-panel" data-testid="quantity-panel" data-item-id={entry.item.id}>
+        <table class="quantity-table">
+          <thead>
+            <tr><th scope="col">Person</th><th scope="col">Quantity</th><th scope="col">Cost</th></tr>
+          </thead>
+          <tbody>
+            {#each participants as participant (participant.id)}
+              {@const raw = counts[countKey(entry.item.id, participant.id)] ?? ""}
+              {@const parsed = Number(raw)}
+              <tr data-testid="quantity-row" data-participant-id={participant.id}>
+                <th scope="row">{participant.name}</th>
+                <td>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    class="quantity-input"
+                    data-testid="quantity-input"
+                    data-participant-id={participant.id}
+                    value={raw}
+                    aria-label={`How many of ${entry.item.name} ${participant.name} had`}
+                    oninput={(event) => {
+                      counts = { ...counts, [countKey(entry.item.id, participant.id)]: (event.currentTarget as HTMLInputElement).value };
+                    }}
+                  />
+                </td>
+                <td class="provenance">
+                  {Number.isInteger(parsed) && parsed > 0 ? formatPaise(parsed * entry.item.unitPrice) : "—"}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+
+        <p data-testid="quantity-total" data-item-id={entry.item.id}>
+          Allocated: {allocation.total - allocation.remaining} / {allocation.total}
+          · {formatPaise(entry.item.unitPrice)} per unit
+        </p>
+        {#if allocation.remaining > 0}
+          <p class="hint" data-testid="quantity-remaining">
+            {allocation.remaining} unit(s) still unallocated. They stay unassigned unless you enter them.
+          </p>
+        {:else if allocation.remaining < 0}
+          <p class="alert alert-error" role="alert" data-testid="quantity-excess">
+            That is {Math.abs(allocation.remaining)} more than was bought.
+          </p>
+        {/if}
+        {#if allocation.invalid.length > 0}
+          <p class="alert alert-error" role="alert" data-testid="quantity-invalid">
+            {allocation.invalid.join(", ")}: enter a whole number, zero or more.
+          </p>
+        {/if}
+
+        <button
+          type="button"
+          data-testid="quantity-confirm"
+          data-item-id={entry.item.id}
+          disabled={allocation.remaining < 0 || allocation.invalid.length > 0 || allocation.entries.length === 0}
+          onclick={() => requestAllocation(entry.item.id)}
+        >
+          Confirm allocation
+        </button>
+      </div>
+    {:else}
+    <div data-testid="per-unit-panel">
     {#each entry.units as unit (unit.id)}
       {@const assigned = holders(unit.id)}
       <div class="unit" data-testid="unit" data-unit-id={unit.id}>
@@ -198,8 +387,41 @@
         {/if}
       </div>
     {/each}
+    </div>
+    {/if}
   </div>
 {/each}
+
+{#if pendingAllocation !== null}
+  {@const entry = items.find((candidate) => candidate.item.id === pendingAllocation!.itemId)}
+  {@const allocation = allocationOf(pendingAllocation.itemId)}
+  <div class="dialog-backdrop">
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="allocation-title" data-testid="allocation-dialog">
+      <h2 id="allocation-title">Confirm this allocation?</h2>
+      <p data-testid="allocation-summary">
+        {entry?.item.name ?? "This line"}: {allocation.total - allocation.remaining} of {allocation.total} unit(s).
+      </p>
+      <ul>
+        {#each allocation.entries.filter((row) => row.quantity > 0) as row (row.participantId)}
+          <li data-testid="allocation-line">
+            {nameOf(row.participantId)} — {row.quantity} × {formatPaise(entry?.item.unitPrice ?? 0)}
+            = {formatPaise(row.quantity * (entry?.item.unitPrice ?? 0))}
+          </li>
+        {/each}
+      </ul>
+      {#if pendingAllocation.remaining > 0}
+        <p class="hint" data-testid="allocation-remaining">
+          {pendingAllocation.remaining} unit(s) stay unassigned. The bill will ask about them before it can lock.
+        </p>
+      {/if}
+      <p class="hint">Nothing changes until you confirm.</p>
+      <div class="inline">
+        <button type="button" data-testid="allocation-cancel" onclick={() => (pendingAllocation = null)}>Keep as is</button>
+        <button type="button" data-testid="allocation-save" onclick={confirmAllocation}>Save allocation</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 {#if removing !== null}
   {@const doomed = participants.find((participant) => participant.id === removing)}
@@ -258,6 +480,43 @@
     gap: 8px;
     align-items: center;
     margin: 8px 0;
+  }
+
+  .mode button {
+    font-size: 0.8em;
+    padding: 2px 8px;
+  }
+
+  .mode button.active {
+    font-weight: 600;
+    background: #e7f1ff;
+    border-color: #0d6efd;
+  }
+
+  .quantity-panel {
+    font-size: 0.85em;
+  }
+
+  .quantity-table {
+    border-collapse: collapse;
+    margin: 4px 0 8px;
+  }
+
+  .quantity-table th,
+  .quantity-table td {
+    text-align: left;
+    padding: 2px 10px 2px 0;
+    font-weight: 400;
+  }
+
+  .quantity-table thead th {
+    font-size: 0.85em;
+    color: #555;
+    font-weight: 600;
+  }
+
+  .quantity-input {
+    width: 5rem;
   }
 
   .units {

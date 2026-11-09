@@ -203,3 +203,145 @@ export function unassignPair(
     },
   };
 }
+
+/**
+ * Quick quantity allocation (owner request, `next.md` Phase 4): assign N units of one item to each participant
+ * in a single transaction, instead of ticking N checkboxes per person.
+ *
+ * The unit model does not change. `ItemUnit`/`ItemUnitAssignment` stay the representation (ADR-005), and a
+ * quantity allocation is exactly the *exclusive partition* of an item's units that the quantity model already
+ * implies: person 1 gets two units, person 2 five, person 3 one, and each unit has one holder.
+ *
+ * Shared units are a genuinely different meaning — one physical unit held by several people, whose cost is
+ * divided (`Units.svelte`'s "₹x ÷ n") — and they are not expressible as counts. So this planner **refuses** to
+ * run over an item that currently has a shared unit rather than silently flattening it to one holder; the
+ * caller switches to the individual mode for that item. That is the "make those modes explicit" requirement.
+ */
+export interface QuantityAllocation {
+  readonly participantId: string;
+  readonly quantity: number;
+}
+
+export type QuantityAllocationFailure =
+  | "item_missing"
+  | "item_not_finalized"
+  | "invalid_quantity"
+  | "duplicate_participant"
+  | "participant_unknown"
+  | "over_allocated"
+  | "shared_units_present";
+
+export interface QuantityAllocationPlan {
+  readonly assignments: readonly ItemUnitAssignment[];
+  /** Units that end up with no holder at all — shown before anything is written. */
+  readonly unallocatedUnitIds: readonly string[];
+  /** Units whose holder this plan would take away. */
+  readonly clearedAssignments: readonly ItemUnitAssignment[];
+}
+
+export type QuantityAllocationOutcome =
+  | { readonly ok: true; readonly plan: QuantityAllocationPlan; readonly working: WorkingBill }
+  | { readonly ok: false; readonly reason: QuantityAllocationFailure; readonly detail?: string };
+
+/**
+ * Pure: compute (and return) the state a quantity allocation would produce, without committing it. The UI shows
+ * `unallocatedUnitIds` from this same calculation, so the number on screen and the number written cannot differ.
+ *
+ * Ordering is deterministic and index-based: units are taken in `unitIndex` order and granted participant by
+ * participant in the order the caller lists them, so the same input always yields the same unit ids.
+ */
+export function planQuantityAllocation(
+  working: WorkingBill,
+  itemId: string,
+  allocations: readonly QuantityAllocation[]
+): QuantityAllocationOutcome {
+  const item = working.items.find((entry) => entry.id === itemId);
+  if (!item) {
+    // A draft has no units — DECISIONS/0021 A1 materializes them at finalization only.
+    return working.draftItems.some((entry) => entry.id === itemId)
+      ? { ok: false, reason: "item_not_finalized", detail: "finalize the line before allocating its quantity" }
+      : { ok: false, reason: "item_missing" };
+  }
+
+  const units = working.itemUnits
+    .filter((unit) => unit.itemId === itemId)
+    .slice()
+    .sort((a, b) => a.unitIndex - b.unitIndex);
+  if (units.length !== item.qty) {
+    // The invariant this planner rests on; a mismatch is `recompute_failed`'s to report, not a guess here.
+    return { ok: false, reason: "item_not_finalized", detail: "the item's units are not in step with its quantity" };
+  }
+
+  const seen = new Set<string>();
+  for (const allocation of allocations) {
+    if (!Number.isInteger(allocation.quantity) || allocation.quantity < 0) {
+      return { ok: false, reason: "invalid_quantity", detail: "a quantity must be a whole number, zero or more" };
+    }
+    if (seen.has(allocation.participantId)) {
+      return { ok: false, reason: "duplicate_participant", detail: "each participant appears at most once" };
+    }
+    seen.add(allocation.participantId);
+    if (!working.participants.some((participant) => participant.id === allocation.participantId)) {
+      return { ok: false, reason: "participant_unknown", detail: allocation.participantId };
+    }
+  }
+
+  const total = allocations.reduce((sum, allocation) => sum + allocation.quantity, 0);
+  // Requirement 5: never allocate more than was bought. Requirement 7: the remainder is *not* filled in.
+  if (total > item.qty) {
+    return {
+      ok: false,
+      reason: "over_allocated",
+      detail: `${total} of ${item.qty} units — allocate fewer, or change the line's quantity first`,
+    };
+  }
+
+  // A shared unit cannot be expressed as a count. Refuse rather than quietly reduce it to one holder.
+  const holdersPerUnit = new Map<string, number>();
+  for (const assignment of working.assignments) {
+    holdersPerUnit.set(assignment.itemUnitId, (holdersPerUnit.get(assignment.itemUnitId) ?? 0) + 1);
+  }
+  const shared = units.filter((unit) => (holdersPerUnit.get(unit.id) ?? 0) > 1);
+  if (shared.length > 0) {
+    return {
+      ok: false,
+      reason: "shared_units_present",
+      detail: "this item has units shared by several people; use the per-unit mode for it",
+    };
+  }
+
+  const mine = new Set(units.map((unit) => unit.id));
+  const keptFromElsewhere = working.assignments.filter((assignment) => !mine.has(assignment.itemUnitId));
+  const clearedAssignments = working.assignments.filter((assignment) => mine.has(assignment.itemUnitId));
+
+  const next: ItemUnitAssignment[] = [];
+  let cursor = 0;
+  for (const allocation of allocations) {
+    for (let taken = 0; taken < allocation.quantity; taken += 1) {
+      next.push({ itemUnitId: units[cursor]!.id, participantId: allocation.participantId });
+      cursor += 1;
+    }
+  }
+  const allocatedUnitIds = new Set(next.map((assignment) => assignment.itemUnitId));
+  const unallocatedUnitIds = units.filter((unit) => !allocatedUnitIds.has(unit.id)).map((unit) => unit.id);
+
+  const plan: QuantityAllocationPlan = {
+    assignments: next,
+    unallocatedUnitIds,
+    clearedAssignments,
+  };
+  return {
+    ok: true,
+    plan,
+    working: {
+      ...working,
+      // Assigning is the act that rescinds an acknowledgement (§10 line 769); a unit left with nobody keeps
+      // whatever the creator already decided about it, and a unit newly allocated is marked not-acknowledged.
+      itemUnits: working.itemUnits.map((unit) => {
+        if (!mine.has(unit.id)) return unit;
+        return { ...unit, confirmedUnassigned: allocatedUnitIds.has(unit.id) ? false : unit.confirmedUnassigned };
+      }),
+      assignments: [...keptFromElsewhere, ...next],
+    },
+  };
+}

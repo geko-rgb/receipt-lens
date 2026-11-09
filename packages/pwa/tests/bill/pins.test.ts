@@ -34,6 +34,8 @@ import {
   type TransactionSteps,
 } from "../../src/lib/bill/transactions.js";
 import { validateWorkingBill } from "../../src/lib/validate-bill.js";
+import { finalizeResolvableCharges } from "../../src/lib/bill/finalize.js";
+import { recomputeDerived } from "../../src/lib/bill/totals.js";
 
 /**
  * DECISIONS/0020 T1–T13 and DECISIONS/0019 S3/S6/S7, as assertions.
@@ -1229,5 +1231,71 @@ describe("DECISIONS/0020 T13 — hand-added lines follow the extracted ones' rul
     expect(finalized.document.derived.calculatedItemsTotal).toBe(74_100 + 5_000);
     const second = addManualItem(finalized.document, { name: "Lassi", qty: 1, unitPrice: 1_000 });
     expect(second.document.working.draftItems.at(-1)!.id).toBe("m2");
+  });
+});
+
+/**
+ * The owner's receipt (`next.md` Phase 2, end to end through the PWA): four priced lines summing to ₹474 and a GST
+ * breakdown of CGST ₹11.29 + SGST ₹11.29. The taxes are real charges and are *not* added to ₹474 — the receipt's
+ * own line totals already reach that total. The app must therefore ask rather than assume.
+ */
+describe("a table-parsed receipt with a printed GST breakdown", () => {
+  function tableReceipt() {
+    return begin({
+      items: [
+        parsedItem("i1", { name: "Coffee", qty: 2, unitPrice: 3_500, lineTotal: 7_000 }),
+        parsedItem("i2", { name: "Vada", qty: 2, unitPrice: 2_500, lineTotal: 5_000 }),
+        parsedItem("i3", { name: "Chappathi Empty", qty: 2, unitPrice: 2_400, lineTotal: 4_800 }),
+        parsedItem("i4", { name: "Combo 2 Chapati / P.B. Masala", qty: 2, unitPrice: 15_300, lineTotal: 30_600 }),
+      ],
+      taxes: [
+        { label: "CGST", amount: 1_129, rate: 250, source: "detected" },
+        { label: "SGST", amount: 1_129, rate: 250, source: "detected" },
+      ],
+      subtotal: null,
+      grandTotal: 47_400,
+    });
+  }
+
+  it("carries both taxes into the editor with their printed rate, inclusion still open", () => {
+    const document = tableReceipt();
+    const taxes = document.working.draftCharges.filter((charge) => charge.type === "tax");
+    expect(taxes.map((charge) => [charge.label, charge.amount, charge.rate])).toEqual([
+      ["CGST", 1_129, 250],
+      ["SGST", 1_129, 250],
+    ]);
+    // Nothing inferred: `included` is `null` because the receipt does not state it (DECISIONS/0011 V4).
+    expect(taxes.every((charge) => charge.included === null)).toBe(true);
+  });
+
+  it("does not add the ₹22.58 of tax to the ₹474 the items already reach, once inclusion is confirmed", () => {
+    const document = tableReceipt();
+    const finalized = finalizeAllResolvable(document).document;
+    expect(finalized.derived.calculatedItemsTotal).toBe(47_400);
+
+    let withInclusion = finalized;
+    for (const charge of withInclusion.working.draftCharges.filter((entry) => entry.type === "tax")) {
+      withInclusion = resolveChargeInclusion(withInclusion, charge.id, true).document;
+    }
+    // The tax is inside the printed prices: it is display-only, so the payable is still the items' ₹474.
+    expect(withInclusion.derived.calculatedPayableTotal).toBe(47_400);
+    expect(withInclusion.working.bill.taxIncluded).toBe(true);
+    expect(withInclusion.working.bill.taxIncludedSource).toBe("user_confirmed");
+  });
+
+  it("adds the tax only once inclusion is confirmed as separate, and then the ₹474 print disagrees", () => {
+    const document = tableReceipt();
+    let withInclusion = finalizeAllResolvable(document).document;
+    for (const charge of withInclusion.working.draftCharges.filter((entry) => entry.type === "tax")) {
+      withInclusion = resolveChargeInclusion(withInclusion, charge.id, false).document;
+    }
+    // A charge reaches the payable when it is finalized, not while it is a draft (`finalize.ts` line 119), so the
+    // ₹22.58 only lands after the bulk finalize that the lock operation runs.
+    const locked = finalizeResolvableCharges(withInclusion.working).working;
+    const derived = recomputeDerived(locked);
+    expect(derived.calculatedPayableTotal).toBe(47_400 + 2_258);
+    // Confirmed as *additional* against a receipt whose printed total equals the items alone: the gap is the honest
+    // signal that the confirmation contradicts the paper, and the creator can still see it before locking.
+    expect(derived.reconciliationGap).toBe(47_400 - (47_400 + 2_258));
   });
 });

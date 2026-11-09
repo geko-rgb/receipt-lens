@@ -33,6 +33,14 @@ export const ANCHOR_MERGE_PX = 8;
 export const ANCHOR_MIN_COLUMN_MEMBERS = 3;
 
 /**
+ * DECISIONS/0035: the value-column band used by the header-free stage. Narrower than the price column's 5%
+ * because several columns must be told apart on one row (a rate 30px left of a GST cell is still a different
+ * column), with a floor so a tiny image cannot collapse every band to zero width.
+ */
+export const VALUE_COLUMN_WIDTH_RATIO = 0.02;
+export const VALUE_COLUMN_MIN_TOLERANCE = 6;
+
+/**
  * DECISIONS/0008 P5 anchor rows: how far above its amount's centre a word may sit and still belong
  * to that row, as a fraction of the anchor word's own box height.
  */
@@ -72,3 +80,11 @@ export const QUANTITY_QUALIFY_SHARE = 0.6;
 
 /** §5's integer bound. CORD gold annotates 196 of 198 quantities at ≤ 20; the outliers are 118 and 170. */
 export const QUANTITY_MAX_VALUE = 20;
+
+/**
+ * DECISIONS/0035 Amendment E: the plausible count for a *paired* numeric row. Wider than 0008's
+ * {@link QUANTITY_MAX_VALUE}, which qualifies a quantity *column* on a majority test, because this constant answers
+ * a different question — "could these three printed numbers be a count, a rate and a line total?" — and a receipt
+ * that sells 100 of something is not a misprint. Still 3 digits, as the amendment says.
+ */
+export const PAIRING_QUANTITY_MAX_VALUE = 999;

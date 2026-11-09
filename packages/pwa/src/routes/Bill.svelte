@@ -51,6 +51,26 @@
   /** P6: whether a photo is kept for this bill — presence is the state, so this is a store question. */
   let keptPhoto = $state(false);
   let photoDeleted = $state(false);
+  /**
+   * P6's read half: the kept photo itself, and the object URL the browser makes of it. The URL is view state and
+   * is revoked whenever it is replaced or the component goes away, so a kept photo never becomes a leak.
+   */
+  let photoUrl = $state<string | null>(null);
+  let photoError = $state<string | null>(null);
+  /** The enlarged view (§14.6's "the creator must be able to read the receipt while correcting it"). */
+  let photoExpanded = $state(false);
+  /**
+   * The OCR evidence overlay (PROJECT §5's bounding boxes). On by default when a photo is kept, because the
+   * whole point is to show *where* a value came from while correcting it; off otherwise, since there is no
+   * frame to draw on. Every box is drawn as a percentage of the frame, so it tracks the photo at any size.
+   */
+  let showEvidence = $state(true);
+  /**
+   * The frame the parse's boxes were measured in. The retained photo *is* that frame — it is the transformed
+   * blob OCR read — so the draft's recorded size is used when present and the rendered image's natural size is
+   * the fallback for a restored bill whose draft is gone.
+   */
+  let photoFrame = $state<{ width: number; height: number } | null>(null);
 
   /**
    * The one entry point, in the order the rules require.
@@ -83,6 +103,8 @@
 
   onMount(() => {
     void start();
+    // The object URL is view state and must not outlive the screen that made it.
+    return () => releasePhotoUrl();
   });
 
   // P6: the panel asks the store, because presence *is* the state — there is no flag on the bill to read.
@@ -93,10 +115,50 @@
     void refreshPhoto(billId);
   });
 
+  function releasePhotoUrl(): void {
+    if (photoUrl !== null) URL.revokeObjectURL(photoUrl);
+    photoUrl = null;
+  }
+
+  /** Every parsed item/row that carries a box, with the text that produced it — the evidence list. */
+  const evidenceRows = $derived.by(() => {
+    const parsed = draft?.parse;
+    if (!parsed) return [];
+    const out: { id: string; label: string; text: string; box: { x: number; y: number; width: number; height: number } }[] = [];
+    for (const item of parsed.items) {
+      const warning = item.warnings.find((entry) => entry.sourceBox);
+      if (!warning?.sourceBox) continue;
+      out.push({
+        id: item.id,
+        label: item.name,
+        text: warning.sourceText ?? item.name,
+        box: warning.sourceBox,
+      });
+    }
+    for (const row of parsed.unclassifiedRows) {
+      out.push({ id: row.id, label: row.text, text: row.text, box: row.box });
+    }
+    return out;
+  });
+
   function refreshPhoto(billId: string): Promise<void> {
-    return storage.guard(() => session.hasRetainedImage(billId)).then((kept) => {
-      keptPhoto = kept === true;
-    });
+    return storage
+      .guard(() => session.readRetainedImage(billId))
+      .then((photo) => {
+        keptPhoto = photo !== null;
+        photoError = null;
+        releasePhotoUrl();
+        if (photo) {
+          photoUrl = URL.createObjectURL(photo.blob);
+          photoFrame = draft?.imageSize ?? null;
+        }
+      })
+      .catch(() => {
+        // A store that cannot be read is not a deleted photo: say so rather than showing "no photo kept".
+        keptPhoto = false;
+        releasePhotoUrl();
+        photoError = "The kept photo could not be read from this device.";
+      });
   }
 
   /** P6: deleting the photo is not deleting the bill. Every number came from the photo already. */
@@ -104,7 +166,9 @@
     const billId = billStore.document?.working.bill.id;
     if (!billId) return;
     void storage.guard(() => session.deleteRetainedImage(billId)).then(() => {
+      releasePhotoUrl();
       keptPhoto = false;
+      photoExpanded = false;
       photoDeleted = true;
     });
   }
@@ -379,6 +443,24 @@
     </div>
   {/if}
 
+  {#if photoExpanded && photoUrl}
+    <div class="dialog-backdrop">
+      <div
+        class="dialog photo-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="photo-title"
+        data-testid="photo-dialog"
+      >
+        <h2 id="photo-title">Receipt photo</h2>
+        <img src={photoUrl} alt="The receipt this bill was read from, enlarged" data-testid="photo-enlarged" />
+        <div class="inline">
+          <button type="button" data-testid="photo-close" onclick={() => (photoExpanded = false)}>Close</button>
+        </div>
+      </div>
+    </div>
+  {/if}
+
   {#if pendingQuantity}
     {@const preview = pendingQuantity.preview}
     <div class="dialog-backdrop">
@@ -513,6 +595,74 @@
     <h2>Receipt photo</h2>
     {#if keptPhoto}
       <p data-testid="kept-photo">A photo of this receipt is kept on this device.</p>
+      {#if photoUrl}
+        <!--
+          The photo is shown beside the fields it explains, and can be enlarged to full width. Clicking the image
+          opens the same element larger; there is no second copy of the bytes, and no network fetch either way.
+        -->
+        <button
+          type="button"
+          class="photo-frame"
+          data-testid="photo-open"
+          aria-label="Enlarge the receipt photo"
+          onclick={() => (photoExpanded = true)}
+        >
+          <span class="photo-stack">
+            <img
+              src={photoUrl}
+              alt="The receipt this bill was read from"
+              data-testid="receipt-photo"
+              onload={(event) => {
+                const image = event.currentTarget as HTMLImageElement;
+                if (draft?.imageSize) photoFrame = draft.imageSize;
+                else photoFrame = { width: image.naturalWidth, height: image.naturalHeight };
+              }}
+            />
+            {#if showEvidence && photoFrame && photoFrame.width > 0}
+              {#each evidenceRows as evidence (evidence.id)}
+                <span
+                  class="evidence-box"
+                  data-testid="evidence-box"
+                  style:left={`${(evidence.box.x / photoFrame.width) * 100}%`}
+                  style:top={`${(evidence.box.y / photoFrame.height) * 100}%`}
+                  style:width={`${(evidence.box.width / photoFrame.width) * 100}%`}
+                  style:height={`${(evidence.box.height / photoFrame.height) * 100}%`}
+                  title={evidence.text}
+                ></span>
+              {/each}
+            {/if}
+          </span>
+        </button>
+        <p class="hint" data-testid="photo-hint">Tap the photo to enlarge it while correcting a line.</p>
+
+        {#if evidenceRows.length > 0}
+          <label class="inline">
+            <input type="checkbox" data-testid="evidence-toggle" checked={showEvidence} onchange={(event) => (showEvidence = (event.currentTarget as HTMLInputElement).checked)} />
+            Show OCR evidence
+          </label>
+          {#if showEvidence}
+            <!--
+              The recognised text and the box it was recognised in, side by side with the photo. A box is placed
+              as a percentage of the frame, so the overlay is correct at any display size; nothing is redrawn and
+              no coordinate is guessed — these are the boxes the parse itself reported.
+            -->
+            <ul class="evidence" data-testid="evidence-list">
+              {#each evidenceRows as evidence (evidence.id)}
+                <li data-testid="evidence-row" data-evidence-id={evidence.id}>
+                  <span class="row-text">{evidence.text}</span>
+                  <span class="refs">
+                    {evidence.box.x.toFixed(0)}, {evidence.box.y.toFixed(0)} ·
+                    {evidence.box.width.toFixed(0)}×{evidence.box.height.toFixed(0)} px
+                  </span>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        {/if}
+      {/if}
+      {#if photoError}
+        <p class="alert alert-error" role="alert" data-testid="photo-error">{photoError}</p>
+      {/if}
       <button type="button" data-testid="delete-photo" onclick={deletePhoto}>Delete the photo</button>
     {:else if photoDeleted}
       <p class="badge badge-ok" data-testid="photo-deleted">Photo deleted. The bill and its numbers are unchanged.</p>

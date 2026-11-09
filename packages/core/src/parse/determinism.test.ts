@@ -111,12 +111,15 @@ describe("byte-identical determinism", () => {
     expect(renamed.items[0]!.sourceLineIds).toEqual(["z-i1", "z-c1", "z-c2"]);
   });
 
-  it("exercises all four row classes on the full fixture, so identity is proven on variety", () => {
+  it("exercises every row class on the full fixture, so identity is proven on variety", () => {
     const classes = classifyRows(FULL_RECEIPT).rows.map((entry) => entry.classification);
-    expect(new Set(classes)).toEqual(new Set(["item", "continuation", "noise_header", "ambiguous"]));
+    // DECISIONS/0034 adds `metadata` (the table number and the GSTIN line, which 0008 read as generic noise) and
+    // keeps identity a statement about *variety*, so the set is asserted rather than the old four-class count.
+    expect(new Set(classes)).toEqual(new Set(["item", "continuation", "noise_header", "metadata", "ambiguous"]));
     expect(classes.filter((value) => value === "item")).toHaveLength(2);
     expect(classes.filter((value) => value === "continuation")).toHaveLength(2);
-    expect(classes.filter((value) => value === "noise_header")).toHaveLength(6);
+    expect(classes.filter((value) => value === "noise_header")).toHaveLength(4);
+    expect(classes.filter((value) => value === "metadata")).toHaveLength(2);
     expect(classes.filter((value) => value === "ambiguous")).toHaveLength(1);
   });
 });
@@ -129,13 +132,22 @@ describe("row conservation", () => {
     expect(new Set(clustered).size).toBe(words.length);
   });
 
-  it("accounts for every row as an item, a continuation, noise or an unclassified row", () => {
+  it("accounts for every row as an item, a continuation, noise, metadata or an unclassified row", () => {
     const rows = classifyRows(FULL_RECEIPT).rows;
     const parsed = parse(FULL_RECEIPT);
     const count = (classification: string) => rows.filter((entry) => entry.classification === classification).length;
     expect(parsed.items.length).toBe(count("item"));
     expect(parsed.unclassifiedRows.length).toBe(count("ambiguous"));
-    expect(parsed.items.length + parsed.unclassifiedRows.length + count("continuation") + count("noise_header")).toBe(rows.length);
+    // DECISIONS/0034: `metadata` and `ignored` rows are conserved by the classification pass, and they are
+    // deliberately absent from both published lists — that absence is the whole point of the two classes.
+    expect(
+      parsed.items.length +
+        parsed.unclassifiedRows.length +
+        count("continuation") +
+        count("noise_header") +
+        count("metadata") +
+        count("ignored")
+    ).toBe(rows.length);
   });
 
   it("carries every ambiguous row through to the result, and warns once per row", () => {

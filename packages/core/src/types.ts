@@ -39,7 +39,15 @@ export type ParseWarningCode =
   | "unclassified_charge"
   | "items_may_be_missing"
   | "round_off_adjusted"
-  | "missing_optional_field";
+  | "missing_optional_field"
+  // DECISIONS/0033 P9: a reconstructed table row's own evidence. `row_arithmetic_mismatch` names a printed
+  // qty × rate that disagrees with the printed line total; the other three name a column the table declared
+  // and this row left empty.
+  | "row_arithmetic_mismatch"
+  | "row_qty_missing"
+  | "row_qty_not_countable"
+  | "row_rate_missing"
+  | "row_total_missing"
 
 export interface ParseWarning {
   code: ParseWarningCode;

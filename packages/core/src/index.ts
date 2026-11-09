@@ -56,6 +56,13 @@ export {
   matchesChargeLabel,
   matchesHeaderOrNoisePattern,
   matchesTenderFamily,
+  // DECISIONS/0034: the two pattern families the metadata/ignored row classes rest on, exported so their
+  // boundaries (a product named `Table water`; a product containing `2`) are re-derivable by CI.
+  isMetadataRow,
+  readMetadata,
+  isFooterInstructionRow,
+  type MetadataField,
+  type MetadataReading,
 } from "./parse/patterns.js";
 // Ticket 06's content-parsing seams, exported for the same reason as the geometry ones above: the
 // numbers DECISIONS/0010 publishes have to be re-derived by CI from the shipped code. `parse()` stays
@@ -64,6 +71,21 @@ export { detectQuantityColumn, quantityPattern, readQuantity } from "./parse/qua
 export { inferProfile, profileForRows, readMoney, readRate } from "./parse/money.js";
 export { chargeAmountTokens, resolveChargeAmount, readCharges } from "./parse/charges.js";
 export { chooseCategory, hasInclusionCue, matchLabels, overlappingEqualLengthPairs, labelDictionary } from "./parse/labels.js";
+// DECISIONS/0035: the header-free reconstruction stage as a seam, for the same reason — a page with no readable
+// name column has to be re-derivable by CI, and the completion report reads `roles`/`scored`/`unpaired` from it.
+export {
+  reconstructWithoutHeader,
+  inferPairingRoles,
+  isNameLike,
+  type PairingOptions,
+  type PairingResult,
+  type PairRole,
+  type RoleSource,
+} from "./parse/pairs.js";
+export { inferValueColumns, horizontalCenter, type ValueColumn } from "./parse/geometry.js";
+// The magnitude gate's rule and constant live in one module (0035's consolidation): an identifier wearing a price's
+// shape is rejected by every stage that reads a number column, not only by the classifier's price column.
+export { PRICE_MAGNITUDE_MULTIPLE, amountGate, exceedsGate, medianOfSorted } from "./parse/magnitude.js";
 export {
   ALL_CAPS_STANDALONE_MAX_LENGTH,
   CONTINUATION_LENGTH_FLOOR,

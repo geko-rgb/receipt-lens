@@ -7,6 +7,7 @@ blob-report/
 .pnpm-store/
 *.log
 .DS_Store
+next.md
 
 # editor artifacts
 .vscode/
@@ -24,6 +25,13 @@ benchmarks/datasets/.fetch-stamp
 # locally retained receipt photos (dev/test scratch convention; app-level
 # opt-in retention lives in browser storage, never committed)
 receipts-retained/
+
+# The two acceptance photographs (Saravana Bhavan, KOT counter). Never committed: they are
+# third-party receipt scans, and this repo is public (DECISIONS/0005). The committed, redacted
+# replay of their OCR (`packages/core/src/parse/real-ocr-fixtures.ts`) is the CI artifact; the
+# photographs stay a local image-level gate that `playwright/real-receipts.spec.ts` skips when
+# absent. Adding them is a deliberate owner decision, not an accident.
+images/
 
 # harness run artifacts (raw OcrResult JSON + screenshots of real receipts)
 harness/out/

@@ -110,8 +110,10 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
     // and the whole corpus takes the `confidence_unavailable` path.
     const all = await views();
     const items = all.flatMap((view) => [...view.parsed.items]);
-    expect(items.length).toBe(518);
-    expect(items.filter((item) => item.confidence === null).length).toBe(518);
+    // DECISIONS/0033: 518 → 557 items; DECISIONS/0034 H1: 557 → 603, the SROIE rows a printed `AMOUNT` column
+    // now supplies. All of them have no confidence, because the reference OCR scores no word.
+    expect(items.length).toBe(603);
+    expect(items.filter((item) => item.confidence === null).length).toBe(603);
     expect(items.filter((item) => item.confidence !== null && item.confidence < FLOOR_CRITICAL).length).toBe(0);
     expect(items.filter((item) => item.confidence !== null && item.confidence >= FLOOR_WARNING).length).toBe(0);
   });
@@ -134,7 +136,11 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
       fullLineTotalCoverage: present((p) => p.items.length > 0 && p.items.every((item) => item.lineTotal !== null)),
     };
     expect(got).toEqual({
-      anyItem: 208,
+      // DECISIONS/0033: 208 → 209, one SROIE receipt that previously produced no items now produces some.
+      // DECISIONS/0034 H1: 209 → 211, because `Amount` now names the line-total column and two more SROIE
+      // receipts print `DESCRIPTION QTY PRICE AMOUNT`. `preservedRows` 172 → 165 and `fullLineTotalCoverage`
+      // 206 → 208 follow the same two changes: metadata rows stop blocking, and two more receipts have a table.
+      anyItem: 211,
       subtotal: 82,
       grandTotal: 213,
       subtotalAndGrand: 73,
@@ -144,8 +150,8 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
       discount: 43,
       roundOff: 3,
       otherCharges: 14,
-      preservedRows: 172,
-      fullLineTotalCoverage: 206,
+      preservedRows: 167,
+      fullLineTotalCoverage: 208,
     });
   });
 
@@ -185,9 +191,11 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
       equal: 25,
       over: 27,
       under: 17,
-      blockedNoSubtotal: 137,
+      blockedNoSubtotal: 139,
       blockedCoverage: 1,
-      blockedNoItems: 42,
+      // DECISIONS/0033: 42 → 41, the one SROIE receipt whose table is now read. DECISIONS/0034 H1: 41 → 39,
+      // two more SROIE receipts now yield items from their `AMOUNT` columns.
+      blockedNoItems: 39,
     });
   });
 
@@ -270,12 +278,21 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
         }
       }
     }
+    // DECISIONS/0033: `unresolved` 187 → 188 and `dataLimited` 130 → 131 (one more item prints a line total and
+    // no unit price), and `quantityAlsoUnresolved` 141 → 142 follows it. `noLineTotal` stays at 2 here: this
+    // count is over the unresolved-price population, and the third no-total item the provenance census sees has
+    // a resolved price. The table pass reads prices from a printed rate, so it cannot be the source of a
+    // `printedNotExtracted` price. DECISIONS/0034 H1: 17 → 14, `unattributed` 38 → 37, `quantityAlsoUnresolved`
+    // 142 → 141 — every movement is a row that is now an item of a different (table-read) receipt, or metadata.
     expect({ unresolved, noLineTotal, dataLimited, printedNotExtracted, unattributed, quantityAlsoUnresolved }).toEqual({
-      unresolved: 187,
-      noLineTotal: 2,
-      dataLimited: 130,
-      printedNotExtracted: 17,
-      unattributed: 38,
+      // DECISIONS/0034 H1: 188 → 175 unresolved prices and 131 → 123 data-limited, because 46 more SROIE rows
+      // are read from a printed table (a row with a `Rate` column has a price the loose pass could not find) and
+      // 2 SROIE rows that used to be items are now receipt metadata. `unattributed` 38 → 37, `noLineTotal` 2 → 1.
+      unresolved: 175,
+      noLineTotal: 1,
+      dataLimited: 123,
+      printedNotExtracted: 14,
+      unattributed: 37,
       quantityAlsoUnresolved: 141,
     });
     expect(printedNotExtractedExamples.length).toBe(5);
@@ -352,14 +369,26 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
         else rescueFromExplicitQty += 1;
       }
     }
-    expect({ items, detected, unresolved }).toEqual({ items: 518, detected: 331, unresolved: 187 });
+    // DECISIONS/0033 re-derived this pair. `items` 518 → 557 and `detected` 331 → 369: the 39 new SROIE table
+    // rows each carry a printed rate, so they arrive as *direct* detected prices (101 → 140), not as the promoted
+    // line total this test is about. `promotedUnderAssumedQty` falls 230 → 229 (one assumed-qty row moved into a
+    // table receipt) and `sameValueUnderExplicitOrUserQty` rises 101 → 121: 20 of the 39 new rows print
+    // `rate == total` with an explicit quantity, which is the same-value case, not the rescue case.
+    // DECISIONS/0034 H1: the table pass reads a printed `Rate`, so `detected` rises 369 → 428 while `items`
+    // rises 557 → 603 and `unresolved` falls 188 → 175. Accuracy does not move: every scored field in
+    // `benchmarks/results/parser-only-dev.json` is byte-identical before and after (SROIE gold annotates no
+    // items, CORD is unchanged at 245).
+    expect({ items, detected, unresolved }).toEqual({ items: 603, detected: 428, unresolved: 175 });
     expect({ promotedUnderAssumedQty: rescue, sameValueUnderExplicitOrUserQty: rescueFromExplicitQty }).toEqual({
-      promotedUnderAssumedQty: 230,
-      sameValueUnderExplicitOrUserQty: 101,
+      // DECISIONS/0034 H1: 229 → 223 and 121 → 145. A table row prints its quantity, so it does not need the
+      // assumed-qty rescue to be priced; the rows it does still rescue are ones where `rate == total` is the
+      // printed truth of a `Rate`/`Amount` pair rather than a manufactured unit price.
+      promotedUnderAssumedQty: 223,
+      sameValueUnderExplicitOrUserQty: 145,
     });
   });
 
-  it("the two items with no line total are individually identified, and neither is a receipt that printed nothing", async () => {
+  it("the items with no line total are individually identified, and none is a receipt that printed nothing", async () => {
     const all = await views();
     const found: { receiptId: string; itemId: string; name: string; text: string }[] = [];
     for (const view of all) {
@@ -376,11 +405,22 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
         name: "Mineral Water",
         text: "2 | Mineral Water | 18 000",
       },
+      // DECISIONS/0034 M1 replaces 0033's second entry: `CASHIER [NAME] TIME 12 31 00` is a cashier/time line, and
+      // is now read as receipt metadata instead of a product. The row that replaces it is a table record whose
+      // `Total` cell is a rate-plus-SR string the money reader will not split, so no line total is published.
       {
-        receiptId: "sroie/dev/3",
-        itemId: "i1",
-        name: "CASHIER [NAME] TIME",
-        text: "CASHIER [NAME] TIME 12 31 00",
+        receiptId: "sroie/dev/29",
+        itemId: "i2",
+        name: "AIR ADAPTOR @ 1 20.00 SR",
+        text: "AIR ADAPTOR @ 1 | 5 4.00 20.00 SR",
+      },
+      // DECISIONS/0033 adds the third: an SROIE table row whose `Total` column the receipt left blank, so the
+      // record publishes a printed rate and no line total rather than manufacturing one from `qty × rate`.
+      {
+        receiptId: "sroie/dev/137",
+        itemId: "i2",
+        name: "TEH (B) 2 X SR",
+        text: "TEH (B) | 2 X 2.20 SR",
       },
     ]);
   });
@@ -401,10 +441,14 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
       if (sd === 0) continue;
       for (const k of [1, 2, 3]) flagged[k] += lengths.filter((length) => Math.abs(length - mean) > k * sd).length;
     }
+    // DECISIONS/0033: 25 → 30 receipts now carry at least five items (SROIE tables produce several each), and
+    // the flagged counts move with them: 62 → 74 at 1σ and 6 → 7 at 2σ. DECISIONS/0034 H1: 30 → 33 receipts and
+    // 74 → 82 at 1σ; 2σ is unchanged at 7, and `longestNameAmongEligible` falls 62 → 58 — the long outliers were
+    // the metadata lines (`CASHIER [NAME] TIME 12 31 00` and its neighbours), which are no longer items at all.
     expect({ receiptsWithAtLeast5Items: eligible, flaggedAtK: flagged, longestNameAmongEligible: longest }).toEqual({
-      receiptsWithAtLeast5Items: 25,
-      flaggedAtK: { 1: 62, 2: 6, 3: 0 },
-      longestNameAmongEligible: 62,
+      receiptsWithAtLeast5Items: 33,
+      flaggedAtK: { 1: 82, 2: 7, 3: 0 },
+      longestNameAmongEligible: 58,
     });
   });
 
@@ -437,27 +481,54 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
         if (finding.severity === "critical") criticalFindings += 1;
       }
     }
-    expect({ preservedRows, receiptsWithPreserved }).toEqual({ preservedRows: 820, receiptsWithPreserved: 172 });
+    // DECISIONS/0033: 820 → 814. The six rows that left were the ambiguous rows of the one SROIE receipt the
+    // table pass now reads; `receiptsWithPreserved` was unchanged at 172 because that receipt keeps other
+    // preserved rows, so no receipt stopped being represented.
+    // DECISIONS/0034: 814 → 658 and 172 → 165. 156 rows that used to block the bill are now read as metadata
+    // (M1) or as a footer phrase with no money on it (M2). Seven receipts stop having any preserved row; that is
+    // the intended outcome of reading their `Bill No`/`THANK YOU` block, not a silent drop: the rows are filed
+    // with a field name or an ignored reason and the round-trip test below re-reads them.
+    // DECISIONS/0035's disposition audit (2026-11-10): 658 → 667 rows and 165 → 167 receipts. Nine rows on two
+    // SROIE receipts were being discarded as header noise because the item-region counter never advanced on a page
+    // whose priced rows were all reconstructed; they are preserved for review now, which is §5 rule 7's answer.
+    expect({ preservedRows, receiptsWithPreserved }).toEqual({ preservedRows: 667, receiptsWithPreserved: 167 });
+    // DECISIONS/0033 re-derived this table. The movements and their causes, one by one:
+    //  - `ambiguous_row` 820 → 814: the six ambiguous rows one SROIE table receipt no longer preserves.
+    //  - `qty_unresolved` 141 → 180 and `qty_assumed` 231 → 230: the 39 new table rows print a rate and a total
+    //    but no quantity, and the table publishes those as `unresolved` rather than assuming 1 (P9).
+    //  - `row_qty_missing` / `row_rate_missing` / `row_total_missing` are new codes, and are exactly those
+    //    columns: 39 quantities, 1 rate and 1 total that the printed table declared and the row left blank.
+    //  - `price_not_resolved` 185 → 186, `name_length_outlier` 6 → 7 and `zero_items` 42 → 41 follow the same
+    //    receipt set.
     expect(byCode).toEqual({
-      ambiguous_row: 820,
+      ambiguous_row: 667,
       confidence_unavailable: 250,
-      qty_assumed: 231,
-      price_not_resolved: 185,
-      qty_unresolved: 141,
-      zero_items: 42,
+      qty_assumed: 223,
+      price_not_resolved: 174,
+      qty_unresolved: 180,
+      row_qty_missing: 41,
+      row_rate_missing: 2,
+      row_total_missing: 2,
+      row_arithmetic_mismatch: 20,
+      zero_items: 39,
       arithmetic_total: 34,
       arithmetic_item_sum: 27,
       unclassified_charge: 22,
       items_may_be_missing: 18,
-      name_length_outlier: 6,
+      name_length_outlier: 7,
       ambiguous_price_separator: 2,
-      item_without_price: 2,
+      item_without_price: 1,
       invalid_result_schema: 1,
     });
+    // DECISIONS/0033: `totalFindings` 1,781 → 1,855 is the new per-row evidence (39 + 1 + 1 `row_*_missing`)
+    // plus the movement in the table above; `criticalFindings` 106 → 105 and `uncertainReceipts` 86 → 85 are the
+    // one receipt that stopped being empty. `advisoryFindings` and `scoredItems` are unchanged.
     expect({ uncertainReceipts, totalFindings, criticalFindings, advisoryFindings, scoredItems }).toEqual({
-      uncertainReceipts: 86,
-      totalFindings: 1781,
-      criticalFindings: 106,
+      uncertainReceipts: 82,
+      // DECISIONS/0035's disposition audit: 1,701 → 1,710, the nine `ambiguous_row` findings the audit's honest
+      // bucketing added. Nothing else in the census moved.
+      totalFindings: 1710,
+      criticalFindings: 102,
       advisoryFindings: 0,
       scoredItems: 0,
     });
@@ -570,7 +641,9 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
       absent: 0,
       wrong: 2,
       wrongFromAssumedQtyRescue: 2,
-      rescuePopulation: 230,
+      // DECISIONS/0033: 230 → 229; DECISIONS/0034 H1: 229 → 223, the same rows that left
+      // `promotedUnderAssumedQty` above. The gold-matched population is untouched at 49 / 44 / 3 / 2.
+      rescuePopulation: 223,
     });
   });
 });

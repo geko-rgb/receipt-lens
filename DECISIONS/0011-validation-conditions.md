@@ -567,6 +567,26 @@ The lone `invalid_result_schema` is a real 06 output, not a validator artifact: 
 reports it; correcting it is 06's (an explicit zero is arguably a printed fact the parser must not discard,
 which would make §7's range the thing to revisit — recorded for the owner rather than decided here).
 
+## V17 — Cross-line name↔values pairing: what earns `detected`, `assumed`, `unresolved`
+
+`DECISIONS/0035` added the header-free stage, and `next.md`'s Amendment F asks for the provenance rules of a pair
+that was assembled across printed lines rather than read from one. `validate()` is unchanged and remains the
+independent gate: this table says what the *parser* may claim, not what the validator may forgive.
+
+| field | `detected` when | `assumed` when | `unresolved` when |
+|---|---|---|---|
+| name | a description run (≤2 readable rows on the page's own side) is adjacent to the numeric row and carries a word of ≥2 Latin letters that is not a currency/unit token | — (a name is read or the numeric row stays unpaired; nothing is invented) | the numeric row has no adjacent description, or its only words are a marker (`SR`, `[ACCOUNT]`, `X`) |
+| qty | a band role is proved by arithmetic agreement on ≥2 rows and the word there is an integer 0–999 | — (unpaired rows never reach an item, so `assumed qty 1` cannot arise from this stage) | the page's arithmetic names no qty column, or the cell is not an integer count |
+| rate | as qty, plus the magnitude gate (1000× the column median) | — | no rate column was proved, or the cell fails the money/magnitude gates |
+| line total | the word sits in the proved total column | — | no total column was proved |
+
+Two structural facts this table depends on, both pinned by tests: `qty × rate = total` is compared in **integer
+paise with ±1 paisa** (Amendment B), and a row whose arithmetic fails keeps every printed value and carries
+`arithmetic_mismatch` — nothing is rewritten to make the check pass, exactly as V1's row 14 discipline requires.
+A stage that cannot prove its columns (`roleSource: "positional"`) or that pairs fewer than two rows publishes no
+item at all and reports `unpaired` with a reason, so neither a phantom product nor an assumed quantity can enter
+the item list through this path.
+
 ## Reporting discipline
 
 0008's rule applies verbatim and is the reason this record was written before the code: every number

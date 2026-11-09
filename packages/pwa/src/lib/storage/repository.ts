@@ -187,6 +187,20 @@ export async function deleteRetainedImage(handle: DatabaseHandle, billId: string
   );
 }
 
+/**
+ * P6's read half. The editor shows the photo the creator chose to keep, so the byte has to come back out of the
+ * store — `hasRetainedImage` alone can only say it is there. Nothing here writes, and the caller owns the
+ * `Blob` it builds (and so owns revoking its object URL).
+ */
+export async function readRetainedImage(
+  handle: DatabaseHandle,
+  billId: string,
+): Promise<RetainedImageRecord | undefined> {
+  return run(handle.database, ["retainedImages"], "readonly", (transaction) =>
+    readOne<RetainedImageRecord>(transaction, "retainedImages", billId),
+  );
+}
+
 /** P6: presence *is* the state, so there is no flag to read — ask the store. */
 export async function hasRetainedImage(handle: DatabaseHandle, billId: string): Promise<boolean> {
   const record = await run(handle.database, ["retainedImages"], "readonly", (transaction) =>

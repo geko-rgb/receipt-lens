@@ -11,7 +11,7 @@
 import type { ParseWarning, ParsedOtherCharge, ParsedTax, ValueSource } from "../types.js";
 import type { ClassifiedRow } from "./classify.js";
 import type { PriceColumn, RowWord } from "./geometry.js";
-import { isGroupedDigitIdentifier, isRegistrationRow } from "./patterns.js";
+import { isGroupedDigitIdentifier, isRegistrationRow, labelFragments } from "./patterns.js";
 import { chooseCategory, hasInclusionCue, matchLabels, type LabelCategory, type LabelMatch } from "./labels.js";
 import { readMoney, readRate, type NumberProfile } from "./money.js";
 
@@ -88,10 +88,22 @@ function taxEntries(matches: readonly LabelMatch[], amount: number | null): Pars
  * Read every labelled row 05 preserved as `noise_header`. Deterministic: rows are visited in document
  * order, additive charges sum, aggregates take the most specific label and then the earlier row.
  */
+/** The `HSN`/`SAC` vocabulary: DECISIONS/0033's marker for "this row is a tax breakdown, not a taxed line". */
+const BREAKDOWN_MARKERS = new Set(["HSN", "SAC"]);
+
+export function isTaxBreakdownRow(row: { readonly text: string; readonly words: readonly { readonly text: string }[] }): boolean {
+  const fragments = labelFragments(row.text);
+  if (fragments.some((fragment) => BREAKDOWN_MARKERS.has(fragment))) return true;
+  // An HSN/SAC code is a bare integer of 4, 6 or 8 digits with no separator; money on these receipts always has a
+  // decimal point, so the two never collide.
+  return row.words.some((word) => /^\d{4}$|^\d{6}$|^\d{8}$/.test(word.text.trim()));
+}
+
 export function readCharges(
   rows: readonly ClassifiedRow[],
   column: PriceColumn | null,
-  profile: NumberProfile
+  profile: NumberProfile,
+  skipRows: ReadonlySet<number> = new Set()
 ): ChargeRead {
   const taxes: ParsedTax[] = [];
   const otherCharges: ParsedOtherCharge[] = [];
@@ -102,6 +114,9 @@ export function readCharges(
 
   for (const entry of rows) {
     if (entry.classification !== "noise_header") continue;
+    // DECISIONS/0033 P11: a row a GST table already accounted for is not read again here. The table's total row
+    // is the whole tax; its itemised rows are the same money twice, and re-reading them is the double-count.
+    if (skipRows.has(entry.row.index)) continue;
     const matches = matchLabels(entry.row.text);
     const category = chooseCategory(matches, hasInclusionCue(entry.row.text));
     if (category === null) continue;
@@ -110,6 +125,13 @@ export function readCharges(
       entry.row.words.some((word) => isGroupedDigitIdentifier(word.text))) {
       continue;
     }
+    // DECISIONS/0035 P4: a GST breakdown the tax-table stage could not read is structural text, not a charge. The
+    // marker is the one `isTaxTable` already trusts — an `HSN`/`SAC` heading or an HSN-shaped code — because that is
+    // what distinguishes a printed breakdown from a taxed line: a clustered `GST 996331 … HSN … CGST SGST` row is
+    // the receipt's tax columns, and one unamounted charge made from it blocks the lock while telling the creator
+    // nothing (the printed total already includes the tax). `CGST SGST 5.00` carries no such marker and stays a
+    // charge, unamounted or not.
+    if (isTaxBreakdownRow(entry.row)) continue;
 
     const amounts = chargeAmountTokens(entry.row.words, profile);
     if (amounts.length === 0) continue;

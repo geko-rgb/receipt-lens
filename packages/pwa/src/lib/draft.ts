@@ -16,13 +16,30 @@
  * storage's ordering rule, not this module's. A handoff is not a database.
  */
 
-import type { ParseResult, ParseValidationResult, ParsedItem, ParsedOtherCharge } from "@receipt-lens/core";
+import type { ParseResult, ParseValidationResult, ParsedItem } from "@receipt-lens/core";
+import type { DraftCharge } from "./bill/working-bill.js";
 
 export interface CaptureDraft {
   readonly items: readonly ParsedItem[];
-  readonly charges: readonly ParsedOtherCharge[];
+  /**
+   * Every extracted charge, typed — `taxes[]`, service charge, tip, discount, signed round-off and
+   * `otherCharges[]` alike, through the same `draftChargesFromParse` the bill editor uses.
+   *
+   * It used to be `ParsedOtherCharge[]`, i.e. only the unclassified bucket, which meant an extracted CGST/SGST
+   * never reached the review screen at all: the parse had them and the reviewer could not see them. One shape
+   * for the review and for the editor is also what keeps the two screens from disagreeing about what was read.
+   */
+  readonly charges: readonly DraftCharge[];
   readonly parse: ParseResult;
   readonly validation: ParseValidationResult;
+  /**
+   * The pixel size of the image the parse read (PROJECT §5's bounding boxes are in that space).
+   *
+   * Carried so the editor can place a parse finding's `sourceBox` over the kept photo — the boxes are meaningless
+   * without the frame they were measured in. Optional because a draft can legitimately arrive without a photo,
+   * in which case there is nothing to overlay on.
+   */
+  readonly imageSize?: { readonly width: number; readonly height: number };
   /** Present only when the creator opted in. Never part of `parse`, never in a snapshot, never in an export. */
   readonly retainedImage?: { readonly blob: Blob; readonly mediaType: string };
 }

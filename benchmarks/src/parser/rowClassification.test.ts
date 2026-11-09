@@ -32,6 +32,8 @@ interface Sweep {
   items: number;
   continuations: number;
   noiseHeader: number;
+  metadata: number;
+  ignored: number;
   ambiguous: number;
   pricedRows: number;
   separatorRows: number;
@@ -51,6 +53,8 @@ function sweep(receipts: readonly LabeledReceipt[]): Sweep {
     items: 0,
     continuations: 0,
     noiseHeader: 0,
+    metadata: 0,
+    ignored: 0,
     ambiguous: 0,
     pricedRows: 0,
     separatorRows: 0,
@@ -74,6 +78,8 @@ function sweep(receipts: readonly LabeledReceipt[]): Sweep {
       if (entry.classification === "item") totals.items += 1;
       else if (entry.classification === "continuation") totals.continuations += 1;
       else if (entry.classification === "noise_header") totals.noiseHeader += 1;
+      else if (entry.classification === "metadata") totals.metadata += 1;
+      else if (entry.classification === "ignored") totals.ignored += 1;
       else totals.ambiguous += 1;
       if (entry.priceCandidates.length >= 1) totals.pricedRows += 1;
       if (entry.priceCandidates.length >= 2) totals.separatorRows += 1;
@@ -97,18 +103,49 @@ describe("row geometry over the committed dev fixtures", () => {
     expect(totals.rows).toBeLessThan(totals.providerLines);
   });
 
-  it("classifies every row into exactly one of §5's four classes", async () => {
+  it("classifies every row into exactly one of the shipped classes", async () => {
     const totals = sweep(await devReceipts());
-    expect(totals.items + totals.continuations + totals.noiseHeader + totals.ambiguous).toBe(totals.rows);
+    expect(
+      totals.items +
+        totals.continuations +
+        totals.noiseHeader +
+        totals.metadata +
+        totals.ignored +
+        totals.ambiguous
+    ).toBe(totals.rows);
     // Re-measured at ticket 06's head against `20e4459` (05's shipped 713 / 43 / 3,517 / 926): pattern
     // family 5 (tenders, DECISIONS/0010 Q7) discards 307 rows that are each individually attributable to
     // the family predicate — 209 were being sold as items, 92 were preserved, 6 were continuations of
     // phantom items. The revised P7 invariant is `3,517 + named-family rows`, and the attribution test in
     // `quantityMoneyPins.test.ts` is what enforces it; a rise with no family behind it still fails.
-    expect(totals.items).toBe(504);
-    expect(totals.continuations).toBe(37);
-    expect(totals.noiseHeader).toBe(3517 + 307);
-    expect(totals.ambiguous).toBe(834);
+    //
+    // DECISIONS/0033 re-measured this table, and the movement is exactly attributable: **seven rows** on one
+    // SROIE receipt (`CANON PG-47BK E400 BLACK FINE( SR` / `1 27736 29.00 29.00` and its neighbours) are now
+    // read by a printed `DESCRIPTION QTY PRICE TOTAL` header, so `item` −1 (504 → 503), `ambiguous` −6
+    // (834 → 828) and `noise_header` +7 (3,824 → 3,831). CORD's class totals are unchanged; its preserved-row
+    // cause table in the next test re-derives to the same 162 it always did.
+    //
+    // DECISIONS/0034 M1/M2 re-measured again, and this movement is fully attributed: **435 rows** leave the
+    // old four classes for the two new ones — 336 print a receipt-metadata label at the start of the row
+    // (`Bill No:`, `Date:`, `KOT`, `GST IN:`, …) and 99 are footer phrases with no digit on them. The old
+    // classes fall by exactly that many: `item` −41 (503 → 462), `continuation` −6 (37 → 31),
+    // `noise_header` −232 (3,831 → 3,599), `ambiguous` −156 (828 → 672). Everything else is unchanged; the
+    // 41 rows that were items are rows a receipt printed with a `Bill No`-shaped label and a right-aligned
+    // number, which is the bug the decision exists for. DECISIONS/0035's disposition audit then added the nine
+    // rows above (658 → 667).
+    // DECISIONS/0035's disposition audit (2026-11-10) moved nine more rows, all on SROIE receipts whose priced
+    // rows a reconstruction stage had read: `noise_header` −9 (3,599 → 3,590), `ambiguous` +9 (658 → 667). The
+    // rows are product lines the parser had been discarding under rule 5's "above the item region" test, because
+    // that test asked a counter (`pricedRowsSeen`) only *classifier*-priced rows ever advanced — on those receipts
+    // every priced row was reconstructed, so the counter stayed at zero. They are preserved for review now, which
+    // is what §5 rule 7 says to do with a row nobody understood. Items, continuations and accuracy are unmoved.
+    expect(totals.items).toBe(462);
+    expect(totals.continuations).toBe(31);
+    expect(totals.noiseHeader).toBe(3517 + 307 + 7 - 232 - 9);
+    expect(totals.metadata).toBe(336);
+    expect(totals.ignored).toBe(99);
+    // DECISIONS/0035's disposition audit then moved nine rows from `noise_header` into `ambiguous` (see above).
+    expect(totals.ambiguous).toBe(834 - 6 - 156 + 9);
   });
 
   it("infers the price column at the rate DECISIONS/0008 P6 publishes", async () => {
@@ -172,8 +209,10 @@ describe("parse() through the core seam", () => {
         result.unclassifiedRows.length
       );
     }
-    // 834 ambiguous rows minus the 14 ticket 06 promotes to items (DECISIONS/0010 Q6).
-    expect(preserved).toBe(820);
+    // 672 ambiguous rows minus the 14 ticket 06 promotes to items (DECISIONS/0010 Q6). DECISIONS/0033 moved the
+    // 834 above to 828; DECISIONS/0034's metadata/ignored families then moved it to 672 (156 rows that used to
+    // block bill locking are now read as what they are), so 658 is preserved for review.
+    expect(preserved).toBe(667);
   });
 
   it("accounts for every CORD gold item name by the class of the row that carries it", async () => {

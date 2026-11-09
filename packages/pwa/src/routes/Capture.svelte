@@ -19,7 +19,10 @@
   import { setDraft } from "../lib/draft.js";
   import { billStore, clearBillDocument } from "../lib/bill/bill-document.svelte.js";
   import { targetUrl } from "../lib/router.js";
-  import type { ParseResult, ParseValidationResult, ParsedItem, ParsedOtherCharge } from "@receipt-lens/core";
+  import type { ParseResult, ParseValidationResult, ParsedItem } from "@receipt-lens/core";
+  import { draftChargesFromParse } from "../lib/bill/mapping.js";
+  import type { DraftCharge } from "../lib/bill/working-bill.js";
+  import { formatPaise } from "../lib/bill/paise-input.js";
 
   const VALIDATION_OPTIONS = {
     criticalOcrConfidenceFloor: 0.5,
@@ -33,9 +36,12 @@
 
   interface ParseState {
     items: ParsedItem[];
-    charges: ParsedOtherCharge[];
+    /** Typed charges — taxes included — so the review shows what the parse actually read. */
+    charges: DraftCharge[];
     parse: ParseResult;
     validation: ParseValidationResult;
+    /** The frame the parse's bounding boxes were measured in, for the editor's evidence overlay. */
+    imageSize?: { width: number; height: number };
   }
 
   let source = $state<Blob | null>(null);
@@ -211,9 +217,10 @@
       workingBlob = transformed.blob;
       current = {
         items: result.parse.items ?? [],
-        charges: result.parse.otherCharges ?? [],
+        charges: draftChargesFromParse(result.parse),
         parse: result.parse,
         validation: result.validation,
+        imageSize: { ...result.ocr.imageSize },
       };
       if (result.ocr.lines.length === 0) {
         notice = "This image contains no readable text.";
@@ -548,7 +555,13 @@
           {#each current.items as item (item.id)}
             <div class="row" data-testid="item-row">
               <span class="row-name">{item.name}</span>
-              {#if item.qty !== null}<span class="row-qty">qty {item.qty}</span>{/if}
+              {#if item.qty !== null}<span class="row-qty" data-testid="item-qty">qty {item.qty}</span>{/if}
+              {#if item.unitPrice !== null}
+                <span class="row-rate" data-testid="item-rate">{formatPaise(item.unitPrice)} each</span>
+              {/if}
+              {#if item.lineTotal !== null}
+                <span class="row-total" data-testid="item-line-total">{formatPaise(item.lineTotal)}</span>
+              {/if}
               <span class="row-provenance" data-testid="provenance">
                 {item.priceSource} · {item.quantitySource}
               </span>
@@ -568,11 +581,28 @@
         </div>
 
         <h3>Charges</h3>
+        <!--
+          Every typed charge the parse read, taxes included. The old markup iterated `otherCharges` only, so an
+          extracted CGST/SGST was invisible here even though it reached the bill editor — the reviewer had no
+          way to see what had been detected before accepting.
+        -->
         <div data-testid="charges-section">
-          {#each current.charges as charge, index (index)}
-            <div class="row" data-testid="charge-row">
+          {#each current.charges as charge (charge.id)}
+            <div class="row" data-testid="charge-row" data-charge-type={charge.type ?? "unresolved"}>
               <span class="row-name">{charge.label || "Unnamed charge"}</span>
-              <span class="row-amount">{charge.amount === null ? "unresolved" : `${charge.amount} paise`}</span>
+              {#if charge.rate !== null && charge.rate !== undefined}
+                <span class="row-rate" data-testid="charge-rate">{charge.rate / 100}%</span>
+              {/if}
+              <span class="row-amount" data-testid="charge-amount">
+                {charge.amount === null ? "unresolved" : formatPaise(charge.amount)}
+              </span>
+              {#if charge.included === null && (charge.type === "tax" || charge.type === "service_charge" || charge.type === "tip" || charge.type === "other")}
+                <span class="row-provenance" data-testid="charge-inclusion">
+                  inclusion unresolved — confirm in the bill
+                </span>
+              {:else if charge.included === true}
+                <span class="row-provenance" data-testid="charge-inclusion">already in the prices</span>
+              {/if}
             </div>
           {/each}
           {#if current.charges.length === 0}

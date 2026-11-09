@@ -139,11 +139,20 @@ describe("Q1 — quantity column qualification and read states", () => {
         states[reading.via] = (states[reading.via] ?? 0) + 1;
       }
     }
+    // DECISIONS/0033 moved one row: the SROIE receipt whose `DESCRIPTION QTY PRICE TOTAL` table is now read
+    // contributes one item whose quantity the row does not print, so `absent` falls 225 → 224 and nothing else
+    // moves. A quantity the table's column filled would have raised `column`; it did not.
+    // DECISIONS/0034 H1 re-derived this too: `column` 87 → 55 and `absent` 224 → 217, because 46 more SROIE
+    // rows are now read from a printed table and their quantity comes from the table's own `Qty` cell, which is
+    // filled in `rows.ts` and never reaches `readQuantity` — so an item the loose pass used to score `column` on
+    // is not in this population at all, and a row whose table cell is blank scores `unresolved` at the item level
+    // while `readQuantity` sees an ordinary `absent` row. `pattern` and `unattributed` are unchanged bar two rows
+    // that are now metadata.
     expect(states).toEqual({
       pattern: 54,
-      column: 87,
-      unattributed: 137,
-      absent: 225,
+      column: 55,
+      unattributed: 135,
+      absent: 217,
       conflicting: 1,
     });
   });
@@ -280,7 +289,10 @@ describe("Q5 — the tax-and-aggregate row that makes precedence load-bearing", 
     // is a decision with a real population, not a corner case. (The owner's ruling cited 199, measured
     // with a looser substring predicate than the matcher that shipped; 207 is what the shipped matcher
     // produces, and DECISIONS/0010 is corrected to it.)
-    expect({ taxOnly, mixed }).toEqual({ taxOnly: 836, mixed: 207 });
+    // DECISIONS/0034 M1/M2: 836 → 745 tax-labelled rows. The 91 that left are metadata rows (`GST NO:`,
+    // `GST IN:`, `TAX INVOICE NO:` and their neighbours) and footer phrases; `mixed` is untouched at 207, which
+    // is what says the tax∧aggregate population the precedence rule exists for did not move.
+    expect({ taxOnly, mixed }).toEqual({ taxOnly: 745, mixed: 207 });
   });
 });
 
@@ -325,7 +337,11 @@ describe("Q5 — charge typing over dev's labelled rows", () => {
         types[category!] = (types[category!] ?? 0) + 1;
       }
     }
-    expect(split).toEqual({ labelled: 1374, registration: 108, noAmount: 568, resolved: 682, unresolvable: 16 });
+    // DECISIONS/0034: `labelled` 1,374 → 1,283 (−91), `registration` 108 → 58 (−50) and `noAmount` 568 → 527
+    // (−41). Every one of those rows is now classified `metadata` (a `GSTIN`/`GST IN`/`Invoice No` line) or
+    // `ignored` (a footer with no money), so it never reaches this census; `resolved` and `unresolvable` are
+    // unchanged, i.e. no charge that used to be typed stopped being typed.
+    expect(split).toEqual({ labelled: 1283, registration: 58, noAmount: 527, resolved: 682, unresolvable: 16 });
     expect(types).toEqual({ grandTotal: 393, subtotal: 82, tax: 138, discount: 45, service: 21, roundOff: 3 });
   });
 
@@ -397,12 +413,29 @@ describe("Q6 — zero totals promote, and counts do not", async () => {
 describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's revised invariant)", () => {
   it("re-derives the base head's published class totals exactly when the family is off", async () => {
     const receipts = await dev();
-    const totals = { item: 0, continuation: 0, noise_header: 0, ambiguous: 0 };
+    const totals = { item: 0, continuation: 0, noise_header: 0, metadata: 0, ignored: 0, ambiguous: 0 };
     for (const fixture of receipts) {
       for (const entry of rowsOf(fixture, { tenderFamily: false })) totals[entry.classification] += 1;
     }
     // DECISIONS/0008 P7's shipped numbers, from the shipped code. The seam is only trustworthy if this holds.
-    expect(totals).toEqual({ item: 713, continuation: 43, noise_header: 3517, ambiguous: 926 });
+    // DECISIONS/0033 moved three cells, all by the same seven rows on one SROIE receipt: `item` 713 → 712,
+    // `ambiguous` 926 → 920, `noise_header` 3,517 → 3,524. `continuation` is untouched. The tender family's own
+    // 307-row attribution below is unchanged too, which is what says this movement is the table stage's.
+    // DECISIONS/0034 moved five cells, and they are the same 435 rows the shipped table moves: `item` 712 → 671,
+    // `continuation` 43 → 37, `noise_header` 3,524 → 3,294, `ambiguous` 920 → 762, and the two new classes hold
+    // the 336 metadata and 99 ignored rows. The tender family's own attribution below still holds at 441 rows,
+    // which is what says this movement is the metadata/footer stage's and not family 5's.
+    // DECISIONS/0035's disposition audit (2026-11-10): `noise_header` 3,294 → 3,285 and `ambiguous` 762 → 771,
+    // the same nine rows the shipped table moves. The seam's tender-family attribution below is unchanged, which
+    // is the evidence that this movement is the classifier's item-region counter and not family 5's.
+    expect(totals).toEqual({
+      item: 671,
+      continuation: 37,
+      noise_header: 3285,
+      metadata: 336,
+      ignored: 99,
+      ambiguous: 771,
+    });
   });
 
   it("moves 307 rows into noise_header, all of them tender-shaped, and 0 rows anywhere else", async () => {
@@ -427,11 +460,13 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     }
     expect(transitions).toEqual({
       "item→noise_header": 209,
-      "ambiguous→noise_header": 92,
+      "ambiguous→noise_header": 90,
       "continuation→noise_header": 6,
     });
-    // The revised invariant, as a check: 3,517 + the rows this named family accounts for, and nothing else.
-    expect(3517 + 209 + 92 + 6).toBe(3824);
+    // The revised invariant, as a check: the family-off base plus the rows this named family accounts for, and
+    // nothing else. DECISIONS/0034 takes `ambiguous→noise_header` 92 → 90 because two of those rows print a
+    // metadata label first (`CASHIER`/`TIME` on an SROIE receipt) and rule 0b files them before family 5 runs.
+    expect(3294 + 209 + 90 + 6).toBe(3599);
     expect(unattributed).toEqual([]);
     expect(tenderRows).toBe(441);
   });
@@ -461,8 +496,12 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     }
     expect(emptyNames).toBe(0);
     // 05's head scored 131 pairs with 713 items; 06 keeps 135 pairs with 518 items — the discard removed
-    // 195 products that were never items, and the money parsing added real ones back.
-    expect(items).toBe(518);
+    // 195 products that were never items, and the money parsing added real ones back. DECISIONS/0033 raises the
+    // item count to 557 (SROIE table rows) and `pairs` is unchanged at 135: SROIE's gold annotates no items at
+    // all, so those 39 extra products cannot pair with anything. The number that moves is recall-free.
+    // DECISIONS/0034 H1: 557 → 603 items (SROIE rows an `AMOUNT` column now reads). `pairs` is unchanged at
+    // 135 — SROIE gold annotates no items, so none of the 46 can pair with anything.
+    expect(items).toBe(603);
     expect(pairs).toBe(135);
   });
 
@@ -479,7 +518,11 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     // Both sides are `matchItems` (τ 0.70, money-compatibility gate) — never substring containment. The
     // base head pairs 131 items with its money all null; this head pairs 135 with the gate *actively
     // refusing* a mismatched price, so the rise is real rather than a loosened threshold.
-    expect({ baseItems, basePairs }).toEqual({ baseItems: 713, basePairs: 131 });
+    // DECISIONS/0033: `baseItems` 713 → 712 for the same single SROIE row the class-total pin above records.
+    // `basePairs` is unchanged, which is the load-bearing half: the base head's pairing is a property of the
+    // gold and the matcher, not of how many items this parser finds.
+    // DECISIONS/0034 M1/M2: `baseItems` 712 → 671, the 41 rows that were metadata read as products.
+    expect({ baseItems, basePairs }).toEqual({ baseItems: 671, basePairs: 131 });
   });
 
   it("accounts for every CORD gold item name by the class of the row that carries it", async () => {
@@ -522,8 +565,17 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     }
     expect(Object.keys(qty).sort()).toEqual(["assumed", "explicit", "unresolved"]);
     expect(Object.keys(price).sort()).toEqual(["detected", "unresolved"]);
-    expect(qty).toEqual({ explicit: 146, assumed: 231, unresolved: 141 });
-    expect(price).toEqual({ detected: 331, unresolved: 187 });
-    expect(nullTotal).toBe(2);
+    // DECISIONS/0033, re-derived: explicit +1 (a table row that printed its quantity in the `Qty` column),
+    // unresolved +39 (SROIE table rows that print a rate and a total but no quantity), assumed −1 (the row that
+    // used to be the only item on its receipt is now one of several). `detected` +38 and `nullTotal` 2 → 3 are
+    // the same 39 rows seen from the price side; one of them prints a rate column and no line total.
+    // DECISIONS/0034 H1, re-derived: `explicit` 147 → 200 and `assumed` 230 → 223 (the table prints the
+    // quantity, so 53 more items have a printed one and 7 fewer are assumed), `detected` 369 → 428 and
+    // `unresolved` 175. `nullTotal` is unchanged at 3, one-for-one: the `CASHIER … TIME` row that had no line
+    // total is now metadata, and a table record with a rate-plus-tax total cell takes its place. `unresolved`
+    // quantity is unchanged at 180.
+    expect(qty).toEqual({ explicit: 200, assumed: 223, unresolved: 180 });
+    expect(price).toEqual({ detected: 428, unresolved: 175 });
+    expect(nullTotal).toBe(3);
   });
 });

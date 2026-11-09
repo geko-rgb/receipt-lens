@@ -10,7 +10,14 @@ import {
 } from "./finalize.js";
 import { createWorkingBill, type NewBillOptions } from "./mapping.js";
 import { recompute, type RecomputeResult } from "./totals.js";
-import { assignPair, materializeUnits, syncUnitsToQuantity, unassignPair } from "./units.js";
+import {
+  assignPair,
+  materializeUnits,
+  planQuantityAllocation,
+  syncUnitsToQuantity,
+  unassignPair,
+  type QuantityAllocation,
+} from "./units.js";
 import type {
   BillCharge,
   BillValidationResult,
@@ -61,7 +68,11 @@ export type TransactionRejectCode =
   | "participant_paid"
   | "protected_participant"
   // DECISIONS/0024 S1: v1's payer is the creator, because only `CreatorProfile` stores a payee VPA.
-  | "payer_must_be_creator";
+  | "payer_must_be_creator"
+  // Owner request (`next.md` Phase 4): quantity allocation's own conditions, each with a different remedy.
+  | "over_allocated"
+  | "shared_units_present"
+  | "item_not_finalized";
 
 export interface TransactionReject {
   code: TransactionRejectCode;
@@ -803,6 +814,53 @@ export function unassignUnit(document: BillDocument, unitId: string, participant
       return rejection("unknown_entity", [participantId], "no participant on this bill has that id");
     }
     return rejection("unknown_entity", [unitId, participantId], "that participant does not hold this unit");
+  });
+}
+
+/**
+ * Quick quantity allocation (owner request, `next.md` Phase 4): one atomic transaction that sets how many units of
+ * an item each participant holds.
+ *
+ * It is deliberately *one* transaction rather than N calls to `assignUnit`: the operation either lands whole or
+ * not at all, so a rejected allocation cannot leave a bill half-assigned (requirement 9). The pure planner is
+ * `units.planQuantityAllocation`; this function owns the vocabulary the UI reads, and it refuses rather than
+ * repairs — an over-allocation, a negative count, a duplicated participant or an item with shared units leaves
+ * the document untouched.
+ *
+ * `unallocatedUnitIds` is not an assignment: the units nobody claimed stay unassigned, which is what the
+ * lock checklist (`units_unassigned`) is for. Remaining units are never filled in on the creator's behalf.
+ */
+export function allocateItemQuantity(
+  document: BillDocument,
+  itemId: string,
+  allocations: readonly QuantityAllocation[]
+): TransactionResult {
+  return runTransaction(document, (working) => {
+    const outcome = planQuantityAllocation(working, itemId, allocations);
+    if (!outcome.ok) {
+      const detail = outcome.detail ?? "";
+      switch (outcome.reason) {
+        case "item_missing":
+          return rejection("unknown_entity", [itemId], "no item in this bill has that id");
+        case "item_not_finalized":
+          return rejection(
+            "item_not_finalized",
+            [itemId],
+            detail || "finalize the line before allocating its quantity",
+          );
+        case "invalid_quantity":
+          return rejection("invalid_quantity", [itemId], detail || "a quantity must be a whole number, zero or more");
+        case "duplicate_participant":
+          return rejection("assignment_duplicate", [itemId], detail || "each participant appears at most once");
+        case "participant_unknown":
+          return rejection("unknown_entity", [detail], "no participant on this bill has that id");
+        case "over_allocated":
+          return rejection("over_allocated", [itemId], `cannot allocate more units than were bought — ${detail}`);
+        case "shared_units_present":
+          return rejection("shared_units_present", [itemId], detail);
+      }
+    }
+    return wrap(outcome.working, { removedAssignments: [...outcome.plan.clearedAssignments] });
   });
 }
 

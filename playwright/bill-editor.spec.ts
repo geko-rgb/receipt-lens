@@ -174,6 +174,9 @@ test("capture → editor: drafts finalize, edits recompute, the print survives, 
 
   await naan.getByTestId("finalize-line").click();
   await expect(page.getByTestId("item-row")).toHaveCount(2);
+  // The owner's rule: a line of more than one unit opens on the quantity table, so a spec about *units* switches
+  // the three-unit line back to the per-unit panel — the interface the counts below are about.
+  await page.getByTestId("unit-list").filter({ hasText: "NAAN" }).getByTestId("mode-unit").click();
   await expect(page.getByTestId("unit")).toHaveCount(4);
   // ₹70.00 + 3 × ₹20.00 = ₹130.00 calculated against a ₹100.00 print.
   await expect(page.getByTestId("calculated-items")).toContainText("₹130.00");

@@ -23,6 +23,7 @@ import {
   deleteRetainedImage as deleteRetainedImageRecord,
   exportJson,
   hasRetainedImage as storeHasRetainedImage,
+  readRetainedImage as readRetainedImageRecord,
   listBills as listBillRecords,
   loadBill,
   loadCreatorProfile,
@@ -107,6 +108,8 @@ export interface StorageSession {
   readonly profile: () => CreatorProfile | null;
   readonly loadProfile: () => Promise<CreatorProfile | null>;
   readonly hasRetainedImage: (billId: string) => Promise<boolean>;
+  /** P6's read half: the kept photo itself, as a `Blob` the caller wraps and revokes. */
+  readonly readRetainedImage: (billId: string) => Promise<{ readonly blob: Blob; readonly mediaType: string } | null>;
   readonly deleteRetainedImage: (billId: string) => Promise<void>;
   /** P4: the envelope, ready for the browser to download. */
   readonly envelope: () => Promise<ExportEnvelope>;
@@ -322,6 +325,12 @@ export function createSession(options: SessionOptions = {}): StorageSession {
     },
 
     hasRetainedImage: async (billId) => storeHasRetainedImage(await ensureOpen(), billId),
+
+    readRetainedImage: async (billId) => {
+      const record = await readRetainedImageRecord(await ensureOpen(), billId);
+      if (!record) return null;
+      return { blob: new Blob([record.bytes], { type: record.mediaType }), mediaType: record.mediaType };
+    },
 
     deleteRetainedImage: async (billId) => {
       await deleteRetainedImageRecord(await ensureOpen(), billId);

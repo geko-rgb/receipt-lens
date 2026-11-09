@@ -923,6 +923,25 @@ describe("DECISIONS/0023 P6 — receipt image retention", () => {
     expect(await hasRetainedImage(handle, "b1")).toBe(true);
   });
 
+  it("reads the kept photo back, so the editor can show it (the read half of P6)", async () => {
+    // Reading was missing until the owner's image-review request: the store could say a photo *existed* but never
+    // hand it back, so the bill editor had nothing to display.
+    const factory = new FakeIDBFactory();
+    const session = await saved(factory);
+    expect(await session.readRetainedImage("b1")).toBeNull();
+
+    await session.persistRetainedImage({ billId: "b1", mediaType: "image/jpeg", bytes: new Uint8Array([4, 5, 6]).buffer });
+    const photo = await session.readRetainedImage("b1");
+    expect(photo).not.toBeNull();
+    expect(photo!.mediaType).toBe("image/jpeg");
+    expect(new Uint8Array(await photo!.blob.arrayBuffer())).toEqual(new Uint8Array([4, 5, 6]));
+
+    // Deleting the photo takes the read with it, and never the bill.
+    await session.deleteRetainedImage("b1");
+    expect(await session.readRetainedImage("b1")).toBeNull();
+    expect(await session.restore()).not.toBeNull();
+  });
+
   it("never leaves an image without a bill: the write is refused when the bill row is absent", async () => {
     const factory = new FakeIDBFactory();
     const open = await saved(factory);

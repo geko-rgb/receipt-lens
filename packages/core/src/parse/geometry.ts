@@ -11,6 +11,8 @@
 import type { OcrBox, OcrWord } from "../ocr/types.js";
 import { unionBoxes } from "../ocr/pp-ocrv6/lines.js";
 import {
+  VALUE_COLUMN_MIN_TOLERANCE,
+  VALUE_COLUMN_WIDTH_RATIO,
   ANCHOR_DOWN_REACH_RATIO,
   ANCHOR_MERGE_PX,
   ANCHOR_MIN_COLUMN_MEMBERS,
@@ -49,6 +51,14 @@ export interface PriceColumn {
 }
 
 const byHeightAscending = (a: number, b: number) => a - b;
+
+/**
+ * A word's horizontal centre. Two stages measure columns off boxes — the header bands (`header.ts`) and the
+ * value bands (`pairs.ts`) — and they must agree on what "centre" means, so the arithmetic lives here once.
+ */
+export function horizontalCenter(word: { box: OcrBox }): number {
+  return word.box.x + word.box.width / 2;
+}
 
 function verticalCenter(word: { box: OcrBox }): number {
   return word.box.y + word.box.height / 2;
@@ -207,6 +217,51 @@ export function inferPriceColumnFromWords(words: readonly RowWord[], imageWidth:
     if (isAmountShaped(word.text)) points.push({ right: word.box.x + word.box.width, word });
   }
   return columnFromEdges(points, imageWidth * PRICE_COLUMN_WIDTH_RATIO, ANCHOR_MIN_COLUMN_MEMBERS)?.column ?? null;
+}
+
+/** A money column found from value positions: the same clustering the price column uses. */
+export interface ValueColumn {
+  /** The band's centre: the right edge its amounts align to. */
+  readonly center: number;
+  readonly tolerance: number;
+  /** How many words' right edges landed in this band. */
+  readonly members: number;
+}
+
+/**
+ * DECISIONS/0035 C/E: the money columns a page prints, read from the *numbers'* right edges rather than from
+ * header labels. This is the one band model both row layouts use — a printed header names the roles, and a page
+ * with no header has the roles inferred arithmetically over these same bands (see `pairs.ts`) — so a receipt that
+ * prints `Qty | Rate | Amount` and one that prints only `2.00 35.00 70.00` go through identical geometry.
+ *
+ * Bands are built the way {@link columnFromEdges} builds the price column (right edges grouped from the right,
+ * tolerance = 5% of the image width) and held to the same page-level evidence bar as anchor clustering: a band
+ * needs `ANCHOR_MIN_COLUMN_MEMBERS` words, because three rows agreeing is a column and two could be alignment.
+ * `limit` bands are returned, rightmost first — callers that want three columns ask for three.
+ */
+export function inferValueColumns(rows: readonly ParsedRow[], imageWidth: number, limit = 3): ValueColumn[] {
+  // Tighter than the single price column's band on purpose: this pass has to separate `35.00` from a GST cell
+  // 30px to its right, and a chained 5%-wide band would swallow both. 2% of the page width still absorbs the
+  // right-edge jitter of right-aligned money (`571.9`, `568.3`) without bridging two printed columns.
+  const tolerance = Math.max(VALUE_COLUMN_MIN_TOLERANCE, imageWidth * VALUE_COLUMN_WIDTH_RATIO);
+  const points: number[] = [];
+  for (const row of rows) {
+    for (const word of row.words) {
+      if (isAmountShaped(word.text)) points.push(word.box.x + word.box.width);
+    }
+  }
+  if (points.length < ANCHOR_MIN_COLUMN_MEMBERS) return [];
+  const sorted = [...points].sort((a, b) => b - a);
+  const bands: { anchor: number; members: number }[] = [];
+  for (const right of sorted) {
+    const current = bands[bands.length - 1];
+    if (!current || current.anchor - right > tolerance) bands.push({ anchor: right, members: 1 });
+    else current.members += 1;
+  }
+  return bands
+    .filter((band) => band.members >= ANCHOR_MIN_COLUMN_MEMBERS)
+    .slice(0, limit)
+    .map((band) => ({ center: band.anchor, tolerance, members: band.members }));
 }
 
 function inPriceColumn(word: RowWord, column: PriceColumn): boolean {
