@@ -115,13 +115,17 @@ for (const file of [argOf("--a"), argOf("--b")]) {
     ["band rows", bands],
     ["anchor rows", anchors ?? bands],
   ]) {
-    const columns = geometry.inferValueColumns(rows, ocr.imageSize.width, 8);
+    const columns = geometry.inferValueColumns(rows, ocr.imageSize.width, 8, qtyColumn !== null);
+    const amountOnly = geometry.inferValueColumns(rows, ocr.imageSize.width, 8);
     const roles = pairs.inferPairingRoles(rows, ocr.imageSize.width, options);
     const pairing = pairs.reconstructWithoutHeader(rows, ocr.imageSize.width, options);
     console.log(`\n-- ${kind} (${rows.length})`);
     console.log(
-      `   value bands ${JSON.stringify(columns.map((band) => `${Math.round(band.center)}×${band.members}`))} · ` +
-        `pairing roleSource ${pairing.roleSource} · records ${pairing.records.length} · scored ${JSON.stringify(roles.roles.map((role) => role.role))}`
+      `   value bands ${JSON.stringify(columns.map((band) => `${Math.round(band.center)}×${band.members}`))}` +
+        ` (amount-only ${JSON.stringify(amountOnly.map((band) => `${Math.round(band.center)}×${band.members}`))}) · ` +
+        `pairing roleSource ${pairing.roleSource} · records ${pairing.records.length} · ` +
+        `roles ${JSON.stringify(roles.roles.map((role) => `${role.role}@${Math.round(role.center)}`))} · ` +
+        `top scores ${JSON.stringify(pairing.scored.slice(0, 2))}`
     );
     for (const row of rows) {
       const amounts = row.words.filter((word) => isAmountShaped(word.text)).length;

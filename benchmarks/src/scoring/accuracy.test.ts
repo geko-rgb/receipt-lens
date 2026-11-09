@@ -109,7 +109,9 @@ describe("price provenance is split before any `detected` figure is published (D
       // `derivative` falls 229 → 223 with the same rows that stopped needing the assumed-qty rescue. Every scored
       // field in the committed dev artifact is identical before and after this change, which is the pairing that
       // says the extra prices are read, not invented.
-    }).toEqual({ detected: 428, derivative: 223, direct: 205 });
+      // Ticket 25: `detected` 428 → 441 and `direct` 205 → 218 (thirteen SROIE items whose price is now read
+      // off the row); `derivative` is unmoved at 223, so the split is untouched by the change.
+    }).toEqual({ detected: 441, derivative: 223, direct: 218 });
   });
 
   it("every direct plus derivative equals the detected count, per dataset", async () => {
@@ -125,7 +127,8 @@ describe("price provenance is split before any `detected` figure is published (D
     // DECISIONS/0033: 518 → 557. The 39 new items are SROIE rows a printed `DESCRIPTION QTY PRICE TOTAL`
     // header re-cut into one product each; CORD is untouched at 245. DECISIONS/0034 H1: 557 → 603 (245 CORD,
     // 358 SROIE), the receipts whose line-total column is headed `AMOUNT`.
-    expect(cord.provenance.items + sroie.provenance.items).toBe(603);
+    // Ticket 25: 603 → 616 (thirteen SROIE items read off four receipts whose printed quantity column qualifies).
+    expect(cord.provenance.items + sroie.provenance.items).toBe(616);
   });
 });
 
@@ -140,7 +143,7 @@ describe("confidence in the headline mode (DECISIONS/0014 M7.4)", () => {
       scoredLines: cord.confidence.scoredLines + sroie.confidence.scoredLines,
     }).toEqual({ words: 10424, scoredWords: 0, lines: 5604, scoredLines: 0 });
     expect([cord.confidence.wordScores, sroie.confidence.wordScores]).toEqual([null, null]);
-    expect(cord.confidence.items + sroie.confidence.items).toBe(603);
+    expect(cord.confidence.items + sroie.confidence.items).toBe(616);
     expect(cord.confidence.scoredItems + sroie.confidence.scoredItems).toBe(0);
     expect(cord.confidence.itemsCappedByCritical + sroie.confidence.itemsCappedByCritical).toBe(0);
   });

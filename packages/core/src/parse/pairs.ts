@@ -26,7 +26,18 @@
  */
 
 import type { OcrBox } from "../ocr/types.js";
-import { horizontalCenter, inferValueColumns, isAmountShaped, type ParsedRow, type RowWord } from "./geometry.js";
+import {
+  clusterRowsByTolerance,
+  horizontalCenter,
+  inferPriceColumnFromWords,
+  inferValueColumns,
+  isAmountShaped,
+  rowBandTolerance,
+  weightedMedianWordHeight,
+  type ParsedRow,
+  type RowWord,
+} from "./geometry.js";
+import { detectQuantityColumn } from "./quantity.js";
 import { ROW_ROUNDING_TOLERANCE, type ReconstructionEvidence, type ReconstructResult, type TableRecord } from "./rows.js";
 import { columnValue } from "./header.js";
 import type { AmountToken } from "./header.js";
@@ -104,7 +115,11 @@ function valueOf(word: RowWord): number | null {
  */
 function quantityOf(word: RowWord): number | null {
   const value = valueOf(word);
-  if (value === null || !Number.isInteger(value) || value < 0 || value > PAIRING_QUANTITY_MAX_VALUE) return null;
+  // `1 ≤ qty ≤ 999`. Zero is a *candidate* on the page (ticket 25 admits bare integers to the band model so a
+  // printed `1 199.00 199.00` column can be read at all), but a line of `0` of anything is not a product line, and
+  // §4 forbids a published item with `qty 0` — publishing one turns a printed `0` into a critical
+  // `invalid_result_schema` finding against the bill. The row is left unconsumed and preserved for review instead.
+  if (value === null || !Number.isInteger(value) || value < 1 || value > PAIRING_QUANTITY_MAX_VALUE) return null;
   return value;
 }
 
@@ -226,6 +241,21 @@ function assignRoles(
     source: chosen.score >= 2 ? "arithmetic" : "positional",
     scored: ledger.sort((a, b) => b.score - a.score).slice(0, 6),
   };
+}
+
+/**
+ * Does the page print a quantity column? §5's own test (`detectQuantityColumn`: a band whose rows are ≥60% small
+ * integers, on at least `QUANTITY_BAND_MIN_ROWS` rows) — reused rather than re-derived, because the question here is
+ * the same one the classifier asks, and a bare integer only ever means a count when a whole column says so.
+ *
+ * Measured on the y-band rows, exactly as `classify.ts` measures it before choosing the anchor path, so both stages
+ * answer the same question about the same page the same way.
+ */
+function pagePrintsQuantityColumn(rows: readonly ParsedRow[], imageWidth: number): boolean {
+  const words = rows.flatMap((row) => row.words);
+  const priceColumn = inferPriceColumnFromWords(words, imageWidth);
+  const bands = clusterRowsByTolerance(words, rowBandTolerance(weightedMedianWordHeight(words)));
+  return detectQuantityColumn(bands, imageWidth, priceColumn) !== null;
 }
 
 /** The page's own median bar for "amount-shaped identifier, not money" (DECISIONS/0033's rule, `magnitude.ts`). */
@@ -411,7 +441,7 @@ export function reconstructWithoutHeader(
     unpaired: [],
     scored: [],
   };
-  const bands = inferValueColumns(rows, imageWidth, 8);
+  const bands = inferValueColumns(rows, imageWidth, 8, pagePrintsQuantityColumn(rows, imageWidth));
   const assigned = assignRoles(rows, bands, options);
   if (!assigned) return empty;
   // Amendment C's floor: without at least two rows whose `qty × rate = total` holds, the bands are a guess about
@@ -516,7 +546,7 @@ export function inferPairingRoles(
   imageWidth: number,
   options: PairingOptions
 ): { roles: readonly AssignedBand[]; source: RoleSource | null } {
-  const assigned = assignRoles(rows, inferValueColumns(rows, imageWidth, 8), options);
+  const assigned = assignRoles(rows, inferValueColumns(rows, imageWidth, 8, pagePrintsQuantityColumn(rows, imageWidth)), options);
   return assigned ?? { roles: [], source: null };
 }
 

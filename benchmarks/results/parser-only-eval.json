@@ -1403,20 +1403,20 @@
         }
       ],
       "provenance": {
-        "items": 837,
+        "items": 852,
         "priceSource": {
-          "detected": 613,
+          "detected": 714,
           "assumed": 0,
-          "unresolved": 224,
+          "unresolved": 138,
           "user_confirmed": 0
         },
         "quantitySource": {
-          "explicit": 276,
+          "explicit": 286,
           "assumed": 387,
-          "unresolved": 174,
+          "unresolved": 179,
           "user_confirmed": 0
         },
-        "detectedDirect": 227,
+        "detectedDirect": 328,
         "detectedDerivative": 386
       },
       "confidence": {
@@ -1424,33 +1424,33 @@
         "scoredLines": 0,
         "words": 19386,
         "scoredWords": 0,
-        "items": 837,
+        "items": 852,
         "scoredItems": 0,
         "wordScores": null,
         "itemsCappedByCritical": 0
       },
       "findings": {
-        "total": 2801,
+        "total": 2718,
         "critical": 131,
         "advisory": 0,
         "receiptsWithCritical": 111,
         "byCode": {
-          "ambiguous_row": 1356,
+          "ambiguous_row": 1346,
           "qty_assumed": 387,
           "confidence_unavailable": 361,
-          "qty_unresolved": 174,
-          "price_not_resolved": 224,
+          "qty_unresolved": 179,
+          "price_not_resolved": 138,
           "arithmetic_item_sum": 22,
           "arithmetic_total": 37,
           "zero_items": 68,
           "unclassified_charge": 18,
           "items_may_be_missing": 29,
           "row_arithmetic_mismatch": 30,
-          "name_length_outlier": 9,
-          "row_qty_missing": 58,
-          "row_total_missing": 20,
+          "name_length_outlier": 8,
+          "row_qty_missing": 65,
+          "row_rate_missing": 2,
+          "row_total_missing": 21,
           "round_off_adjusted": 2,
-          "row_rate_missing": 1,
           "invalid_result_schema": 4,
           "ambiguous_price_separator": 1
         },
@@ -1490,7 +1490,7 @@
         {
           "id": "sroie/eval/2",
           "goldItems": 0,
-          "predictedItems": 3,
+          "predictedItems": 9,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2270,7 +2270,7 @@
         {
           "id": "sroie/eval/80",
           "goldItems": 0,
-          "predictedItems": 2,
+          "predictedItems": 7,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -3740,7 +3740,7 @@
         {
           "id": "sroie/eval/227",
           "goldItems": 0,
-          "predictedItems": 4,
+          "predictedItems": 5,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -4970,7 +4970,7 @@
         {
           "id": "sroie/eval/350",
           "goldItems": 0,
-          "predictedItems": 4,
+          "predictedItems": 7,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",

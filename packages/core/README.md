@@ -264,9 +264,9 @@ SROIE is absent from this table on purpose: it annotates no item field, so it ca
 | Mode | Dataset · split | Items | priceSource detected | — read off the row | — line total promoted on assumed qty 1 | unresolved | qty explicit | qty assumed | qty unresolved |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | parser-only | cord-v2 · dev | 245 | 135 | 43 | 92 | 110 | 56 | 92 | 97 |
-| parser-only | sroie · dev | 358 | 293 | 162 | 131 | 65 | 144 | 131 | 83 |
+| parser-only | sroie · dev | 371 | 306 | 175 | 131 | 65 | 157 | 131 | 83 |
 | parser-only | cord-v2 · eval | 300 | 185 | 73 | 112 | 115 | 90 | 112 | 98 |
-| parser-only | sroie · eval | 837 | 613 | 227 | 386 | 224 | 276 | 387 | 174 |
+| parser-only | sroie · eval | 852 | 714 | 328 | 386 | 138 | 286 | 387 | 179 |
 | end-to-end Tiny | cord-v2 · dev | 235 | 150 | 27 | 123 | 85 | 39 | 125 | 71 |
 | end-to-end Tiny | sroie · dev | 345 | 243 | 50 | 193 | 102 | 79 | 209 | 57 |
 | end-to-end Tiny | cord-v2 · eval | 288 | 209 | 37 | 172 | 79 | 48 | 173 | 67 |
@@ -283,9 +283,9 @@ Ticket 06's rescue promotes a printed line total into a `detected` unit price wh
 | Mode | Dataset · split | Findings | Critical | Receipts with ≥1 critical | zero_items | arithmetic_total | arithmetic_item_sum | item_without_price | invalid_result_schema |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | parser-only | cord-v2 · dev | 609 | 52 | 38 | 14 | 16 | 21 | 1 | 0 |
-| parser-only | sroie · dev | 1,101 | 50 | 44 | 25 | 18 | 6 | 0 | 1 |
+| parser-only | sroie · dev | 1,070 | 50 | 44 | 25 | 18 | 6 | 0 | 1 |
 | parser-only | cord-v2 · eval | 648 | 54 | 41 | 11 | 15 | 27 | 0 | 1 |
-| parser-only | sroie · eval | 2,801 | 131 | 111 | 68 | 37 | 22 | 0 | 4 |
+| parser-only | sroie · eval | 2,718 | 131 | 111 | 68 | 37 | 22 | 0 | 4 |
 | end-to-end Tiny | cord-v2 · dev | 560 | 57 | 45 | 19 | 16 | 20 | 2 | 0 |
 | end-to-end Tiny | sroie · dev | 1,515 | 55 | 46 | 11 | 16 | 10 | 13 | 1 |
 | end-to-end Tiny | cord-v2 · eval | 600 | 58 | 44 | 12 | 17 | 26 | 1 | 1 |
@@ -304,9 +304,9 @@ Ticket 06's rescue promotes a printed line total into a `detected` unit price wh
 | Mode | Dataset · split | Words | Words scored | Lines | Lines scored | Items | Items scored | Below 0.50 | Below 0.70 |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | parser-only | cord-v2 · dev | 2,186 | 0 | 1,219 | 0 | 245 | 0 | — | — |
-| parser-only | sroie · dev | 8,238 | 0 | 4,385 | 0 | 358 | 0 | — | — |
+| parser-only | sroie · dev | 8,238 | 0 | 4,385 | 0 | 371 | 0 | — | — |
 | parser-only | cord-v2 · eval | 2,356 | 0 | 1,309 | 0 | 300 | 0 | — | — |
-| parser-only | sroie · eval | 19,386 | 0 | 10,495 | 0 | 837 | 0 | — | — |
+| parser-only | sroie · eval | 19,386 | 0 | 10,495 | 0 | 852 | 0 | — | — |
 | end-to-end Tiny | cord-v2 · dev | 2,362 | 2,362 | 899 | 899 | 235 | 235 | 190 | 266 |
 | end-to-end Tiny | sroie · dev | 15,352 | 15,352 | 4,487 | 4,487 | 345 | 345 | 312 | 632 |
 | end-to-end Tiny | cord-v2 · eval | 2,528 | 2,528 | 936 | 936 | 288 | 288 | 179 | 260 |

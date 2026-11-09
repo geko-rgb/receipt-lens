@@ -179,3 +179,11 @@ beauty contest); both are refusals for the same reason.
 `qty + name` sits 18 px below that amount, inside any reach a geometry rule can use. No clustering rule can separate
 "this amount belongs to the line above it" from "that name belongs to the line above it" without a record model that
 spans two lines — which is what ticket 24 is, and why it stays open with this trace as its evidence.
+
+## Closure of ticket 24 (2026-11-10)
+
+Ticket 24 is **closed as outcome 2 — no generalizable fix**, and this record's accept disposition is the standing
+answer for `cord-v2/eval/85`. `DECISIONS/0037`'s quantity-column work does not change that: the page prints no rate, so
+`qty × rate == total` is unsatisfiable there and pairing still publishes nothing (`score 0`, `roleSource positional`).
+The eval cord-v2 macro F1 therefore stays at **0.514907** with this ticket's artifact, and any future repair has to
+start from the record model described in the appendix above — not from a band or clustering guard.

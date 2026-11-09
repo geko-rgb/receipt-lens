@@ -112,8 +112,9 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
     const items = all.flatMap((view) => [...view.parsed.items]);
     // DECISIONS/0033: 518 → 557 items; DECISIONS/0034 H1: 557 → 603, the SROIE rows a printed `AMOUNT` column
     // now supplies. All of them have no confidence, because the reference OCR scores no word.
-    expect(items.length).toBe(603);
-    expect(items.filter((item) => item.confidence === null).length).toBe(603);
+    // Ticket 25: 603 → 616 (thirteen SROIE items on the four receipts whose printed quantity column qualifies).
+    expect(items.length).toBe(616);
+    expect(items.filter((item) => item.confidence === null).length).toBe(616);
     expect(items.filter((item) => item.confidence !== null && item.confidence < FLOOR_CRITICAL).length).toBe(0);
     expect(items.filter((item) => item.confidence !== null && item.confidence >= FLOOR_WARNING).length).toBe(0);
   });
@@ -378,13 +379,18 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
     // rises 557 → 603 and `unresolved` falls 188 → 175. Accuracy does not move: every scored field in
     // `benchmarks/results/parser-only-dev.json` is byte-identical before and after (SROIE gold annotates no
     // items, CORD is unchanged at 245).
-    expect({ items, detected, unresolved }).toEqual({ items: 603, detected: 428, unresolved: 175 });
+    // Ticket 25: `items` 603 → 616 and `detected` 428 → 441 together — the thirteen extra SROIE items print a
+    // price on the row. `unresolved` is unmoved at 175.
+    expect({ items, detected, unresolved }).toEqual({ items: 616, detected: 441, unresolved: 175 });
     expect({ promotedUnderAssumedQty: rescue, sameValueUnderExplicitOrUserQty: rescueFromExplicitQty }).toEqual({
       // DECISIONS/0034 H1: 229 → 223 and 121 → 145. A table row prints its quantity, so it does not need the
       // assumed-qty rescue to be priced; the rows it does still rescue are ones where `rate == total` is the
       // printed truth of a `Rate`/`Amount` pair rather than a manufactured unit price.
+      // Ticket 25: `sameValueUnderExplicitOrUserQty` 145 → 152 — the thirteen extra SROIE items print their
+      // quantity, so seven more rows reach the explicit-quantity side of this split; `promotedUnderAssumedQty`
+      // (223) is unmoved because the change adds printed quantities, not assumed ones.
       promotedUnderAssumedQty: 223,
-      sameValueUnderExplicitOrUserQty: 145,
+      sameValueUnderExplicitOrUserQty: 152,
     });
   });
 
@@ -446,8 +452,8 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
     // 74 → 82 at 1σ; 2σ is unchanged at 7, and `longestNameAmongEligible` falls 62 → 58 — the long outliers were
     // the metadata lines (`CASHIER [NAME] TIME 12 31 00` and its neighbours), which are no longer items at all.
     expect({ receiptsWithAtLeast5Items: eligible, flaggedAtK: flagged, longestNameAmongEligible: longest }).toEqual({
-      receiptsWithAtLeast5Items: 33,
-      flaggedAtK: { 1: 82, 2: 7, 3: 0 },
+      receiptsWithAtLeast5Items: 35,
+      flaggedAtK: { 1: 91, 2: 7, 3: 0 },
       longestNameAmongEligible: 58,
     });
   });
@@ -491,7 +497,9 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
     // DECISIONS/0035's disposition audit (2026-11-10): 658 → 667 rows and 165 → 167 receipts. Nine rows on two
     // SROIE receipts were being discarded as header noise because the item-region counter never advanced on a page
     // whose priced rows were all reconstructed; they are preserved for review now, which is §5 rule 7's answer.
-    expect({ preservedRows, receiptsWithPreserved }).toEqual({ preservedRows: 667, receiptsWithPreserved: 167 });
+    // Ticket 25: `preservedRows` 667 → 636 (thirty-one rows pairing now reads on four SROIE receipts);
+    // `receiptsWithPreserved` is unmoved at 167, which says no receipt stopped preserving rows altogether.
+    expect({ preservedRows, receiptsWithPreserved }).toEqual({ preservedRows: 636, receiptsWithPreserved: 167 });
     // DECISIONS/0033 re-derived this table. The movements and their causes, one by one:
     //  - `ambiguous_row` 820 → 814: the six ambiguous rows one SROIE table receipt no longer preserves.
     //  - `qty_unresolved` 141 → 180 and `qty_assumed` 231 → 230: the 39 new table rows print a rate and a total
@@ -501,7 +509,7 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
     //  - `price_not_resolved` 185 → 186, `name_length_outlier` 6 → 7 and `zero_items` 42 → 41 follow the same
     //    receipt set.
     expect(byCode).toEqual({
-      ambiguous_row: 667,
+      ambiguous_row: 636,
       confidence_unavailable: 250,
       qty_assumed: 223,
       price_not_resolved: 174,
@@ -527,7 +535,9 @@ describe("DECISIONS/0011 — the corpus validate() sees", () => {
       uncertainReceipts: 82,
       // DECISIONS/0035's disposition audit: 1,701 → 1,710, the nine `ambiguous_row` findings the audit's honest
       // bucketing added. Nothing else in the census moved.
-      totalFindings: 1710,
+      // Ticket 25: 1,710 → 1,679. The thirty-one rows that pairing now reads are no longer preserved, so their
+      // `ambiguous_row` findings go with them and nothing else in the census moves.
+      totalFindings: 1679,
       criticalFindings: 102,
       advisoryFindings: 0,
       scoredItems: 0,

@@ -139,13 +139,19 @@ describe("row geometry over the committed dev fixtures", () => {
     // that test asked a counter (`pricedRowsSeen`) only *classifier*-priced rows ever advanced — on those receipts
     // every priced row was reconstructed, so the counter stayed at zero. They are preserved for review now, which
     // is what §5 rule 7 says to do with a row nobody understood. Items, continuations and accuracy are unmoved.
-    expect(totals.items).toBe(462);
-    expect(totals.continuations).toBe(31);
-    expect(totals.noiseHeader).toBe(3517 + 307 + 7 - 232 - 9);
+    //
+    // Ticket 25 re-measured this table, and the whole movement sits on four SROIE receipts (`dev/{4,8,34,86}`)
+    // whose printed quantity column (`1`, `2`, `3` in a column of counts) now qualifies: `item` −5 (462 → 457),
+    // `continuation` −3 (31 → 28), `ambiguous` −31 (681 → 650) and `noise_header` +39 (3,590 → 3,629). Those rows
+    // are the product lines and the discarded item-code prefixes that pairing can now read; CORD's totals and all
+    // dev accuracy are unmoved.
+    expect(totals.items).toBe(457);
+    expect(totals.continuations).toBe(28);
+    expect(totals.noiseHeader).toBe(3517 + 307 + 7 - 232 - 9 + 39);
     expect(totals.metadata).toBe(336);
     expect(totals.ignored).toBe(99);
     // DECISIONS/0035's disposition audit then moved nine rows from `noise_header` into `ambiguous` (see above).
-    expect(totals.ambiguous).toBe(834 - 6 - 156 + 9);
+    expect(totals.ambiguous).toBe(834 - 6 - 156 + 9 - 31);
   });
 
   it("infers the price column at the rate DECISIONS/0008 P6 publishes", async () => {
@@ -212,7 +218,9 @@ describe("parse() through the core seam", () => {
     // 672 ambiguous rows minus the 14 ticket 06 promotes to items (DECISIONS/0010 Q6). DECISIONS/0033 moved the
     // 834 above to 828; DECISIONS/0034's metadata/ignored families then moved it to 672 (156 rows that used to
     // block bill locking are now read as what they are), so 658 is preserved for review.
-    expect(preserved).toBe(667);
+    // Ticket 25: 667 → 636. The 31 rows above that pairing now reads out of `ambiguous` are exactly the rows that
+    // used to be preserved for review; no row that was preserved for another reason stopped being preserved.
+    expect(preserved).toBe(636);
   });
 
   it("accounts for every CORD gold item name by the class of the row that carries it", async () => {

@@ -124,7 +124,9 @@ describe("Q1 — quantity column qualification and read states", () => {
     // Every band dev produces is either all small integers or all money, so the majority threshold has
     // nothing to decide here. The floor is the parameter that does the work, which is why 0010 pins it.
     expect([withColumn({ share: 0.5 }), withColumn({ share: 0.6 }), withColumn({ share: 0.75 })]).toEqual([34, 34, 34]);
-  });
+    // Ticket 25 lifted this test's runtime past the 5 s default (six classifications of the whole dev split, each
+    // now paying for the quantity-candidate pass); the pins are unchanged, so the budget is raised, not the work.
+  }, 20_000);
 
   it("publishes the item-row read states the floor of 5 costs", async () => {
     const receipts = await dev();
@@ -148,8 +150,12 @@ describe("Q1 — quantity column qualification and read states", () => {
     // is not in this population at all, and a row whose table cell is blank scores `unresolved` at the item level
     // while `readQuantity` sees an ordinary `absent` row. `pattern` and `unattributed` are unchanged bar two rows
     // that are now metadata.
+    // Ticket 25 re-derived this table: `pattern` 54 → 49, and nothing else moves. Admitting bare integers to the
+    // band model gives four SROIE receipts a quantity band they always printed (`1`, `2`, `3` in a column of
+    // counts), so five item rows that read their quantity from a `2 x NAME` pattern on the row now read it from
+    // the column instead — the same number, read one way rather than two.
     expect(states).toEqual({
-      pattern: 54,
+      pattern: 49,
       column: 55,
       unattributed: 135,
       absent: 217,
@@ -428,13 +434,17 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     // DECISIONS/0035's disposition audit (2026-11-10): `noise_header` 3,294 → 3,285 and `ambiguous` 762 → 771,
     // the same nine rows the shipped table moves. The seam's tender-family attribution below is unchanged, which
     // is the evidence that this movement is the classifier's item-region counter and not family 5's.
+    // Ticket 25: the same four SROIE receipts whose quantity band now qualifies reconstruct rows the base head
+    // could not read with the family off as well — `item` −5 (671 → 666), `continuation` −3 (37 → 34),
+    // `noise_header` +39 (3,285 → 3,324), `ambiguous` −31 (771 → 740). The rows are the product lines and their
+    // discarded code prefixes on `sroie/dev/{4,8,34,86}`; the family's own attribution below is unchanged.
     expect(totals).toEqual({
-      item: 671,
-      continuation: 37,
-      noise_header: 3285,
+      item: 666,
+      continuation: 34,
+      noise_header: 3324,
       metadata: 336,
       ignored: 99,
-      ambiguous: 771,
+      ambiguous: 740,
     });
   });
 
@@ -501,7 +511,10 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     // all, so those 39 extra products cannot pair with anything. The number that moves is recall-free.
     // DECISIONS/0034 H1: 557 → 603 items (SROIE rows an `AMOUNT` column now reads). `pairs` is unchanged at
     // 135 — SROIE gold annotates no items, so none of the 46 can pair with anything.
-    expect(items).toBe(603);
+    // Ticket 25: 603 → 616. Thirteen more SROIE products are read on the four receipts whose printed quantity
+    // column now qualifies (9 on `dev/34`, 4 on `dev/8`); `pairs` is unmoved at 135 because SROIE's gold
+    // annotates no items, so none of them can pair with anything.
+    expect(items).toBe(616);
     expect(pairs).toBe(135);
   });
 
@@ -522,7 +535,9 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     // `basePairs` is unchanged, which is the load-bearing half: the base head's pairing is a property of the
     // gold and the matcher, not of how many items this parser finds.
     // DECISIONS/0034 M1/M2: `baseItems` 712 → 671, the 41 rows that were metadata read as products.
-    expect({ baseItems, basePairs }).toEqual({ baseItems: 671, basePairs: 131 });
+    // Ticket 25: `baseItems` 671 → 666 for the same four receipts the class-total pin above records;
+    // `basePairs` is unchanged at 131, which is again the load-bearing half.
+    expect({ baseItems, basePairs }).toEqual({ baseItems: 666, basePairs: 131 });
   });
 
   it("accounts for every CORD gold item name by the class of the row that carries it", async () => {
@@ -574,8 +589,11 @@ describe("Q7 — pattern family 5, attributed row by row (DECISIONS/0008 P7's re
     // `unresolved` 175. `nullTotal` is unchanged at 3, one-for-one: the `CASHIER … TIME` row that had no line
     // total is now metadata, and a table record with a rate-plus-tax total cell takes its place. `unresolved`
     // quantity is unchanged at 180.
-    expect(qty).toEqual({ explicit: 200, assumed: 223, unresolved: 180 });
-    expect(price).toEqual({ detected: 428, unresolved: 175 });
+    // Ticket 25: `explicit` 200 → 213 and `detected` 428 → 441 — the thirteen extra SROIE items each print their
+    // quantity in the table's own column and their price on the row, so both sides of both figures move together.
+    // `assumed` (223), `unresolved` (175) and the unresolved-quantity figure (180) are unmoved.
+    expect(qty).toEqual({ explicit: 213, assumed: 223, unresolved: 180 });
+    expect(price).toEqual({ detected: 441, unresolved: 175 });
     expect(nullTotal).toBe(3);
   });
 });

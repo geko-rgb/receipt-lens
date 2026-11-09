@@ -3,7 +3,9 @@ import type { OcrBox } from "../ocr/types.js";
 import {
   clusterRows,
   inferPriceColumn,
+  inferValueColumns,
   isAmountShaped,
+  isQuantityShaped,
   priceCandidatesForRow,
   rowBandTolerance,
   weightedMedianWordHeight,
@@ -149,5 +151,46 @@ describe("price-column inference (§5.2, DECISIONS/0008 P6)", () => {
     ]);
     expect(inferPriceColumn(rows, 1000)?.qualifiedClusters).toBe(1);
     expect(inferPriceColumn(rows, 10000)?.qualifiedClusters).toBe(1);
+  });
+});
+
+describe("value-column bands and bare-integer quantities (ticket 25)", () => {
+  // A three-column page whose count column prints `1`, `2`, `3` — not money — and whose rate and total columns
+  // print money. `isAmountShaped("1")` is false, so before ticket 25 this page contributed no point for its
+  // quantity column at all and the band model could not see it.
+  const page = () =>
+    cluster([
+      word("1", 60, 100, 8, 10),
+      word("199.00", 160, 100, 30, 10),
+      word("2", 62, 130, 8, 10),
+      word("250.00", 158, 130, 32, 10),
+      word("3", 61, 160, 8, 10),
+      word("120.00", 159, 160, 32, 10),
+    ]);
+
+  it("treats a bare integer as a quantity-shaped candidate and nothing more", () => {
+    expect(["1", "2", "3", "999"].every(isQuantityShaped)).toBe(true);
+    expect(["0.00", "1,999", "2026", "2x", "QTY"].every((text) => !isQuantityShaped(text))).toBe(true);
+  });
+
+  it("leaves the count column out of the bands unless the caller admits quantities", () => {
+    // One money band (the amount at right edge 190) and no second: the `1 2 3` column is invisible to it.
+    expect(inferValueColumns(page(), 300, 8).map((band) => band.members)).toEqual([3]);
+    // With the caller saying the page prints a quantity column, the count column joins at its own right edge (68).
+    const withCounts = inferValueColumns(page(), 300, 8, true);
+    expect(withCounts.map((band) => band.members)).toEqual([3, 3]);
+    expect(withCounts.some((band) => Math.abs(band.center - 68) <= 2)).toBe(true);
+  });
+
+  it("still needs a whole column before a count becomes a band", () => {
+    // Two rows are below `ANCHOR_MIN_COLUMN_MEMBERS`, so nothing forms and no count is admitted on a page that
+    // merely prints a `1` here and a `2` there.
+    const sparse = cluster([
+      word("1", 60, 100, 8, 10),
+      word("199.00", 160, 100, 30, 10),
+      word("2", 62, 130, 8, 10),
+      word("250.00", 158, 130, 32, 10),
+    ]);
+    expect(inferValueColumns(sparse, 300, 8, true).some((band) => Math.abs(band.center - 68) <= 2)).toBe(false);
   });
 });

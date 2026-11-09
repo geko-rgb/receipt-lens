@@ -144,6 +144,22 @@ export function isAmountShaped(text: string): boolean {
   return token.includes(",") || token.includes(".") || digits.length >= 3;
 }
 
+/**
+ * A word that can only be a count when it is printed as one: a bare integer with no separator and at most three
+ * digits (`1`, `2`, `12`). `isAmountShaped` refuses these by design (`1` is not money), which is why a page whose
+ * quantity column prints bare integers used to contribute no points to {@link inferValueColumns} at all — the
+ * quantity band was invisible and every arithmetic role check failed against a rate column
+ * (`DECISIONS/0035` amendment, ticket 25).
+ *
+ * This predicate is a *candidate* test, never a decision: the band still needs `ANCHOR_MIN_COLUMN_MEMBERS` words, a
+ * candidate band only earns the `qty` role through {@link ./pairs.js}'s arithmetic majority, and
+ * `PAIRING_QUANTITY_MAX_VALUE` (999) is what the role actually accepts. A count, a table number or the `2` of
+ * `2x` that forms a band still has to make `qty × rate = total` hold on two rows before anything is published.
+ */
+export function isQuantityShaped(text: string): boolean {
+  return /^\d{1,3}$/.test(text.trim());
+}
+
 /** Right edges of a row's amount-shaped words, and the row they belong to. */
 interface EdgePoint {
   readonly right: number;
@@ -239,7 +255,18 @@ export interface ValueColumn {
  * needs `ANCHOR_MIN_COLUMN_MEMBERS` words, because three rows agreeing is a column and two could be alignment.
  * `limit` bands are returned, rightmost first — callers that want three columns ask for three.
  */
-export function inferValueColumns(rows: readonly ParsedRow[], imageWidth: number, limit = 3): ValueColumn[] {
+export function inferValueColumns(
+  rows: readonly ParsedRow[],
+  imageWidth: number,
+  limit = 3,
+  /**
+   * Whether the page prints a quantity column at all (§5's `detectQuantityColumn`, decided by the caller). Only
+   * then are bare integers admitted as column points — a count, a table number or the `2` of `2x` is not a number
+   * column, and admitting every integer would let a receipt's item codes and page furniture form bands
+   * (ticket 25). Off by default: a page whose quantity column is printed as money (`2.00`) needs nothing here.
+   */
+  admitQuantities = false
+): ValueColumn[] {
   // Tighter than the single price column's band on purpose: this pass has to separate `35.00` from a GST cell
   // 30px to its right, and a chained 5%-wide band would swallow both. 2% of the page width still absorbs the
   // right-edge jitter of right-aligned money (`571.9`, `568.3`) without bridging two printed columns.
@@ -247,7 +274,12 @@ export function inferValueColumns(rows: readonly ParsedRow[], imageWidth: number
   const points: number[] = [];
   for (const row of rows) {
     for (const word of row.words) {
-      if (isAmountShaped(word.text)) points.push(word.box.x + word.box.width);
+      // `DECISIONS/0035` Amendment E names integer quantities 0–999 as candidates, and they print as bare integers
+      // on a real three-column receipt (`1`, `2`) where `isAmountShaped` answers false. Counting them here is what
+      // gives the arithmetic pass a quantity column to read; whether a band *is* the quantity column stays a
+      // question `pairs.ts` answers by arithmetic, not by this collection (ticket 25).
+      const candidate = isAmountShaped(word.text) || (admitQuantities && isQuantityShaped(word.text));
+      if (candidate) points.push(word.box.x + word.box.width);
     }
   }
   if (points.length < ANCHOR_MIN_COLUMN_MEMBERS) return [];

@@ -3,6 +3,7 @@ import { classifyRows } from "./classify.js";
 import { ocrRow, receipt } from "./fixtures.js";
 import { parse } from "./index.js";
 import { isNameLike, reconstructWithoutHeader, type PairingOptions } from "./pairs.js";
+import { validate } from "../validate/index.js";
 import type { ParsedRow } from "./geometry.js";
 import type { OcrResult } from "../ocr/types.js";
 
@@ -229,6 +230,110 @@ describe("Amendment E — candidate sanity gates", () => {
     );
     const result = reconstructWithoutHeader(classifyRows(page).rows.map((entry) => entry.row), 200, options());
     expect(result.records.every((record) => record.qty === null)).toBe(true);
+  });
+});
+
+
+describe("quantity columns printed as bare integers (ticket 25)", () => {
+  // Six rows, so §5's quantity *band* test (`QUANTITY_BAND_MIN_ROWS`) has enough members to qualify, and the count
+  // column prints `1`/`2`/`3` — integers, not money — which `isAmountShaped` answers false for.
+  const bareCount = (id: string, y: number, qty: string, rate: string, total: string) =>
+    ocrRow(id, y, [
+      [qty, QTY, 8],
+      [rate, RATE, 26],
+      [total, TOTAL, 26],
+    ]);
+  const barePage = () =>
+    receipt(
+      nameRow("n1", 20, "Coffee"),
+      bareCount("v1", 34, "1", "35.00", "35.00"),
+      nameRow("n2", 48, "Vada"),
+      bareCount("v2", 62, "2", "25.00", "50.00"),
+      nameRow("n3", 76, "Tea"),
+      bareCount("v3", 90, "3", "12.00", "36.00"),
+      nameRow("n4", 104, "Idli"),
+      bareCount("v4", 118, "1", "24.00", "24.00"),
+      nameRow("n5", 132, "Dosa"),
+      bareCount("v5", 146, "2", "30.00", "60.00"),
+      nameRow("n6", 160, "Pongal"),
+      bareCount("v6", 174, "1", "28.00", "28.00")
+    );
+  const rowsOf = (page: OcrResult) => classifyRows(page).rows.map((entry) => entry.row);
+
+  it("reads the count column and proves the roles arithmetically", () => {
+    const result = reconstructWithoutHeader(rowsOf(barePage()), 200, options());
+    expect(result.roleSource).toBe("arithmetic");
+    expect(result.records.map((record) => [record.name, record.qty?.value, record.rate?.value, record.total?.value])).toEqual([
+      ["Coffee", 1, 35, 35],
+      ["Vada", 2, 25, 50],
+      ["Tea", 3, 12, 36],
+      ["Idli", 1, 24, 24],
+      ["Dosa", 2, 30, 60],
+      ["Pongal", 1, 28, 28],
+    ]);
+  });
+
+  it("publishes those counts through parse(), and closes without a schema finding", () => {
+    const parsed = parse(barePage());
+    expect(parsed.items.map((item) => [item.name, item.qty, item.lineTotal])).toEqual([
+      ["Coffee", 1, 3500],
+      ["Vada", 2, 5000],
+      ["Tea", 3, 3600],
+      ["Idli", 1, 2400],
+      ["Dosa", 2, 6000],
+      ["Pongal", 1, 2800],
+    ]);
+    expect(parsed.items.map((item) => item.quantitySource)).toEqual(Array(6).fill("explicit"));
+    // §4 declares `qty` strictly positive, so a published `0` would be a critical finding against the bill.
+    const findings = validate(parsed, { criticalOcrConfidenceFloor: 0.5, warningOcrConfidenceFloor: 0.7, strictArithmetic: false });
+    expect(findings.findings.filter((finding) => finding.code === "invalid_result_schema")).toEqual([]);
+  });
+
+  it("never publishes a printed `0` as a quantity", () => {
+    const page = receipt(
+      nameRow("n1", 20, "Coffee"),
+      bareCount("v1", 34, "1", "35.00", "35.00"),
+      nameRow("n2", 48, "Vada"),
+      bareCount("v2", 62, "2", "25.00", "50.00"),
+      nameRow("n3", 76, "Tea"),
+      bareCount("v3", 90, "3", "12.00", "36.00"),
+      nameRow("n4", 104, "Idli"),
+      bareCount("v4", 118, "1", "24.00", "24.00"),
+      nameRow("n5", 132, "Dosa"),
+      bareCount("v5", 146, "2", "30.00", "60.00"),
+      nameRow("n6", 160, "Free sample"),
+      bareCount("v6", 174, "0", "28.00", "28.00")
+    );
+    const result = reconstructWithoutHeader(rowsOf(page), 200, options());
+    expect(result.records.every((record) => (record.qty?.value ?? 1) > 0)).toBe(true);
+    // The `0` row keeps the two printed numbers it does have and loses only the quantity, which is what the page
+    // actually prints: a rate and an amount, no count. Publishing `qty 0` instead would violate §4's ranges.
+    const zeroRow = result.records.find((record) => record.name === "Free sample");
+    expect([zeroRow?.qty?.value ?? null, zeroRow?.rate?.value ?? null, zeroRow?.total?.value ?? null]).toEqual([null, 28, 28]);
+    expect(parse(page).items.every((item) => item.qty === null || item.qty > 0)).toBe(true);
+    const findings = validate(parse(page), { criticalOcrConfidenceFloor: 0.5, warningOcrConfidenceFloor: 0.7, strictArithmetic: false });
+    expect(findings.findings.filter((finding) => finding.code === "invalid_result_schema")).toEqual([]);
+  });
+
+  it("does not treat a column of item codes as a quantity column", () => {
+    const page = receipt(
+      nameRow("n1", 20, "Coffee"),
+      bareCount("v1", 34, "101", "35.00", "35.00"),
+      nameRow("n2", 48, "Vada"),
+      bareCount("v2", 62, "102", "25.00", "50.00"),
+      nameRow("n3", 76, "Tea"),
+      bareCount("v3", 90, "103", "12.00", "36.00"),
+      nameRow("n4", 104, "Idli"),
+      bareCount("v4", 118, "104", "24.00", "24.00"),
+      nameRow("n5", 132, "Dosa"),
+      bareCount("v5", 146, "105", "30.00", "60.00"),
+      nameRow("n6", 160, "Pongal"),
+      bareCount("v6", 174, "106", "28.00", "28.00")
+    );
+    // §5's own qualification test refuses the band: `101` is not a count, so the column never reaches the stage and
+    // nothing is published on a page whose only "quantity" is an item code.
+    const result = reconstructWithoutHeader(rowsOf(page), 200, options());
+    expect(result.records.map((record) => record.qty?.value ?? null)).toEqual(result.records.map(() => null));
   });
 });
 
