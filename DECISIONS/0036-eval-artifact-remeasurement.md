@@ -103,3 +103,79 @@ stage of its own: filed as ticket **24** with this receipt as its fixture and th
   `grandTotal exact` **without** weakening the 0032 receipt (10 items) or any dev pin.
 - The eval split remains a *stress* split, out-of-language for cord-v2 (`DECISIONS/0004`/`ADR-010`): the English
   headline claim is SROIE, whose F1 is unchanged to six decimal places.
+
+## Appendix — the ticket-24 attempt (2026-11-10): no generalizable repair, acceptance stands
+
+Ticket 24 asked for the real repair. The diagnosis below is the whole of it, reproducible with
+`node benchmarks/scripts/diagnose-row-layouts.mjs --a benchmarks/fixtures/eval/cord-v2/085.json --b
+harness/out/image1.ocr.json`. **Conclusion: there is still no generalizable fix, so this record's disposition stands and
+no production code changed.**
+
+### The trace, both pages, one script
+
+| | `cord-v2/eval/85` (the regression) | `harness/out/image1.ocr.json` (0032's page) |
+| --- | --- | --- |
+| band tolerance | 24.80 px | 21.86 px |
+| price column | 1599 ±89, `fallback: false` | 893 ±60, `fallback: false` |
+| quantity column | detected, anchor 708, 9 rows, share 1 | detected, anchor 592, 7 rows, share 1 |
+| value bands (`inferValueColumns`) | `1599×5, 1560×9, 1518×3` — all three are **right-edge jitter of the one amount column** | `893×14, 768×6, 742×4` — amount plus two rate sub-bands |
+| anchor lines (amount lines) | 17 | 16 |
+| band rows → anchor rows | 14 → 20 | 22 → 21 |
+| pairing role source | `positional` | `positional` |
+| pairing records published | **0** | **0** |
+| shipped `parse()` | 12 items, `grandTotal: null` | 10 items, `grandTotal: null` |
+
+Band rows vs anchor rows on `eval/85` — the divergence in one table. The band path is *nearly* right (11 of 14 rows are
+one printed record) but chains three records twice; the anchor path re-cuts the whole page and shifts every record by
+one line:
+
+```
+band   [ 0] y=1046 "3 Nasi Putih"                       anchor [ 0] y=1046 "3 Nasi Putih"
+band   [ 1] y=1086 "1 Nasi Tambah 30.000"               anchor [ 1] y=1086 "1 Nasi Tambah 30.000"      <- 30.000 is Nasi Putih's
+band   [ 5] y=1354 "1 1 1 Telur Kerupuk Ikan Bawal ..."  anchor [ 5] y=1305 "Cb"
+                                                        anchor [13] y=1727 "Subtotal"                   <- lost its 179.500
+                                                        anchor [14] y=1747 "Pajak Rest. 10% 179.500"
+                                                        anchor [15] y=1802 "Total 17.950"               <- Subtotal's/Pajak's money
+```
+
+The last two lines are the mechanism of `grandTotal exact → wrong`: `Total` is bound to the *tax* row's amount, so total
+resolution falls back to the subtotal.
+
+### Why the pairing stage cannot be the route (first move's answer: **No**)
+
+`inferPairingRoles` scores every assignment it can make and returns `positional` with the ledger
+`rate@1560+total@1599 → 0`, `qty@1518+rate@1560+total@1599 → 0` on `eval/85`: the page prints **qty and amount only**
+(one amount-shaped word per record, 0 of 17 amount lines carries two), so no row can ever satisfy `qty × rate = total`
+and Amendment C forbids publishing without arithmetic proof. Routing `eval/85` to pairing therefore publishes *nothing* —
+it is not a fallback that exists.
+
+The same trace found a **real defect in the band model** (not the anchor path): `inferValueColumns` counts only
+amount-shaped words, and `isAmountShaped("1") === false`, so a page whose quantity column is printed as bare integers
+has no quantity band at all. On 0032's page the roles are therefore `qty@742` (a rate sub-band), score **0**, and
+pairing publishes nothing *even though its rows are correct*. Adding bare integers 0–999 as band candidates — the
+candidates Amendment E already names — makes that page prove `qty@612 × rate@743 = total@893` with **score 9**
+(`arithmetic`), while `eval/85` stays at score 0. That is a genuine improvement, but it is not this regression's fix and
+it changes a verified page's route, so it is filed as ticket 25 rather than smuggled in here.
+
+### The candidate rules, measured and refused
+
+Each was tested against both pages before any code was written; the acceptance bar was "separates these two pages
+cleanly", and none does:
+
+| Candidate gate on the anchor path | `eval/85` | 0032's page | Verdict |
+| --- | --- | --- | --- |
+| nearest description is *above* its amount (the inverted premise) | 9 of 17 | 7 of 16 | no |
+| a quantity word inside each anchor's band | passes (the *next* row's qty lands there) | passes | no |
+| a quantity word within half the amount's height of the amount's line | 12 of 17 | 13 of 16 | no |
+| every amount line carries ≥2 amounts (a printed rate) — majority rule | 0.00 | 0.50 | no: refuses 0032 too |
+| most *priced rows* carry ≥2 amounts (a printed rate) | 0.17 | 0.80 | **yes, but it separates for the wrong reason**: the two `eval/85` rows that look like "rate + amount" are chained OCR boxes, so the rule would be right by accident and would also disable the anchor path on any real three-column receipt whose rate column OCR dropped. Refused as tuned-to-the-split. |
+
+Two further candidates were recorded in the main body (band-failure localisation, and a "which grouping scores better"
+beauty contest); both are refusals for the same reason.
+
+### What the repair actually needs
+
+`eval/85`'s records are **two printed lines each**: `qty + name`, then the amount ~38 px below, and the *next* record's
+`qty + name` sits 18 px below that amount, inside any reach a geometry rule can use. No clustering rule can separate
+"this amount belongs to the line above it" from "that name belongs to the line above it" without a record model that
+spans two lines — which is what ticket 24 is, and why it stays open with this trace as its evidence.
