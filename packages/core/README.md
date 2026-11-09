@@ -156,7 +156,7 @@ Every figure below is generated from committed results JSON in `benchmarks/resul
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | **parser-only (headline)** | cord-v2 · dev | Indonesian (out-of-language) | 100 | 100 | 2 | 2.0% | 0.473 |
 | **parser-only (headline)** | sroie · dev | English | 150 | 149 ( 1 unlabelled, excluded) | 90 | 60.4% | 0.647 |
-| **parser-only (headline)** | cord-v2 · eval | Indonesian (out-of-language) | 100 | 100 | 0 | 0.0% | 0.523 |
+| **parser-only (headline)** | cord-v2 · eval | Indonesian (out-of-language) | 100 | 100 | 0 | 0.0% | 0.515 |
 | **parser-only (headline)** | sroie · eval | English | 361 | 361 | 219 | 60.7% | 0.662 |
 | end-to-end Tiny | cord-v2 · dev | Indonesian (out-of-language) | 100 | 100 | 0 | 0.0% | 0.425 |
 | end-to-end Tiny | sroie · dev | English | 150 | 149 ( 1 unlabelled, excluded) | 86 | 57.7% | 0.606 |
@@ -187,15 +187,15 @@ Strict means *every field that dataset supports agrees on that receipt* (§8 Tie
 | parser-only | cord-v2 · dev | item.unitPrice | 3 | 132 | 46 | 0.022 | 0.061 | 0.033 | 49 | 205 |
 | parser-only | cord-v2 · dev | item.lineTotal | 133 | 111 | 89 | 0.545 | 0.599 | 0.571 | 222 | 32 |
 | parser-only | sroie · dev | grandTotal | 90 | 39 | 59 | 0.698 | 0.604 | 0.647 | 149 | 0 |
-| parser-only | cord-v2 · eval | grandTotal | 63 | 3 | 28 | 0.955 | 0.692 | 0.803 | 91 | 0 |
-| parser-only | cord-v2 · eval | subtotal | 45 | 0 | 18 | 1.000 | 0.714 | 0.833 | 63 | 0 |
+| parser-only | cord-v2 · eval | grandTotal | 62 | 4 | 29 | 0.939 | 0.681 | 0.790 | 91 | 0 |
+| parser-only | cord-v2 · eval | subtotal | 44 | 0 | 19 | 1.000 | 0.698 | 0.822 | 63 | 0 |
 | parser-only | cord-v2 · eval | serviceCharge | 8 | 3 | 3 | 0.727 | 0.727 | 0.727 | 11 | 0 |
 | parser-only | cord-v2 · eval | discount | 3 | 3 | 1 | 0.500 | 0.750 | 0.600 | 4 | 0 |
-| parser-only | cord-v2 · eval | taxTotal | 18 | 1 | 22 | 0.947 | 0.450 | 0.610 | 40 | 0 |
-| parser-only | cord-v2 · eval | item.name | 78 | 216 | 192 | 0.265 | 0.289 | 0.277 | 270 | 0 |
-| parser-only | cord-v2 · eval | item.qty | 52 | 144 | 141 | 0.265 | 0.269 | 0.267 | 193 | 77 |
-| parser-only | cord-v2 · eval | item.unitPrice | 7 | 173 | 56 | 0.039 | 0.111 | 0.058 | 63 | 207 |
-| parser-only | cord-v2 · eval | item.lineTotal | 142 | 152 | 99 | 0.483 | 0.589 | 0.531 | 241 | 29 |
+| parser-only | cord-v2 · eval | taxTotal | 17 | 2 | 23 | 0.895 | 0.425 | 0.576 | 40 | 0 |
+| parser-only | cord-v2 · eval | item.name | 78 | 222 | 192 | 0.260 | 0.289 | 0.274 | 270 | 0 |
+| parser-only | cord-v2 · eval | item.qty | 52 | 150 | 141 | 0.257 | 0.269 | 0.263 | 193 | 77 |
+| parser-only | cord-v2 · eval | item.unitPrice | 7 | 178 | 56 | 0.038 | 0.111 | 0.056 | 63 | 207 |
+| parser-only | cord-v2 · eval | item.lineTotal | 142 | 158 | 99 | 0.473 | 0.589 | 0.525 | 241 | 29 |
 | parser-only | sroie · eval | grandTotal | 219 | 82 | 142 | 0.728 | 0.607 | 0.662 | 361 | 0 |
 | end-to-end Tiny | cord-v2 · dev | grandTotal | 71 | 6 | 25 | 0.922 | 0.740 | 0.821 | 96 | 0 |
 | end-to-end Tiny | cord-v2 · dev | subtotal | 43 | 6 | 22 | 0.878 | 0.662 | 0.754 | 65 | 0 |
@@ -247,7 +247,7 @@ Strict means *every field that dataset supports agrees on that receipt* (§8 Tie
 | parser-only | cord-v2 · dev | `matchItems(τ=0.7, money_gate=on)` | 135 | 3 | 3 | 0 | **0** | 133 | 133 | **0** |
 | parser-only | cord-v2 · dev | `matchItems(τ=0.7, money_gate=off)` | 139 | 5 | 3 | 0 | **2** | 137 | 135 | **2** |
 | parser-only | cord-v2 · eval | `matchItems(τ=0.7, money_gate=on)` | 150 | 8 | 7 | 1 | **0** | 142 | 142 | **0** |
-| parser-only | cord-v2 · eval | `matchItems(τ=0.7, money_gate=off)` | 161 | 11 | 7 | 1 | **3** | 153 | 145 | **8** |
+| parser-only | cord-v2 · eval | `matchItems(τ=0.7, money_gate=off)` | 166 | 11 | 7 | 1 | **3** | 158 | 145 | **13** |
 | end-to-end Tiny | cord-v2 · dev | `matchItems(τ=0.7, money_gate=on)` | 117 | 2 | 2 | 0 | **0** | 115 | 115 | **0** |
 | end-to-end Tiny | cord-v2 · dev | `matchItems(τ=0.7, money_gate=off)` | 123 | 4 | 2 | 0 | **2** | 121 | 117 | **4** |
 | end-to-end Tiny | cord-v2 · eval | `matchItems(τ=0.7, money_gate=on)` | 124 | 3 | 3 | 0 | **0** | 118 | 118 | **0** |
@@ -264,9 +264,9 @@ SROIE is absent from this table on purpose: it annotates no item field, so it ca
 | Mode | Dataset · split | Items | priceSource detected | — read off the row | — line total promoted on assumed qty 1 | unresolved | qty explicit | qty assumed | qty unresolved |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | parser-only | cord-v2 · dev | 245 | 135 | 43 | 92 | 110 | 56 | 92 | 97 |
-| parser-only | sroie · dev | 273 | 196 | 58 | 138 | 77 | 90 | 139 | 44 |
-| parser-only | cord-v2 · eval | 294 | 180 | 68 | 112 | 114 | 84 | 112 | 98 |
-| parser-only | sroie · eval | 708 | 461 | 74 | 387 | 247 | 191 | 389 | 128 |
+| parser-only | sroie · dev | 358 | 293 | 162 | 131 | 65 | 144 | 131 | 83 |
+| parser-only | cord-v2 · eval | 300 | 185 | 73 | 112 | 115 | 90 | 112 | 98 |
+| parser-only | sroie · eval | 837 | 613 | 227 | 386 | 224 | 276 | 387 | 174 |
 | end-to-end Tiny | cord-v2 · dev | 235 | 150 | 27 | 123 | 85 | 39 | 125 | 71 |
 | end-to-end Tiny | sroie · dev | 345 | 243 | 50 | 193 | 102 | 79 | 209 | 57 |
 | end-to-end Tiny | cord-v2 · eval | 288 | 209 | 37 | 172 | 79 | 48 | 173 | 67 |
@@ -283,9 +283,9 @@ Ticket 06's rescue promotes a printed line total into a `detected` unit price wh
 | Mode | Dataset · split | Findings | Critical | Receipts with ≥1 critical | zero_items | arithmetic_total | arithmetic_item_sum | item_without_price | invalid_result_schema |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | parser-only | cord-v2 · dev | 609 | 52 | 38 | 14 | 16 | 21 | 1 | 0 |
-| parser-only | sroie · dev | 1,172 | 54 | 48 | 28 | 18 | 6 | 1 | 1 |
-| parser-only | cord-v2 · eval | 650 | 55 | 42 | 11 | 15 | 28 | 0 | 1 |
-| parser-only | sroie · eval | 2,958 | 139 | 119 | 74 | 37 | 23 | 1 | 4 |
+| parser-only | sroie · dev | 1,101 | 50 | 44 | 25 | 18 | 6 | 0 | 1 |
+| parser-only | cord-v2 · eval | 648 | 54 | 41 | 11 | 15 | 27 | 0 | 1 |
+| parser-only | sroie · eval | 2,801 | 131 | 111 | 68 | 37 | 22 | 0 | 4 |
 | end-to-end Tiny | cord-v2 · dev | 560 | 57 | 45 | 19 | 16 | 20 | 2 | 0 |
 | end-to-end Tiny | sroie · dev | 1,515 | 55 | 46 | 11 | 16 | 10 | 13 | 1 |
 | end-to-end Tiny | cord-v2 · eval | 600 | 58 | 44 | 12 | 17 | 26 | 1 | 1 |
@@ -304,9 +304,9 @@ Ticket 06's rescue promotes a printed line total into a `detected` unit price wh
 | Mode | Dataset · split | Words | Words scored | Lines | Lines scored | Items | Items scored | Below 0.50 | Below 0.70 |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | parser-only | cord-v2 · dev | 2,186 | 0 | 1,219 | 0 | 245 | 0 | — | — |
-| parser-only | sroie · dev | 8,238 | 0 | 4,385 | 0 | 273 | 0 | — | — |
-| parser-only | cord-v2 · eval | 2,356 | 0 | 1,309 | 0 | 294 | 0 | — | — |
-| parser-only | sroie · eval | 19,386 | 0 | 10,495 | 0 | 708 | 0 | — | — |
+| parser-only | sroie · dev | 8,238 | 0 | 4,385 | 0 | 358 | 0 | — | — |
+| parser-only | cord-v2 · eval | 2,356 | 0 | 1,309 | 0 | 300 | 0 | — | — |
+| parser-only | sroie · eval | 19,386 | 0 | 10,495 | 0 | 837 | 0 | — | — |
 | end-to-end Tiny | cord-v2 · dev | 2,362 | 2,362 | 899 | 899 | 235 | 235 | 190 | 266 |
 | end-to-end Tiny | sroie · dev | 15,352 | 15,352 | 4,487 | 4,487 | 345 | 345 | 312 | 632 |
 | end-to-end Tiny | cord-v2 · eval | 2,528 | 2,528 | 936 | 936 | 288 | 288 | 179 | 260 |
@@ -332,15 +332,15 @@ The headline mode scores **no** confidence at all: fixtures are dataset referenc
 | Tiny | end-to-end vs headline | cord-v2 · dev | item.unitPrice | 0.033 | 0.020 | −0.013 |
 | Tiny | end-to-end vs headline | cord-v2 · dev | item.lineTotal | 0.571 | 0.505 | −0.065 |
 | Tiny | end-to-end vs headline | sroie · dev | grandTotal | 0.647 | 0.606 | −0.042 |
-| Tiny | end-to-end vs headline | cord-v2 · eval | grandTotal | 0.803 | 0.685 | −0.118 |
-| Tiny | end-to-end vs headline | cord-v2 · eval | subtotal | 0.833 | 0.757 | −0.076 |
+| Tiny | end-to-end vs headline | cord-v2 · eval | grandTotal | 0.790 | 0.685 | −0.105 |
+| Tiny | end-to-end vs headline | cord-v2 · eval | subtotal | 0.822 | 0.757 | −0.065 |
 | Tiny | end-to-end vs headline | cord-v2 · eval | serviceCharge | 0.727 | 0.727 | +0.000 |
 | Tiny | end-to-end vs headline | cord-v2 · eval | discount | 0.600 | 0.400 | −0.200 |
-| Tiny | end-to-end vs headline | cord-v2 · eval | taxTotal | 0.610 | 0.491 | −0.119 |
-| Tiny | end-to-end vs headline | cord-v2 · eval | item.name | 0.277 | 0.229 | −0.047 |
-| Tiny | end-to-end vs headline | cord-v2 · eval | item.qty | 0.267 | 0.280 | +0.013 |
-| Tiny | end-to-end vs headline | cord-v2 · eval | item.unitPrice | 0.058 | 0.022 | −0.036 |
-| Tiny | end-to-end vs headline | cord-v2 · eval | item.lineTotal | 0.531 | 0.447 | −0.084 |
+| Tiny | end-to-end vs headline | cord-v2 · eval | taxTotal | 0.576 | 0.491 | −0.085 |
+| Tiny | end-to-end vs headline | cord-v2 · eval | item.name | 0.274 | 0.229 | −0.044 |
+| Tiny | end-to-end vs headline | cord-v2 · eval | item.qty | 0.263 | 0.280 | +0.017 |
+| Tiny | end-to-end vs headline | cord-v2 · eval | item.unitPrice | 0.056 | 0.022 | −0.034 |
+| Tiny | end-to-end vs headline | cord-v2 · eval | item.lineTotal | 0.525 | 0.447 | −0.078 |
 | Tiny | end-to-end vs headline | sroie · eval | grandTotal | 0.662 | 0.622 | −0.040 |
 | Small | end-to-end vs headline | cord-v2 · dev | grandTotal | 0.856 | 0.800 | −0.056 |
 | Small | end-to-end vs headline | cord-v2 · dev | subtotal | 0.779 | 0.772 | −0.007 |
@@ -352,15 +352,15 @@ The headline mode scores **no** confidence at all: fixtures are dataset referenc
 | Small | end-to-end vs headline | cord-v2 · dev | item.unitPrice | 0.033 | 0.030 | −0.002 |
 | Small | end-to-end vs headline | cord-v2 · dev | item.lineTotal | 0.571 | 0.512 | −0.059 |
 | Small | end-to-end vs headline | sroie · dev | grandTotal | 0.647 | 0.660 | +0.012 |
-| Small | end-to-end vs headline | cord-v2 · eval | grandTotal | 0.803 | 0.775 | −0.028 |
-| Small | end-to-end vs headline | cord-v2 · eval | subtotal | 0.833 | 0.804 | −0.030 |
+| Small | end-to-end vs headline | cord-v2 · eval | grandTotal | 0.790 | 0.775 | −0.015 |
+| Small | end-to-end vs headline | cord-v2 · eval | subtotal | 0.822 | 0.804 | −0.019 |
 | Small | end-to-end vs headline | cord-v2 · eval | serviceCharge | 0.727 | 0.727 | +0.000 |
 | Small | end-to-end vs headline | cord-v2 · eval | discount | 0.600 | 0.545 | −0.055 |
-| Small | end-to-end vs headline | cord-v2 · eval | taxTotal | 0.610 | 0.526 | −0.084 |
-| Small | end-to-end vs headline | cord-v2 · eval | item.name | 0.277 | 0.251 | −0.025 |
-| Small | end-to-end vs headline | cord-v2 · eval | item.qty | 0.267 | 0.284 | +0.016 |
-| Small | end-to-end vs headline | cord-v2 · eval | item.unitPrice | 0.058 | 0.046 | −0.011 |
-| Small | end-to-end vs headline | cord-v2 · eval | item.lineTotal | 0.531 | 0.490 | −0.040 |
+| Small | end-to-end vs headline | cord-v2 · eval | taxTotal | 0.576 | 0.526 | −0.050 |
+| Small | end-to-end vs headline | cord-v2 · eval | item.name | 0.274 | 0.251 | −0.022 |
+| Small | end-to-end vs headline | cord-v2 · eval | item.qty | 0.263 | 0.284 | +0.020 |
+| Small | end-to-end vs headline | cord-v2 · eval | item.unitPrice | 0.056 | 0.046 | −0.010 |
+| Small | end-to-end vs headline | cord-v2 · eval | item.lineTotal | 0.525 | 0.490 | −0.035 |
 | Small | end-to-end vs headline | sroie · eval | grandTotal | 0.662 | 0.666 | +0.004 |
 
 Model provenance of the end-to-end rows:

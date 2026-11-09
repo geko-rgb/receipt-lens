@@ -78,30 +78,30 @@
         "rate": 0
       },
       "macro": {
-        "precision": 0.5757423259929526,
-        "recall": 0.510278644881874,
-        "f1": 0.5228583936469504,
+        "precision": 0.5655556025019287,
+        "recall": 0.50451619745276,
+        "f1": 0.5149070543780083,
         "fields": 9,
         "listed": 9
       },
       "items": {
         "gold": 270,
-        "predicted": 294,
+        "predicted": 300,
         "matchedPairs": 150,
         "unmatchedGold": 120,
-        "unmatchedPredicted": 144,
+        "unmatchedPredicted": 150,
         "tau": 0.7
       },
       "fields": [
         {
           "field": "grandTotal",
           "tier": "scalar",
-          "tp": 63,
-          "fp": 3,
-          "fn": 28,
-          "precision": 0.9545454545454546,
-          "recall": 0.6923076923076923,
-          "f1": 0.8025477707006369,
+          "tp": 62,
+          "fp": 4,
+          "fn": 29,
+          "precision": 0.9393939393939394,
+          "recall": 0.6813186813186813,
+          "f1": 0.7898089171974523,
           "absentAgreements": 7,
           "unannotatedGoldCells": 0,
           "goldCells": 91
@@ -109,12 +109,12 @@
         {
           "field": "subtotal",
           "tier": "scalar",
-          "tp": 45,
+          "tp": 44,
           "fp": 0,
-          "fn": 18,
+          "fn": 19,
           "precision": 1,
-          "recall": 0.7142857142857143,
-          "f1": 0.8333333333333333,
+          "recall": 0.6984126984126984,
+          "f1": 0.822429906542056,
           "absentAgreements": 37,
           "unannotatedGoldCells": 0,
           "goldCells": 63
@@ -148,12 +148,12 @@
         {
           "field": "taxTotal",
           "tier": "scalar",
-          "tp": 18,
-          "fp": 1,
-          "fn": 22,
-          "precision": 0.9473684210526315,
-          "recall": 0.45,
-          "f1": 0.6101694915254237,
+          "tp": 17,
+          "fp": 2,
+          "fn": 23,
+          "precision": 0.8947368421052632,
+          "recall": 0.425,
+          "f1": 0.576271186440678,
           "absentAgreements": 59,
           "unannotatedGoldCells": 0,
           "goldCells": 40
@@ -162,11 +162,11 @@
           "field": "item.name",
           "tier": "item",
           "tp": 78,
-          "fp": 216,
+          "fp": 222,
           "fn": 192,
-          "precision": 0.2653061224489796,
+          "precision": 0.26,
           "recall": 0.28888888888888886,
-          "f1": 0.2765957446808511,
+          "f1": 0.27368421052631575,
           "absentAgreements": 0,
           "unannotatedGoldCells": 0,
           "goldCells": 270
@@ -175,11 +175,11 @@
           "field": "item.qty",
           "tier": "item",
           "tp": 52,
-          "fp": 144,
+          "fp": 150,
           "fn": 141,
-          "precision": 0.2653061224489796,
+          "precision": 0.25742574257425743,
           "recall": 0.2694300518134715,
-          "f1": 0.2673521850899743,
+          "f1": 0.2632911392405063,
           "absentAgreements": 1,
           "unannotatedGoldCells": 77,
           "goldCells": 193
@@ -188,11 +188,11 @@
           "field": "item.unitPrice",
           "tier": "item",
           "tp": 7,
-          "fp": 173,
+          "fp": 178,
           "fn": 56,
-          "precision": 0.03888888888888889,
+          "precision": 0.03783783783783784,
           "recall": 0.1111111111111111,
-          "f1": 0.05761316872427983,
+          "f1": 0.05645161290322581,
           "absentAgreements": 75,
           "unannotatedGoldCells": 207,
           "goldCells": 63
@@ -201,11 +201,11 @@
           "field": "item.lineTotal",
           "tier": "item",
           "tp": 142,
-          "fp": 152,
+          "fp": 158,
           "fn": 99,
-          "precision": 0.48299319727891155,
+          "precision": 0.47333333333333333,
           "recall": 0.5892116182572614,
-          "f1": 0.530841121495327,
+          "f1": 0.5249537892791128,
           "absentAgreements": 0,
           "unannotatedGoldCells": 29,
           "goldCells": 241
@@ -231,7 +231,7 @@
         {
           "matcher": "matchItems(τ=0.7, money_gate=off)",
           "moneyGate": false,
-          "pairs": 161,
+          "pairs": 166,
           "unitPrice": {
             "goldAnnotated": 11,
             "exact": 7,
@@ -239,27 +239,27 @@
             "wrong": 3
           },
           "lineTotal": {
-            "bothPresent": 153,
+            "bothPresent": 158,
             "agree": 145,
-            "disagree": 8
+            "disagree": 13
           }
         }
       ],
       "provenance": {
-        "items": 294,
+        "items": 300,
         "priceSource": {
-          "detected": 180,
+          "detected": 185,
           "assumed": 0,
-          "unresolved": 114,
+          "unresolved": 115,
           "user_confirmed": 0
         },
         "quantitySource": {
-          "explicit": 84,
+          "explicit": 90,
           "assumed": 112,
           "unresolved": 98,
           "user_confirmed": 0
         },
-        "detectedDirect": 68,
+        "detectedDirect": 73,
         "detectedDerivative": 112
       },
       "confidence": {
@@ -267,16 +267,16 @@
         "scoredLines": 0,
         "words": 2356,
         "scoredWords": 0,
-        "items": 294,
+        "items": 300,
         "scoredItems": 0,
         "wordScores": null,
         "itemsCappedByCritical": 0
       },
       "findings": {
-        "total": 650,
-        "critical": 55,
+        "total": 648,
+        "critical": 54,
         "advisory": 0,
-        "receiptsWithCritical": 42,
+        "receiptsWithCritical": 41,
         "byCode": {
           "ambiguous_row": 162,
           "qty_assumed": 112,
@@ -284,18 +284,18 @@
           "arithmetic_total": 15,
           "invalid_result_schema": 1,
           "qty_unresolved": 98,
-          "price_not_resolved": 114,
-          "arithmetic_item_sum": 28,
+          "price_not_resolved": 115,
+          "arithmetic_item_sum": 27,
           "zero_items": 11,
           "items_may_be_missing": 2,
           "name_length_outlier": 3,
           "unclassified_charge": 1,
-          "ambiguous_price_separator": 3
+          "ambiguous_price_separator": 1
         },
         "byCriticalCode": {
           "arithmetic_total": 15,
           "invalid_result_schema": 1,
-          "arithmetic_item_sum": 28,
+          "arithmetic_item_sum": 27,
           "zero_items": 11
         }
       },
@@ -1158,11 +1158,11 @@
         {
           "id": "cord-v2/eval/85",
           "goldItems": 11,
-          "predictedItems": 6,
+          "predictedItems": 12,
           "pairs": 0,
           "strict": 0,
-          "grandTotal": "exact",
-          "criticals": 1,
+          "grandTotal": "wrong",
+          "criticals": 0,
           "zeroItems": 0
         },
         {
@@ -1403,59 +1403,61 @@
         }
       ],
       "provenance": {
-        "items": 708,
+        "items": 837,
         "priceSource": {
-          "detected": 461,
+          "detected": 613,
           "assumed": 0,
-          "unresolved": 247,
+          "unresolved": 224,
           "user_confirmed": 0
         },
         "quantitySource": {
-          "explicit": 191,
-          "assumed": 389,
-          "unresolved": 128,
+          "explicit": 276,
+          "assumed": 387,
+          "unresolved": 174,
           "user_confirmed": 0
         },
-        "detectedDirect": 74,
-        "detectedDerivative": 387
+        "detectedDirect": 227,
+        "detectedDerivative": 386
       },
       "confidence": {
         "lines": 10495,
         "scoredLines": 0,
         "words": 19386,
         "scoredWords": 0,
-        "items": 708,
+        "items": 837,
         "scoredItems": 0,
         "wordScores": null,
         "itemsCappedByCritical": 0
       },
       "findings": {
-        "total": 2958,
-        "critical": 139,
+        "total": 2801,
+        "critical": 131,
         "advisory": 0,
-        "receiptsWithCritical": 119,
+        "receiptsWithCritical": 111,
         "byCode": {
-          "ambiguous_row": 1636,
-          "qty_assumed": 389,
+          "ambiguous_row": 1356,
+          "qty_assumed": 387,
           "confidence_unavailable": 361,
-          "qty_unresolved": 128,
-          "price_not_resolved": 246,
-          "arithmetic_item_sum": 23,
+          "qty_unresolved": 174,
+          "price_not_resolved": 224,
+          "arithmetic_item_sum": 22,
           "arithmetic_total": 37,
-          "zero_items": 74,
-          "unclassified_charge": 19,
-          "items_may_be_missing": 27,
-          "item_without_price": 1,
-          "name_length_outlier": 10,
+          "zero_items": 68,
+          "unclassified_charge": 18,
+          "items_may_be_missing": 29,
+          "row_arithmetic_mismatch": 30,
+          "name_length_outlier": 9,
+          "row_qty_missing": 58,
+          "row_total_missing": 20,
           "round_off_adjusted": 2,
+          "row_rate_missing": 1,
           "invalid_result_schema": 4,
           "ambiguous_price_separator": 1
         },
         "byCriticalCode": {
-          "arithmetic_item_sum": 23,
+          "arithmetic_item_sum": 22,
           "arithmetic_total": 37,
-          "zero_items": 74,
-          "item_without_price": 1,
+          "zero_items": 68,
           "invalid_result_schema": 4
         }
       },
@@ -1478,7 +1480,7 @@
         {
           "id": "sroie/eval/1",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -1658,11 +1660,11 @@
         {
           "id": "sroie/eval/19",
           "goldItems": 0,
-          "predictedItems": 3,
+          "predictedItems": 8,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
-          "criticals": 1,
+          "criticals": 0,
           "zeroItems": 0
         },
         {
@@ -2098,7 +2100,7 @@
         {
           "id": "sroie/eval/63",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2108,7 +2110,7 @@
         {
           "id": "sroie/eval/64",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2128,7 +2130,7 @@
         {
           "id": "sroie/eval/66",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2138,7 +2140,7 @@
         {
           "id": "sroie/eval/67",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2148,7 +2150,7 @@
         {
           "id": "sroie/eval/68",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2158,7 +2160,7 @@
         {
           "id": "sroie/eval/69",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2168,7 +2170,7 @@
         {
           "id": "sroie/eval/70",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2178,7 +2180,7 @@
         {
           "id": "sroie/eval/71",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2188,7 +2190,7 @@
         {
           "id": "sroie/eval/72",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2198,7 +2200,7 @@
         {
           "id": "sroie/eval/73",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2208,7 +2210,7 @@
         {
           "id": "sroie/eval/74",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2288,7 +2290,7 @@
         {
           "id": "sroie/eval/82",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 5,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2298,7 +2300,7 @@
         {
           "id": "sroie/eval/83",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 5,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2308,7 +2310,7 @@
         {
           "id": "sroie/eval/84",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2318,7 +2320,7 @@
         {
           "id": "sroie/eval/85",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2328,7 +2330,7 @@
         {
           "id": "sroie/eval/86",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2388,7 +2390,7 @@
         {
           "id": "sroie/eval/92",
           "goldItems": 0,
-          "predictedItems": 2,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2468,7 +2470,7 @@
         {
           "id": "sroie/eval/100",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2488,7 +2490,7 @@
         {
           "id": "sroie/eval/102",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2498,7 +2500,7 @@
         {
           "id": "sroie/eval/103",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2508,7 +2510,7 @@
         {
           "id": "sroie/eval/104",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2518,7 +2520,7 @@
         {
           "id": "sroie/eval/105",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2528,7 +2530,7 @@
         {
           "id": "sroie/eval/106",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2538,7 +2540,7 @@
         {
           "id": "sroie/eval/107",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2548,7 +2550,7 @@
         {
           "id": "sroie/eval/108",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -2628,7 +2630,7 @@
         {
           "id": "sroie/eval/116",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2688,11 +2690,11 @@
         {
           "id": "sroie/eval/122",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
-          "criticals": 2,
+          "criticals": 1,
           "zeroItems": 0
         },
         {
@@ -2768,7 +2770,7 @@
         {
           "id": "sroie/eval/130",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -2828,17 +2830,17 @@
         {
           "id": "sroie/eval/136",
           "goldItems": 0,
-          "predictedItems": 0,
+          "predictedItems": 1,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
-          "criticals": 1,
-          "zeroItems": 1
+          "criticals": 0,
+          "zeroItems": 0
         },
         {
           "id": "sroie/eval/137",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -3008,7 +3010,7 @@
         {
           "id": "sroie/eval/154",
           "goldItems": 0,
-          "predictedItems": 4,
+          "predictedItems": 7,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -3018,11 +3020,11 @@
         {
           "id": "sroie/eval/155",
           "goldItems": 0,
-          "predictedItems": 3,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
-          "criticals": 1,
+          "criticals": 0,
           "zeroItems": 0
         },
         {
@@ -3158,7 +3160,7 @@
         {
           "id": "sroie/eval/169",
           "goldItems": 0,
-          "predictedItems": 3,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -3238,7 +3240,7 @@
         {
           "id": "sroie/eval/177",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -3538,7 +3540,7 @@
         {
           "id": "sroie/eval/207",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -3868,7 +3870,7 @@
         {
           "id": "sroie/eval/240",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "absent",
@@ -3878,7 +3880,7 @@
         {
           "id": "sroie/eval/241",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 6,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "absent",
@@ -3918,12 +3920,12 @@
         {
           "id": "sroie/eval/245",
           "goldItems": 0,
-          "predictedItems": 0,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "absent",
-          "criticals": 1,
-          "zeroItems": 1
+          "criticals": 0,
+          "zeroItems": 0
         },
         {
           "id": "sroie/eval/246",
@@ -3988,12 +3990,12 @@
         {
           "id": "sroie/eval/252",
           "goldItems": 0,
-          "predictedItems": 0,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "absent",
-          "criticals": 1,
-          "zeroItems": 1
+          "criticals": 0,
+          "zeroItems": 0
         },
         {
           "id": "sroie/eval/253",
@@ -4178,11 +4180,11 @@
         {
           "id": "sroie/eval/271",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
-          "criticals": 1,
+          "criticals": 2,
           "zeroItems": 0
         },
         {
@@ -4208,7 +4210,7 @@
         {
           "id": "sroie/eval/274",
           "goldItems": 0,
-          "predictedItems": 3,
+          "predictedItems": 5,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "absent",
@@ -4258,12 +4260,12 @@
         {
           "id": "sroie/eval/279",
           "goldItems": 0,
-          "predictedItems": 0,
+          "predictedItems": 11,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "absent",
-          "criticals": 1,
-          "zeroItems": 1
+          "criticals": 0,
+          "zeroItems": 0
         },
         {
           "id": "sroie/eval/280",
@@ -4328,12 +4330,12 @@
         {
           "id": "sroie/eval/286",
           "goldItems": 0,
-          "predictedItems": 0,
+          "predictedItems": 1,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
-          "criticals": 1,
-          "zeroItems": 1
+          "criticals": 0,
+          "zeroItems": 0
         },
         {
           "id": "sroie/eval/287",
@@ -4628,7 +4630,7 @@
         {
           "id": "sroie/eval/316",
           "goldItems": 0,
-          "predictedItems": 6,
+          "predictedItems": 7,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -4648,7 +4650,7 @@
         {
           "id": "sroie/eval/318",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 7,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -4908,7 +4910,7 @@
         {
           "id": "sroie/eval/344",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 5,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -4918,7 +4920,7 @@
         {
           "id": "sroie/eval/345",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -4928,7 +4930,7 @@
         {
           "id": "sroie/eval/346",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -4938,7 +4940,7 @@
         {
           "id": "sroie/eval/347",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -4948,7 +4950,7 @@
         {
           "id": "sroie/eval/348",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 0,
           "grandTotal": "wrong",
@@ -4978,7 +4980,7 @@
         {
           "id": "sroie/eval/351",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 4,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -4988,7 +4990,7 @@
         {
           "id": "sroie/eval/352",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 5,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
@@ -4998,17 +5000,17 @@
         {
           "id": "sroie/eval/353",
           "goldItems": 0,
-          "predictedItems": 0,
+          "predictedItems": 2,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
-          "criticals": 1,
-          "zeroItems": 1
+          "criticals": 0,
+          "zeroItems": 0
         },
         {
           "id": "sroie/eval/354",
           "goldItems": 0,
-          "predictedItems": 1,
+          "predictedItems": 3,
           "pairs": 0,
           "strict": 1,
           "grandTotal": "exact",
