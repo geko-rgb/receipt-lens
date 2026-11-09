@@ -2,6 +2,7 @@ import type { ValidationFinding, ValidationScope, ValidationSeverity } from "@re
 import { compare, fromPaise } from "./exact-money.js";
 import { checkDraftChargeFinalizable, checkDraftItemFinalizable } from "./bill/finalize.js";
 import { ROUND_OFF_MAX_PAISE, ROUND_OFF_TOLERANCE_PAISE, recomputeDerived, unacknowledgedUnits } from "./bill/totals.js";
+import { acknowledgedRowIds } from "./bill/acknowledge.js";
 import type {
   AssignmentBlocker,
   BillFindingCode,
@@ -198,8 +199,12 @@ export function validateWorkingBill(workingBill: WorkingBill): BillValidationRes
   }
   // DECISIONS/0022 L1: an excluded row is reviewed-by-exclusion, so it no longer blocks.
   const excludedRowIds = new Set(workingBill.excludedRowIds);
+  // Ticket 23: a row a human has acknowledged is reviewed too — but only while it carries no amount, which is the
+  // rule `acknowledge.ts` applies to every reader, and the reason this set is read from there rather than rebuilt.
+  const acknowledged = acknowledgedRowIds(workingBill);
   const unreviewedRowRefs = workingBill.unclassifiedRows
     .filter((row) => !excludedRowIds.has(row.id))
+    .filter((row) => !acknowledged.has(row.id))
     .filter((row) => !row.sourceLineIds.some((lineId) => claimedLineIds.has(lineId)))
     .map((row) => row.id);
 

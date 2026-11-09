@@ -9,6 +9,7 @@ import {
   toFinalizedItem,
 } from "./finalize.js";
 import { createWorkingBill, type NewBillOptions } from "./mapping.js";
+import { acknowledgedRowIds, rowCarriesAnAmount } from "./acknowledge.js";
 import { recompute, type RecomputeResult } from "./totals.js";
 import {
   assignPair,
@@ -19,6 +20,7 @@ import {
   type QuantityAllocation,
 } from "./units.js";
 import type {
+  AcknowledgedRow,
   BillCharge,
   BillValidationResult,
   ChargeType,
@@ -72,7 +74,10 @@ export type TransactionRejectCode =
   // Owner request (`next.md` Phase 4): quantity allocation's own conditions, each with a different remedy.
   | "over_allocated"
   | "shared_units_present"
-  | "item_not_finalized";
+  | "item_not_finalized"
+  // Ticket 23: a preserved row that carries an amount is arithmetic the creator has not resolved, and a
+  // human may not wave it through. The row keeps blocking; the acknowledgement is not recorded.
+  | "row_carries_amount";
 
 export interface TransactionReject {
   code: TransactionRejectCode;
@@ -255,7 +260,7 @@ export function rebuildDocument(
   steps: Partial<TransactionSteps> = {},
 ): BillDocument {
   const s: TransactionSteps = { ...defaultSteps, ...steps };
-  const recomputed = s.recompute(working);
+  const recomputed = s.recompute(normalizeWorking(working));
   const fresh: WorkingBill = {
     ...recomputed.working,
     parseValidation: s.validateParse(recomputed.working.parseResult),
@@ -984,6 +989,114 @@ export function setUnclassifiedRowExcluded(
       excludedRowIds: working.unclassifiedRows.filter((row) => chosen.has(row.id)).map((row) => row.id),
     });
   });
+}
+
+/**
+ * Ticket 23 (DECISIONS/0022 L1 beside it). Acknowledges rows a human has read, in bulk or singly — the record is
+ * `AcknowledgedRow` evidence, never a classification, and it moves no arithmetic.
+ *
+ * Refusals are whole-operation, not partial: an unknown id, or a row that carries an amount, means nothing in the
+ * request was recorded. That is what makes "acknowledge all" honest — it either covers the rows it named or it says
+ * why not, and the caller can show the same rows still blocking.
+ *
+ * `now` arrives from the caller (0011's determinism rule, as `lockBill`'s `now` and `unlockBill`'s do). An empty
+ * request is accepted and changes nothing, so the bulk control is safe to click when there is nothing to do.
+ */
+export function acknowledgeRows(
+  document: BillDocument,
+  rowIds: readonly string[],
+  options: { readonly now: string },
+): TransactionResult {
+  return runTransaction(document, (working) => {
+    const wanted = new Set(rowIds);
+    const missing = [...wanted].filter((rowId) => !working.unclassifiedRows.some((row) => row.id === rowId));
+    if (missing.length > 0) {
+      return rejection("unknown_entity", missing, "no ambiguous row in this bill has that id");
+    }
+    // The refusal edge. A row that prints money is arithmetic the creator has not resolved; acknowledging it would
+    // be the silent wave-through this ticket exists to prevent, so the whole request is refused and names the rows.
+    const withAmount = working.unclassifiedRows.filter(
+      (row) => wanted.has(row.id) && rowCarriesAnAmount(row.text),
+    );
+    if (withAmount.length > 0) {
+      return rejection(
+        "row_carries_amount",
+        withAmount.map((row) => row.id),
+        "a preserved row that carries an amount must be resolved in the bill, not acknowledged",
+      );
+    }
+    if (wanted.size === 0) return wrap(working);
+    const already = new Set((working.acknowledgedRows ?? []).map((entry) => entry.rowId));
+    const additions = working.unclassifiedRows
+      .filter((row) => wanted.has(row.id) && !already.has(row.id))
+      .map((row) => ({ rowId: row.id, text: row.text, acknowledgedAt: options.now }));
+    if (additions.length === 0) return wrap(working);
+    return wrap({
+      ...working,
+      acknowledgedRows: orderedByRow(working, [...(working.acknowledgedRows ?? []), ...additions]),
+    });
+  });
+}
+
+/**
+ * Ticket 23's undo half, the mirror of `setUnclassifiedRowExcluded`: one operation for both directions, so a mistaken
+ * acknowledgement is fixable and an undo/redo round trip is two calls rather than a history stack (DECISIONS/0019
+ * keeps undo/redo out of v1; the *inverse* of every review act exists, which is what the round trip needs).
+ *
+ * Revoking removes the record rather than voiding it: the human's decision is withdrawn, so there is nothing to keep.
+ * A *voided* record (the row now carries an amount) is left alone by this call — it is history, and the row is
+ * already blocking again.
+ */
+export function setUnclassifiedRowAcknowledged(
+  document: BillDocument,
+  rowId: string,
+  acknowledged: boolean,
+  options: { readonly now: string },
+): TransactionResult {
+  return runTransaction(document, (working) => {
+    const row = working.unclassifiedRows.find((entry) => entry.id === rowId);
+    if (!row) return rejection("unknown_entity", [rowId], "no ambiguous row in this bill has that id");
+    if (!acknowledged) {
+      const remaining = (working.acknowledgedRows ?? []).filter((entry) => entry.rowId !== rowId);
+      return wrap({ ...working, acknowledgedRows: remaining });
+    }
+    if (rowCarriesAnAmount(row.text)) {
+      return rejection(
+        "row_carries_amount",
+        [rowId],
+        "a preserved row that carries an amount must be resolved in the bill, not acknowledged",
+      );
+    }
+    if (acknowledgedRowIds(working).has(rowId)) return wrap(working);
+    return wrap({
+      ...working,
+      acknowledgedRows: orderedByRow(working, [
+        ...(working.acknowledgedRows ?? []),
+        { rowId: row.id, text: row.text, acknowledgedAt: options.now },
+      ]),
+    });
+  });
+}
+
+/**
+ * Ticket 23's records in the bill's own row order, for the same reason `excludedRowIds` is kept in row order
+ * (0011): the persisted set is a function of the document, not of click order, so an acknowledge → undo → redo
+ * round trip lands on byte-identical state and a reload of the same bill prints the same list.
+ */
+function orderedByRow(working: WorkingBill, entries: readonly AcknowledgedRow[]): AcknowledgedRow[] {
+  const order = new Map(working.unclassifiedRows.map((row, index) => [row.id, index]));
+  return [...entries].sort((left, right) => (order.get(left.rowId) ?? 0) - (order.get(right.rowId) ?? 0));
+}
+
+/**
+ * Decides nothing; restores the shape a stored record written before ticket 23 cannot have. The field is additive
+ * inside the one `working` record `DECISIONS/0023` P1 stores, so no store, key or index changed and the database
+ * version stays 1 — an older record simply has no `acknowledgedRows`, and this is the single point where that is
+ * turned into the empty list the rest of the app is allowed to assume (`rebuildDocument` is the load path, 0023 P1).
+ */
+function normalizeWorking(working: WorkingBill): WorkingBill {
+  if (Array.isArray(working.acknowledgedRows)) return working;
+  return { ...working, acknowledgedRows: [] };
 }
 
 /**

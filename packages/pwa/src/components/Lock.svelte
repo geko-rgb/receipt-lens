@@ -10,12 +10,20 @@
   import { billStore } from "../lib/bill/bill-document.svelte.js";
   import { lifecycleOf } from "../lib/bill/lifecycle.js";
   import {
+    acknowledgeRows,
     finalizeAllResolvable,
     lockBill,
+    setUnclassifiedRowAcknowledged,
     setUnclassifiedRowExcluded,
     unlockBill,
     type TransactionResult,
   } from "../lib/bill/transactions.js";
+  import {
+    acknowledgeableRows,
+    effectiveAcknowledgements,
+    recordOf,
+    rowCarriesAnAmount,
+  } from "../lib/bill/acknowledge.js";
   import type { BillDocument } from "../lib/bill/document.js";
   import type { LockBlocker } from "../lib/bill/working-bill.js";
 
@@ -27,6 +35,10 @@
   const blockers = $derived(bill.billValidation.blockers.locking);
   const lifecycle = $derived(lifecycleOf(bill));
   const excluded = $derived(new Set(working.excludedRowIds));
+  // Ticket 23. Two sets, not one: `acknowledged` is what is *in force* (a row that has since started carrying an
+  // amount is voided and blocks again), and `pending` is what the bulk action would record right now.
+  const acknowledged = $derived(new Set(effectiveAcknowledgements(working).map((entry) => entry.row.id)));
+  const pending = $derived(acknowledgeableRows(working));
 
   function apply(result: TransactionResult): void {
     billStore.publish(result);
@@ -39,6 +51,22 @@
 
   function lock(): void {
     apply(lockBill(bill, { mintToken }));
+  }
+
+  /**
+   * Ticket 23: one click acknowledges every preserved row a human may acknowledge. The rows are the same ones the
+   * per-row control would offer — a row carrying an amount is not in the list, so this can never wave arithmetic
+   * through (the transaction refuses it too, which is why the refusal is not a UI-only rule).
+   */
+  function acknowledgeAll(): void {
+    if (pending.length === 0) return;
+    apply(
+      acknowledgeRows(
+        bill,
+        pending.map((row) => row.id),
+        { now: new Date().toISOString() },
+      ),
+    );
   }
 
   function unlock(): void {
@@ -80,6 +108,35 @@
             {#if excluded.has(row.id)}
               <span class="badge badge-ok" data-testid="row-excluded">excluded</span>
             {/if}
+            {#if acknowledged.has(row.id)}
+              <span class="badge badge-ok" data-testid="row-acknowledged">
+                acknowledged{recordOf(working, row.id)?.acknowledgedAt
+                  ? ` at ${recordOf(working, row.id)!.acknowledgedAt}`
+                  : ""}
+              </span>
+            {:else if rowCarriesAnAmount(row.text)}
+              <!-- The refusal edge, stated on the row: a row that prints money must be resolved in the bill. -->
+              <span class="badge badge-warn" data-testid="row-carries-amount">carries an amount</span>
+            {/if}
+            <label class="inline">
+              <input
+                type="checkbox"
+                data-testid="acknowledge-row"
+                data-row-id={row.id}
+                checked={acknowledged.has(row.id)}
+                disabled={rowCarriesAnAmount(row.text)}
+                onchange={(event) =>
+                  apply(
+                    setUnclassifiedRowAcknowledged(
+                      bill,
+                      row.id,
+                      (event.currentTarget as HTMLInputElement).checked,
+                      { now: new Date().toISOString() },
+                    ),
+                  )}
+              />
+              I read this row and accept it
+            </label>
             <label class="inline">
               <input
                 type="checkbox"
@@ -100,6 +157,19 @@
           </li>
         {/each}
       </ul>
+      <button
+        type="button"
+        data-testid="acknowledge-all-rows"
+        disabled={pending.length === 0}
+        onclick={acknowledgeAll}
+      >
+        Acknowledge {pending.length} row{pending.length === 1 ? "" : "s"} I have read
+      </button>
+      <p class="hint" data-testid="acknowledge-hint">
+        Acknowledging is a human decision, not a parser class: it records that you read the row and accept it as
+        it is. It excludes nothing from the bill's arithmetic and it is reversible until the bill locks. A row
+        that carries an amount cannot be acknowledged — resolve it in the bill instead.
+      </p>
     </div>
   {/if}
 
@@ -113,6 +183,25 @@
         <li data-testid="blocker">{blockerText(blocker)}</li>
       {/each}
     </ul>
+  {/if}
+  {#if effectiveAcknowledgements(working).length > 0}
+    <!-- Ticket 23: transparency at lock time, not deletion. An acknowledged row no longer blocks, but it is still
+         named here — with the moment a human accepted it — so locking cannot hide what the bill could not read. -->
+    <div data-testid="acknowledged-rows-summary">
+      <h3>Rows you acknowledged</h3>
+      <p class="hint">
+        These rows are on the bill, unchanged and outside its arithmetic. You told the bill you read them; it did
+        not decide that for you.
+      </p>
+      <ul>
+        {#each effectiveAcknowledgements(working) as entry (entry.row.id)}
+          <li data-testid="acknowledged-summary-row" data-row-id={entry.row.id}>
+            <span class="row-text">{entry.row.text}</span>
+            <span class="hint">user-acknowledged at {entry.acknowledgedAt}</span>
+          </li>
+        {/each}
+      </ul>
+    </div>
   {/if}
   {#if bill.derived.sharesUnavailableFor !== null}
     <p class="hint" data-testid="shares-unavailable">
@@ -192,6 +281,11 @@
   .badge-ok {
     background: #d1e7dd;
     color: #0f5132;
+  }
+
+  .badge-warn {
+    background: #fff3cd;
+    color: #664d03;
   }
 
   .hint {

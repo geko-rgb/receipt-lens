@@ -1,4 +1,5 @@
 import { deepFreeze, type BillDocument } from "../bill/document.js";
+import { effectiveAcknowledgements } from "../bill/acknowledge.js";
 import { isIntegerPaise, type FinalPriceSource, type FinalQuantitySource, type ValueSource } from "../bill/working-bill.js";
 import { compare } from "../exact-money.js";
 import type {
@@ -133,6 +134,7 @@ export function assembleSnapshot(
     ...(charge.otherSign === "add" || charge.otherSign === "subtract" ? { otherSign: charge.otherSign } : {}),
   })) satisfies readonly SnapshotCharge[];
 
+  const acknowledged = effectiveAcknowledgements(working);
   const adjustmentLines = bill.adjustmentLines.map((line) => ({
     reason: line.reason,
     amount: line.amount,
@@ -171,6 +173,13 @@ export function assembleSnapshot(
     charges,
     adjustmentLines,
     computedShares,
+    // Ticket 23: what the owner acknowledged travels with the bill. A snapshot is the recipient's whole view, so
+    // omitting these rows would let a shared bill look more understood than it is — the owner's admission is part of
+    // the reading of the page, exactly as it is on the creator's screen. Text and moment only: the row ids are
+    // internal addressing (0026 A3), and no amount is carried because an acknowledged row has none.
+    ...(acknowledged.length > 0
+      ? { acknowledgedRows: acknowledged.map((entry) => ({ text: entry.row.text, acknowledgedAt: entry.acknowledgedAt })) }
+      : {}),
   });
 }
 

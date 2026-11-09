@@ -1233,6 +1233,17 @@ describe("DECISIONS/0023 P9 — the fixture is the before state", () => {
     const { parseValidation: rebuiltValidation, ...rebuiltRest } = rebuilt.working;
     expect(storedValidation).toBeNull();
     expect(rebuiltRest).toEqual(storedRest);
+    // Ticket 23's field is additive inside the one `working` record P1 stores, so no store, key or index moved and
+    // the database version stays 1. A record written by a build from before it existed is exactly the committed
+    // bytes minus that one field — deleting it here reproduces the earlier save path rather than inventing a
+    // version — and the load path supplies the empty list instead of dropping the bill or guessing an
+    // acknowledgement. This is the whole migration for the field, and there is nothing else to migrate.
+    const current = stored!.working;
+    const legacy = { ...current } as Record<string, unknown>;
+    delete legacy.acknowledgedRows;
+    const rebuiltLegacy = rebuildDocument(legacy as unknown as typeof current, stored!.revision);
+    expect(rebuiltLegacy.working.acknowledgedRows).toEqual([]);
+    expect(rebuiltLegacy.billValidation.blockers.locking).toEqual(rebuilt.billValidation.blockers.locking);
     expect(rebuiltValidation).toEqual(validate(rebuilt.working.parseResult!));
     expect(rebuilt.revision).toBe(original!.revision);
   });

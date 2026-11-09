@@ -249,6 +249,24 @@
           </ul>
         {/if}
 
+        {#if (snapshot.acknowledgedRows ?? []).length > 0}
+          <!-- Ticket 23: a shared bill does not hide what its owner admitted. These are rows the receipt printed
+               that no rule could read; the creator read them and accepted them as-is, and they carry no amount. -->
+          <h3>Rows the creator acknowledged</h3>
+          <p class="hint" data-testid="share-acknowledged-note">
+            These lines could not be read as items, charges or metadata. The creator read them and accepted them
+            as they are; they are not part of the amounts above.
+          </p>
+          <ul>
+            {#each snapshot.acknowledgedRows ?? [] as row, index (index)}
+              <li data-testid="share-acknowledged-row">
+                {row.text}
+                <span class="hint">user-acknowledged at {row.acknowledgedAt}</span>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+
         <p class="hint" data-testid="share-total">
           Printed total: {formatPaise(snapshot.bill.grandTotal)} · tax-inclusion summary:
           {snapshot.bill.taxIncluded === null

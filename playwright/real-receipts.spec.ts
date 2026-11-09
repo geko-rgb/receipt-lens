@@ -106,6 +106,55 @@ test("the Saravana Bhavan photograph reads as four products totalling ₹474.00"
   // So the lock reports them: the four products are ready and the review list is the creator's to dismiss.
   await expect(page.getByTestId("no-blockers")).toHaveCount(0);
   await expect(page.getByTestId("blockers-list")).toBeVisible();
+  await expect(page.getByTestId("blockers-list")).toContainText("unclassified_rows_unreviewed");
+
+  // Ticket 23, on the bill the ticket names: one action acknowledges all five, the blocker disappears, and the lock
+  // is free — without a single row being discarded from the bill.
+  await expect(page.getByTestId("acknowledge-all-rows")).toContainText("Acknowledge 5 rows");
+  await page.getByTestId("acknowledge-all-rows").click();
+  await expect(page.getByTestId("row-acknowledged")).toHaveCount(5);
+  await expect(page.getByTestId("blockers-list")).toHaveCount(0);
+  await expect(page.getByTestId("no-blockers")).toBeVisible();
+  await expect(page.getByTestId("lock-button")).toBeEnabled();
+  // Transparency, not deletion: the rows are still on the bill, and the lock summary names each one as read by a
+  // human rather than parsed.
+  await expect(unclassified).toHaveCount(5);
+  await expect(page.getByTestId("acknowledged-summary-row")).toHaveCount(5);
+
+  // Undo is the inverse transaction, not a history stack (DECISIONS/0019): unchecking one row puts it back in the
+  // lock's way, re-checking clears it again, and the decision is the same one both times.
+  await page.getByTestId("acknowledge-row").nth(2).uncheck();
+  await expect(page.getByTestId("row-acknowledged")).toHaveCount(4);
+  await expect(page.getByTestId("blockers-list")).toBeVisible();
+  await page.getByTestId("acknowledge-row").nth(2).check();
+  await expect(page.getByTestId("row-acknowledged")).toHaveCount(5);
+  await expect(page.getByTestId("blockers-list")).toHaveCount(0);
+
+  // And the record is in the bill the app actually stored, with the rows' own text — not only in a component's state.
+  const stored = await page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open("receipt-lens");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const records = await new Promise<Array<{ working: { acknowledgedRows?: Array<{ text: string; acknowledgedAt: string }>; unclassifiedRows: Array<{ id: string; text: string }> } }>>(
+      (resolve, reject) => {
+        const request = database.transaction("bills").objectStore("bills").getAll();
+        request.onsuccess = () => resolve(request.result as never);
+        request.onerror = () => reject(request.error);
+      },
+    );
+    database.close();
+    return records.map((record) => ({
+      acknowledged: (record.working.acknowledgedRows ?? []).map((entry) => entry.text),
+      timestamps: (record.working.acknowledgedRows ?? []).map((entry) => entry.acknowledgedAt),
+      preserved: record.working.unclassifiedRows.map((row) => row.text),
+    }));
+  });
+  const latest = stored[stored.length - 1]!;
+  expect(latest.acknowledged).toHaveLength(5);
+  expect(latest.acknowledged.length).toBe(latest.preserved.length);
+  for (const timestamp of latest.timestamps) expect(Number.isNaN(Date.parse(timestamp))).toBe(false);
 });
 
 test("the KOT counter photograph reads one line at ₹75.00 and preserves three trailing marks", async ({ page }) => {
@@ -129,4 +178,16 @@ test("the KOT counter photograph reads one line at ₹75.00 and preserves three 
   const unclassified = page.getByTestId("unclassified-row");
   await expect(unclassified.first()).toBeVisible({ timeout: 30_000 });
   await expect(unclassified).toHaveCount(3);
+
+  // Ticket 23 on the second real bill: three marks, acknowledged in one action, and the lock stops reporting them.
+  // One blocker is unrelated and stays — this page prints no grand total — so the assertion is about the review
+  // blocker specifically, which is the one an acknowledgement is allowed to clear.
+  await expect(page.getByTestId("blockers-list")).toContainText("unclassified_rows_unreviewed");
+  await expect(page.getByTestId("acknowledge-all-rows")).toContainText("Acknowledge 3 rows");
+  await page.getByTestId("acknowledge-all-rows").click();
+  await expect(page.getByTestId("row-acknowledged")).toHaveCount(3);
+  await expect(page.getByTestId("acknowledged-summary-row")).toHaveCount(3);
+  await expect(unclassified).toHaveCount(3);
+  await expect(page.getByTestId("blockers-list")).not.toContainText("unclassified_rows_unreviewed");
+  await expect(page.getByTestId("blockers-list")).toContainText("grand_total_missing");
 });

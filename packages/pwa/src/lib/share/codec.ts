@@ -73,6 +73,15 @@ export interface BillShareSnapshot {
     readonly exactAmount: ExactMoney;
     readonly settlementSharePaise: number | null;
   }>;
+  /**
+   * Ticket 23: the preserved rows the creator acknowledged, with the moment they did — so a recipient sees what the
+   * owner admitted instead of a bill that silently looks fully understood. Optional because a link written before
+   * this field existed carries none, and that is a true statement about that snapshot, not a schema error.
+   */
+  readonly acknowledgedRows?: ReadonlyArray<{
+    readonly text: string;
+    readonly acknowledgedAt: string;
+  }>;
 }
 
 /** DECISIONS/0025 P5: the whole fragment after `#`, encoded, is capped at 8192 bytes. */
@@ -190,6 +199,8 @@ const TOP_LEVEL_KEYS = new Set([
   "charges",
   "adjustmentLines",
   "computedShares",
+  // Ticket 23: additive and optional, so a v1 snapshot from before it still validates (see `BillShareSnapshot`).
+  "acknowledgedRows",
 ]);
 
 function failSchema(reason: string): never {
@@ -289,6 +300,16 @@ function validateSnapshot(value: unknown): BillShareSnapshot {
     if (entry.reason !== "unassigned") failSchema(`adjustmentLines[${index}].reason must be unassigned`);
     requireInteger(entry.amount, `adjustmentLines[${index}].amount`);
     requireString(entry.assignedToParticipantId, `adjustmentLines[${index}].assignedToParticipantId`);
+  }
+
+  if (value.acknowledgedRows !== undefined) {
+    for (const [index, entry] of requireArray(value.acknowledgedRows, "acknowledgedRows").entries()) {
+      if (!isRecord(entry)) failSchema(`acknowledgedRows[${index}] must be an object`);
+      requireString(entry.text, `acknowledgedRows[${index}].text`);
+      if (Number.isNaN(Date.parse(requireString(entry.acknowledgedAt, `acknowledgedRows[${index}].acknowledgedAt`)))) {
+        failSchema(`acknowledgedRows[${index}].acknowledgedAt must be an ISO timestamp`);
+      }
+    }
   }
 
   for (const [index, entry] of requireArray(value.computedShares, "computedShares").entries()) {

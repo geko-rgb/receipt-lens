@@ -196,6 +196,8 @@ export function createWorkingBill(
     parseValidation,
     // DECISIONS/0022 L1/L6: review and share state start empty; only ticket 13's operations write them.
     excludedRowIds: [],
+    // Ticket 23: a fresh parse acknowledges nothing. No rule may seed this from the parse (see `acknowledge.ts`).
+    acknowledgedRows: [],
     staleLinkCutoffAt: null,
   };
 }

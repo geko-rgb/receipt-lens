@@ -178,6 +178,10 @@ const scenarios = [
       await upload(page);
       await page.getByTestId("draft-price").first().fill("7.25");
       await page.getByTestId("draft-price").first().dispatchEvent("change");
+      // Ticket 23's `acknowledgedRows` rides the same save path and shows up here as `[]`: this drawn receipt preserves
+      // no rows, and the template must not grow a control just to fill a field. A bill *with* acknowledgements is
+      // round-tripped through the same real path in `tests/persistence/pins.test.ts`, and the pre-ticket-23 record
+      // shape (the saved record minus that one additive field) is asserted there too.
       await waitFor(page, "save-status");
       await page.waitForSelector('[data-testid="save-status"][data-status="saved"]');
     },

@@ -129,6 +129,25 @@ export interface BillValidationResult {
   };
 }
 
+/**
+ * Ticket 23. One preserved row a human has read and accepted as-is: the row's own text and the moment of the
+ * decision, which is what makes it *review evidence* rather than a parser class.
+ *
+ * It is deliberately not a classification. `unclassifiedRows` stays exactly as `parse()` produced it, so the
+ * two are distinguishable in the stored bill, in an export and on screen, and no rule can derive one from the
+ * other — §5 rule 7 forbids the parser from discarding a row, and this field is the human's answer, not the
+ * parser's. It carries no arithmetic (an acknowledged row has no amount), so excluding and acknowledging a row
+ * are different acts that survive a reload as such.
+ */
+export interface AcknowledgedRow {
+  /** The `UnclassifiedRow.id` this decision is about. */
+  rowId: string;
+  /** The row's text as the human read it — the same evidence shape the parser uses. */
+  text: string;
+  /** ISO timestamp of the human decision, supplied by the caller (0011's determinism rule). */
+  acknowledgedAt: string;
+}
+
 /** §10 line 679: the whole mutable state — the unit of persistence and of validation. */
 export interface WorkingBill {
   bill: Bill;
@@ -147,6 +166,12 @@ export interface WorkingBill {
    * output — which is why it sits here rather than on `UnclassifiedRow`. §10 carries the authorized note.
    */
   excludedRowIds: string[];
+  /**
+   * Ticket 23: preserved rows the creator has read and acknowledged, in row order. Undoable while the bill is
+   * unlocked, voided (not deleted) when a row starts carrying an amount, and carried into a share snapshot so a
+   * recipient can see what the owner admitted (see `lib/bill/acknowledge.ts` for the validity rules).
+   */
+  acknowledgedRows: AcknowledgedRow[];
   /**
    * DECISIONS/0022 L6: ISO timestamp of the most recent unlock; null until the first one. A snapshot whose
    * `snapshotCreatedAt` precedes it came from an earlier lock of this bill.
