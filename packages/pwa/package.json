@@ -9,9 +9,11 @@
   },
   "scripts": {
     "build": "tsc -p . && vite build",
+    "predev": "node ../../scripts/ensure-core-built.mjs",
     "dev": "vite",
     "preview": "vite preview",
     "typecheck": "tsc -p . --noEmit && tsc -p tsconfig.test.json && svelte-check --tsconfig ./tsconfig.json",
+    "pretest": "node ../../scripts/ensure-core-built.mjs",
     "test": "vitest run"
   },
   "devDependencies": {

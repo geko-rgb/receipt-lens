@@ -9,8 +9,9 @@
   "scripts": {
     "typecheck": "pnpm -r typecheck && tsc -p .",
     "build": "pnpm -r build",
+    "verify:core-dist": "node scripts/ensure-core-built.mjs --check",
     "build:rig": "pnpm --filter @receipt-lens/pwa exec vite build --config vite.rig.config.ts",
-    "test": "pnpm -r test",
+    "test": "pnpm -r test && pnpm test:scripts",
     "test:e2e": "playwright test --config playwright/playwright.config.ts",
     "test:offline": "playwright test --config playwright/playwright.config.ts --grep @offline playwright/offline.spec.ts",
     "generate:storage-fixtures": "pnpm build && node scripts/storage-fixtures.mjs",
@@ -35,7 +36,8 @@
     "measure:warm-bytes": "pnpm build && node benchmarks/scripts/measure-warm-bytes.mjs",
     "verify:warm-bytes": "pnpm build && node benchmarks/scripts/measure-warm-bytes.mjs --check",
     "render:privacy": "node scripts/render-privacy-table.mjs --write",
-    "verify:privacy-table": "node scripts/render-privacy-table.mjs --check"
+    "verify:privacy-table": "node scripts/render-privacy-table.mjs --check",
+    "test:scripts": "node --test scripts/ensure-core-built.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0",

@@ -1,6 +1,6 @@
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, type Plugin } from "vite";
-import { existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, createReadStream, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { renderIconPng } from "../../scripts/make-icons.mjs";
 import { appManifest } from "./src/lib/sw/manifest.js";
@@ -113,8 +113,43 @@ function pwaAssets(): Plugin {
   };
 }
 
+/**
+ * Dev only: the production server (scripts/serve-app.mjs) serves the repository's model assets at
+ * `/assets/models/*`, but `vite dev` had no such mapping — its SPA fallback answered the manifest
+ * probe with `index.html`, so every preparation attempt failed as `unavailable` and the capture
+ * screen never left "Models are not on this device yet". This mirrors the production mapping for
+ * the dev server alone; the build keeps model assets out of the bundle on purpose (W1.1's
+ * `assertNoModelAssets`), so the plugin does not apply at build time.
+ */
+function devModelAssets(): Plugin {
+  return {
+    name: "receipt-lens:dev-model-assets",
+    apply: "serve" as const,
+    configureServer(server) {
+      const modelDir = path.resolve(import.meta.dirname, "../../assets/models");
+      const contentTypes: Record<string, string> = {
+        ".json": "application/json",
+        ".onnx": "application/octet-stream",
+        ".txt": "text/plain",
+      };
+      server.middlewares.use((req, res, next) => {
+        const url = (req.url ?? "").split("?")[0]!;
+        if (!url.startsWith("/assets/models/")) return next();
+        const name = url.slice("/assets/models/".length);
+        const file = path.resolve(modelDir, name);
+        if (!file.startsWith(`${modelDir}${path.sep}`) || !existsSync(file) || !statSync(file).isFile()) {
+          res.statusCode = 404;
+          return res.end();
+        }
+        res.setHeader("content-type", contentTypes[path.extname(file)] ?? "application/octet-stream");
+        createReadStream(file).pipe(res);
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [svelte(), pwaAssets()],
+  plugins: [svelte(), devModelAssets(), pwaAssets()],
   build: {
     // dist/ holds tsc output for the pure-TS modules; the deployable shell bundle goes to dist/app so
     // ticket 08's footprint remeasurement (DECISIONS/0017 D9) has one directory to read.

@@ -19,6 +19,12 @@ jobs:
       # built SHAPE is asserted later in this job by playwright/smoke.spec.ts, which reads
       # packages/pwa/dist/app and fails if the OCR runtime appears in the shell bundle.
       - run: pnpm build
+      # The app and its tests import `@receipt-lens/core` from its built `dist/`, which is gitignored and so is
+      # not restored by a checkout. A tree whose `dist` is older than `src` tests old parser behaviour while
+      # reporting green — that happened on 2026-11-09, when a walk through candidate commits left `dist` three
+      # days behind `src` and the served app kept parsing with the retired rules. `pnpm build` just rebuilt it;
+      # this asserts that the rebuild actually covered core instead of assuming it.
+      - run: pnpm verify:core-dist
       # Ticket 14's migration rig: a second Vite entry, deliberately outside the shipped bundle
       # (DECISIONS/0023 S1). Built here so playwright/persistence.spec.ts can drive the gate and abort
       # screens against a synthetic step, and smoke.spec.ts fails if any of it leaked into dist/app.
