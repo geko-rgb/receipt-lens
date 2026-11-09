@@ -3,7 +3,7 @@
 **A privacy-first, fully in-browser receipt parser and bill splitter.**
 
 A receipt photo goes in on your device. Items, quantities and charges come out as a reviewable draft.
-Participants are assigned at unit granularity, the bill is locked once it reconciles, and everyone gets
+Participants are assigned at unit granularity, the bill is locked only once nothing is left unanswered, and everyone gets
 an exact share with a UPI payment amount — computed locally, shared as an encrypted URL fragment, and
 settled manually.
 
