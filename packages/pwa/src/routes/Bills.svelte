@@ -176,3 +176,17 @@
     <p data-testid="backup-file">Saved as {backupFile} in your downloads.</p>
   {/if}
 </section>
+
+<style>
+  /* The shell theme styles the panels, list rows and controls; this covers only the delete
+     dialog's locked-bill warning, which has no counterpart anywhere else in the shell. */
+  .warning {
+    margin: 10px 0;
+    padding: 10px 12px;
+    border: 1px solid #ecd9ae;
+    border-radius: 10px;
+    color: #6b5a2e;
+    background: var(--amber, #fff3d9);
+    font-size: 12px;
+  }
+</style>

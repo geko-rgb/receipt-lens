@@ -288,13 +288,15 @@
 {/if}
 
 <style>
+  /* Shares render inside #shell-view, so the shell theme supplies notices, badges, buttons and
+     inputs. These rules cover the share-specific pieces in the same forest/lime language. */
   .rows {
     list-style: none;
     padding: 0;
-    margin: 8px 0;
+    margin: 12px 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 9px;
   }
 
   .row {
@@ -302,64 +304,54 @@
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
-    border-bottom: 1px solid #eee;
-    padding: 6px 0;
+    padding: 12px 14px;
+    border: 1px solid var(--line, #e7e9e2);
+    border-radius: 12px;
+    background: var(--surface, #fff);
+  }
+
+  .row[data-mine="true"] {
+    border-color: #d8e8bf;
+    background: #f6faee;
   }
 
   .name {
-    font-weight: 600;
+    font-weight: 620;
     min-width: 6rem;
-  }
-
-  .badge {
-    border-radius: 3px;
-    padding: 1px 6px;
-    font-size: 0.78em;
-    background: #cfe2ff;
-    color: #084298;
+    color: var(--ink, #1d2923);
   }
 
   .picker {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
-    margin: 8px 0 4px;
+    margin: 14px 0 4px;
+    color: var(--ink-soft, #4f5d54);
+    font-size: 12px;
+    font-weight: 620;
   }
 
   .disclosure {
-    border: 1px solid #ffe28a;
-    background: #fff8e1;
-    border-radius: 4px;
-    padding: 10px 12px;
+    border: 1px solid #ecd9ae;
+    background: var(--amber, #fff3d9);
+    border-radius: 12px;
+    padding: 12px 14px;
     margin-top: 16px;
+    color: #6b5a2e;
+    font-size: 12px;
     font-weight: 500;
   }
 
   .facts {
     font-size: 0.82em;
-    color: #555;
+    color: var(--muted, #7c8780);
     padding-left: 18px;
-  }
-
-  .hint,
-  .placeholder,
-  .raw {
-    font-size: 0.82em;
-    color: #555;
   }
 
   .raw {
     display: block;
     margin-bottom: 8px;
-  }
-
-  .alert-error {
-    background: #f8d7da;
-    color: #842029;
-    border: 1px solid #f5c6cb;
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin: 8px 0;
   }
 
   ul {

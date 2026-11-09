@@ -799,13 +799,16 @@
 {/if}
 
 <style>
+  /* Palette comes from the shell theme in app.css — this page renders inside #shell-view, and the
+     global #shell-view rules carry the surfaces, buttons, inputs, notices and badges. These rules
+     only add what the shell does not already cover, in the same forest/lime language. */
   .row {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
-    border-bottom: 1px solid #eee;
-    padding: 6px 0;
+    border-bottom: 1px solid var(--line, #e7e9e2);
+    padding: 8px 0;
   }
 
   .inline {
@@ -814,6 +817,18 @@
     gap: 8px;
     align-items: center;
     margin: 8px 0;
+  }
+
+  .start-over {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .totals p {
+    margin: 0 0 6px;
+    font-size: 12px;
   }
 
   .line-name {
@@ -829,67 +844,79 @@
   }
 
   .provenance,
-  .hint,
   .refs {
     font-size: 0.8em;
-    color: #555;
+    color: var(--muted, #7c8780);
   }
 
-  .dialog-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
+  /* The kept photo sits inside a plain button so a click enlarges it; the button must not look
+     like a control, and the evidence boxes align to the rendered image, not the button. */
+  .photo-frame {
+    display: block;
+    width: fit-content;
+    min-height: 0;
+    padding: 0;
+    border: 1px solid var(--line, #e7e9e2);
+    border-radius: 12px;
+    background: none;
+    box-shadow: 0 8px 22px rgba(38, 52, 39, 0.12);
   }
 
-  .dialog {
-    background: #fff;
-    border-radius: 6px;
-    padding: 16px 20px;
-    max-width: 32rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  .photo-stack {
+    position: relative;
+    display: block;
+    line-height: 0;
   }
 
-  .badge {
+  .photo-stack img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+  }
+
+  .evidence-box {
+    position: absolute;
+    border: 2px solid rgba(169, 216, 63, 0.9);
+    background: rgba(205, 241, 106, 0.16);
     border-radius: 3px;
-    padding: 1px 6px;
-    font-size: 0.75em;
+    pointer-events: none;
   }
 
-  .badge-ok {
-    background: #d1e7dd;
-    color: #0f5132;
+  .evidence {
+    display: grid;
+    gap: 4px;
+    margin: 10px 0;
+    padding: 0;
+    list-style: none;
+    font-size: 0.82em;
   }
 
-  .critical {
-    color: #842029;
+  .evidence li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--line, #e7e9e2);
   }
 
-  .minor {
-    color: #66519a;
+  .row-text {
+    color: var(--ink, #1d2923);
   }
 
-  .alert-error {
-    background: #f8d7da;
-    color: #842029;
-    border: 1px solid #f5c6cb;
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin: 8px 0;
+  /* The enlarged photo needs more room than the shell's 520px dialog gives it. */
+  .photo-dialog {
+    max-width: min(92vw, 54rem);
   }
 
-  .notice {
-    background: #d1e7dd;
-    color: #0f5132;
-    border-radius: 4px;
-    padding: 8px 12px;
-    margin: 8px 0;
-  }
-
-  section {
-    margin-top: 20px;
+  .photo-dialog img {
+    display: block;
+    max-width: 100%;
+    max-height: 70vh;
+    height: auto;
+    margin: 10px 0;
+    border: 1px solid var(--line, #e7e9e2);
+    border-radius: 10px;
   }
 </style>
